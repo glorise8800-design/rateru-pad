@@ -1388,8 +1388,51 @@ const Pipe = {
     const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;
     const lines=[head,...this.list(true).map(x=>[x.kakudo,x.inputDate,x.name,x.address,x.customer,x.requester,x.phone,x.tanto1,x.tanto2,x.request,x.cost,x.status,x.estimate,x.schedule,x.progress,x.next,...PIPE_ARRANGE.map(a=>x[a[0]]),x.start,x.end,x.pid])].map(r=>r.map(q).join(','));
     const u=URL.createObjectURL(new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download=`案件進捗-${todayISO()}.csv`; document.body.appendChild(a); a.click(); a.remove(); toast('CSVを書き出しました');
+  },
+  // 案件進捗シート（Googleスプレッドシート）から書き出したCSVを読み込む。読み込んだ内容はこの端末の中だけに入る
+  async importFile(file){
+    const buf=await file.arrayBuffer(); let text=new TextDecoder('utf-8').decode(buf);
+    if(text.includes('\uFFFD')) try{ text=new TextDecoder('shift_jis').decode(buf); }catch(e){}
+    const items=pipeFromCsv(text);
+    if(!items.length){ toast('案件が見つかりませんでした。「物件名」の列があるCSVを選んでください'); return; }
+    confirmBox(`CSVから ${items.length}件の案件を読み込みました。今の案件進捗（サンプルを含む）と入れ替えます。`,'入れ替える',()=>{
+      S.pipeline=items; save(); Pipe.view='sheet'; render(); toast(`${items.length}件を入れました`); });
   }
 };
+function parseCsv(text){
+  const rows=[]; let row=[], cell='', q=false; text=text.replace(/^\uFEFF/,'');
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=c; continue; }
+    if(c==='"') q=true; else if(c===','){ row.push(cell); cell=''; } else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cell); rows.push(row); row=[]; cell=''; } else cell+=c; }
+  if(cell!==''||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+function pipeFromCsv(text){
+  const rows=parseCsv(text), norm=v=>String(v||'').replace(/[\s　]/g,'');
+  const hi=rows.findIndex(r=>r.some(c=>norm(c)==='物件名')); if(hi<0) return [];
+  const H=rows[hi].map(norm), col=(...names)=>H.findIndex(h=>names.some(n=>h===n||h.startsWith(n)));
+  const C={kakudo:col('案件確度','確度'),inputDate:col('入力日'),name:col('物件名'),address:col('住所'),customer:col('顧客名','顧客'),requester:col('依頼主'),phone:col('電話番号','電話'),
+    tanto1:col('担当①','担当1','担当'),tanto2:col('担当②','担当2'),request:col('依頼内容'),cost:col('応募費用'),status:col('状態'),estimate:col('見積書'),schedule:col('工程表'),
+    progress:col('進捗状況'),next:col('次回アクション'),start:col('工事開始日','開始日'),end:col('工事終了日','終了日')};
+  PIPE_ARRANGE.forEach(([k,l])=>C[k]=col(l));
+  const iso=v=>{ const m=String(v||'').trim().match(/^(\d{4})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/); return m?`${m[1]}-${pad(+m[2])}-${pad(+m[3])}`:''; };
+  const staff=v=>{ const t=String(v||'').trim(); return PIPE_STAFF.find(n=>n===t||staffShort(n)===staffShort(t)||n.replace(/\s/g,'')===t.replace(/\s/g,''))||t; };
+  const out=[]; let group='';
+  for(const r of rows.slice(hi+1)){
+    const g=k=>C[k]>=0?String(r[C[k]]??'').trim():'';
+    const filled=r.filter(c=>String(c).trim()); if(!filled.length) continue;
+    if(!g('name')){ if(filled.length===1) group=String(filled[0]).trim(); continue; }   // 顧客ごとの帯の行は見出しとして使う
+    const raw=g('status'), st=PIPE_STATUS.find(s=>s[0]===raw.replace(/\s/g,''))?.[0]||PIPE_STATUS.find(s=>raw&&(raw.includes(s[0])||s[0].includes(raw)))?.[0];
+    const x={id:uid('pl'),kakudo:PIPE_KAKUDO.includes(g('kakudo'))?g('kakudo'):(g('kakudo')||''),inputDate:iso(g('inputDate'))||'',name:g('name'),address:g('address'),
+      customer:g('customer')||(/^(完工|失注|20\d\d年)/.test(group)?'':group),requester:g('requester'),phone:g('phone'),tanto1:staff(g('tanto1')),tanto2:staff(g('tanto2')),
+      request:g('request'),cost:g('cost'),status:st||'アポイント前',estimate:g('estimate')==='完'?'完':'未',schedule:g('schedule')==='有'?'有':'無',
+      progress:[g('progress'),raw&&!st?`（シートの状態：${raw}）`:''].filter(Boolean).join('\n'),next:g('next'),start:iso(g('start')),end:iso(g('end'))||iso(g('start')),pid:'',at:nowISO(),by:myLabel()};
+    PIPE_ARRANGE.forEach(([k])=>x[k]=g(k));
+    if(x.start) x.schedule='有';
+    out.push(x);
+  }
+  return out;
+}
 
 function pPipeline(){
   const all=S.pipeline||[], open=all.filter(x=>!PIPE_CLOSED.has(x.status)), f=Pipe.f, today=todayISO();
@@ -1404,7 +1447,7 @@ function pPipeline(){
       <label class="row" style="gap:6px;font-size:12px;white-space:nowrap"><input type="checkbox" data-act="pipeFilter" data-key="closed" ${f.closed?'checked':''}> 完工・失注も表示</label></div>`;
   const body = Pipe.view==='board' ? pipeBoard() : pipeSheet();
   return `<div class="hero"><div><h2>案件進捗</h2><p>Rateruの案件進捗シートをそのまま移したものです。元請・協力会社には表示されません。</p></div>
-    <div class="acts"><button class="btn ${Pipe.view!=='board'?'primary':''}" data-act="pipeView" data-v="sheet">シート</button><button class="btn ${Pipe.view==='board'?'primary':''}" data-act="pipeView" data-v="board">状態ボード</button><button class="btn" data-act="pipeCsv">CSV出力</button><button class="btn primary" data-act="newPipe">＋ 追加</button></div></div>
+    <div class="acts"><button class="btn ${Pipe.view!=='board'?'primary':''}" data-act="pipeView" data-v="sheet">シート</button><button class="btn ${Pipe.view==='board'?'primary':''}" data-act="pipeView" data-v="board">状態ボード</button><button class="btn" data-act="pipeCsv">CSV出力</button><label class="btn">CSV読み込み<input type="file" accept=".csv,text/csv" hidden data-act="pipeImport"></label><button class="btn primary" data-act="newPipe">＋ 追加</button></div></div>
   <div class="kpis">${kpi('進行中',open.length,`全${all.length}件`)}${kpi('お客様判断待ち',open.filter(x=>x.status==='お客様見積判断待ち').length,'見積の返事待ち')}${kpi('見積書 未作成',open.filter(x=>x.estimate!=='完'&&['見積作成中','社内見積判断待ち'].includes(x.status)).length,'見積作成中・社内判断待ち')}${kpi('2週間以内の工事',in14,'工程表に載っている工事')}${kpi('工事日 未入力',noDate,'調整済・着工中なのに日付なし')}</div>
   <div class="card section">${tools}${body}</div>`;
 }
@@ -2205,6 +2248,7 @@ document.addEventListener('change', async e=>{
     const key=doc.visibility==='gr'?'gi:'+uid('f'):`${doc.pid}/${uid('f')}`; await FileStore.put(key,f); doc.fileKey=key; doc.fileName=f.name; doc.ver++; doc.updated=nowISO(); doc.type=(f.name.split('.').pop()||doc.type).toUpperCase();
     change(doc.pid,`${doc.name} v${doc.ver-1} → v${doc.ver}（旧版は使用停止）`); log(doc.pid,`図面更新 / ${doc.name} v${doc.ver}`); save(); render(); toast(`${doc.name} を v${doc.ver} に更新しました`); return;
   }
+  if(d.act==='pipeImport'){ const f=el.files[0]; el.value=''; if(f) await Pipe.importFile(f); return; }
   if(d.act==='officeFiles'){ const files=[...el.files]; if(!files.length) return; await Office.addFiles(d.coll, files, d.coll==='meetings'?{month:d.month}:{cat:d.cat}); return; }
   if(d.act==='internalFile'){
     const files=[...el.files]; if(!files.length) return; toast(`${files.length}件を保存中…`);
