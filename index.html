@@ -1395,8 +1395,15 @@ const Pipe = {
     if(text.includes('\uFFFD')) try{ text=new TextDecoder('shift_jis').decode(buf); }catch(e){}
     const items=pipeFromCsv(text);
     if(!items.length){ toast('案件が見つかりませんでした。「物件名」の列があるCSVを選んでください'); return; }
-    confirmBox(`CSVから ${items.length}件の案件を読み込みました。今の案件進捗（サンプルを含む）と入れ替えます。`,'入れ替える',()=>{
-      S.pipeline=items; save(); Pipe.view='sheet'; render(); toast(`${items.length}件を入れました`); });
+    // 追加：物件名と住所が同じ案件はすでにあるものとして飛ばす（アプリで直した内容を消さない）。入れ替え：今の一覧を全部置き換える
+    const key=x=>[x.name,x.address].map(v=>String(v||'').replace(/[\s　]/g,'')).join('|'), have=new Set(S.pipeline.map(key));
+    const add=items.filter(x=>!have.has(key(x))), dup=items.length-add.length;
+    $('#modalRoot').innerHTML=`<div class="modal"><div class="box"><p style="margin-top:0">CSVから ${items.length}件の案件を読み込みました。</p>
+      <p><b>追加する</b>：今の${S.pipeline.length}件はそのままで、新しい${add.length}件を足します。${dup?`同じ物件名・住所の${dup}件はすでにあるので飛ばします。`:''}<br><b>入れ替える</b>：今の${S.pipeline.length}件を消して、CSVの${items.length}件だけにします。</p>
+      <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-act="closeModal">やめる</button><button class="btn" id="modalReplace">入れ替える</button><button class="btn primary" id="modalOk">追加する</button></div></div></div>`;
+    const done=(list,msg)=>{ $('#modalRoot').innerHTML=''; S.pipeline=list; save(); Pipe.view='sheet'; render(); toast(msg); };
+    $('#modalOk').onclick=()=>done([...add,...S.pipeline],`${add.length}件を追加しました${dup?`（${dup}件は登録済みのため飛ばしました）`:''}`);
+    $('#modalReplace').onclick=()=>confirmBox(`今の案件進捗${S.pipeline.length}件を消して、CSVの${items.length}件と入れ替えます。アプリで直した内容も消えます。`,'入れ替える',()=>done(items,`${items.length}件を入れました`));
   }
 };
 function parseCsv(text){
