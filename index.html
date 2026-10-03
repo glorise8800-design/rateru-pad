@@ -190,6 +190,7 @@ a.ext.dbx{text-decoration:none;font-size:14px}
 .stage b{font-size:22px;line-height:1.1} .stage small{font-size:12px;font-weight:700} .stage.on{outline:3px solid var(--accent);outline-offset:-1px}
 .pcards-m{display:none;flex-direction:column;gap:10px} .pc-m{width:100%;text-align:left}
 @media(max-width:760px){.stage-row{grid-template-columns:repeat(4,minmax(0,1fr))} .pcards-m:not([hidden]){display:flex} .pt-d{display:none}}
+.ev.plan.busy{font-style:italic;font-weight:400;cursor:default}
 .perm-cat{margin:14px 0 6px;font-size:13px;color:var(--muted)} .perm-list .check{margin-bottom:6px}
 .perm-table{min-width:760px} .perm-table td,.perm-table th{padding:8px} .perm-table .me{background:var(--accent-soft)}
 .pcard .pbtns{flex-wrap:wrap;gap:6px;margin-top:auto}
@@ -2027,8 +2028,9 @@ function pPerms(){
 }
 // 家族・パートナー用：本人から共有された予定だけを見る画面（会社の案件・金額・書類・全体予定は見えない）
 function pGuest(){
-  return `<div class="hero"><div><h2>共有された予定</h2><p>あなたに共有された予定だけが表示されます。会社の案件・金額・書類・全体の予定は見られません。</p></div></div>
-  <div class="card section"><div class="empty">共有された予定はまだありません。</div></div>`;
+  const ps=(S.plans||[]).filter(p=>planVis(p)==='limited'&&(p.shareWith||[]).includes(me().id)&&(p.end||p.date)>=addDays(todayISO(),-31)).sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
+  return `<div class="hero"><div><h2>共有された予定</h2><p>あなたに共有された予定だけが表示されます。会社の案件・金額・書類・全体の予定は見られません。見るだけで、直したり、ほかの人に共有したりはできません。</p></div></div>
+  <div class="card section">${ps.map(p=>`<div class="prow" style="cursor:default"><span class="pd">${md(p.date)}${p.end?`〜${md(p.end)}`:''}</span><span class="pm"><b>${esc(p.title)}</b><small>${[p.time,p.place,staffShort(p.who)+'さんの予定'].filter(Boolean).map(esc).join('・')}</small>${p.memo?`<small>${esc(p.memo)}</small>`:''}</span></div>`).join('')||'<div class="empty">共有された予定はまだありません。</div>'}</div>`;
 }
 function pDropbox(){
   const cs=(S.dbxCases||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'ja')), fs=S.dbxFiles||[];
@@ -2563,8 +2565,10 @@ function calEvents(){
 function planEvents(who){
   const ev={}, add=(d,x)=>(ev[d]=ev[d]||[]).push(x);
   (S.plans||[]).filter(p=>!who||p.who===who||p.who===PLAN_ALL).forEach(p=>{
-    const end=p.end&&p.end>p.date?p.end:p.date;
-    for(let d=p.date; d<=end; d=addDays(d,1)) add(d,{cls:'plan',color:staffColor(p.who),sort:p.time||'',text:`${p.time?p.time+' ':''}${who?'':staffShort(p.who)+'：'}${p.title}`,act:'editPlan',id:p.id,plan:p});
+    const end=p.end&&p.end>p.date?p.end:p.date, see=canSeePlan(p);
+    if(!see&&!p.busy) return;   // 本人だけ・限定の予定は、見せる相手でなければ出さない
+    for(let d=p.date; d<=end; d=addDays(d,1)) add(d, see ? {cls:'plan',color:staffColor(p.who),sort:p.time||'',text:`${p.time?p.time+' ':''}${who?'':staffShort(p.who)+'：'}${planVis(p)!=='work'?'🔒':''}${p.title}`,act:'editPlan',id:p.id,plan:p}
+      : {cls:'plan busy',color:'#9aa0a6',sort:p.time||'',text:`${p.time?p.time+' ':''}${who?'':staffShort(p.who)+'：'}予定あり`,act:'noop'});   // 中身・元の予定の番号は出さない
   });
   pipeWorks().filter(x=>!who||x.tanto1===who||x.tanto2===who).forEach(x=>{ for(let d=x.start; d<=x.end; d=addDays(d,1)) add(d,{cls:'pipe',sort:'~',text:`${x.name} 工事`,act:'editPipe',id:x.id}); });
   if(who){ const sh=staffShort(who), mine=S.projects.filter(p=>String(p.grRep||'').includes(sh)||(p.partners||[]).some(n=>String(n).includes(sh))), ids=new Set(mine.map(p=>p.id));   // 担当している案件（Hub）の工程・検査
@@ -2573,9 +2577,18 @@ function planEvents(who){
   Object.values(ev).forEach(a=>a.sort((p,q)=>(p.sort||'').localeCompare(q.sort||'',undefined,{numeric:true})));
   return ev;
 }
+// 公開範囲：work＝仕事の予定（Rateru 全員）／private＝本人だけ／limited＝本人と、本人が指定した人だけ。busy＝ほかの人には日時と「予定あり」だけ出す
+const PLAN_VIS = [['work','仕事の予定（全員に見せる）'],['private','本人だけ'],['limited','本人と、指定した人だけ']];
+const planOwner = p => p.owner || (USERS.find(u=>u.role==='gr_admin'&&p.who&&staffShort(p.who)===u.name)||{}).id || '';
+const planVis = p => p.vis || 'work';
+const canSeePlan = (p, u=me()) => planVis(p)==='work' ? u.role==='gr_admin' : (planOwner(p)===u.id || (planVis(p)==='limited' && (p.shareWith||[]).includes(u.id)));
+const canEditPlan = (p, u=me()) => planVis(p)==='work' ? u.role==='gr_admin' : planOwner(p)===u.id;   // 本人だけ・限定の予定は本人だけが直せる（役職・システムの権限でも不可）
 const Plan = {
   form(id, date, who){
-    const x=id?S.plans.find(p=>p.id===id):{date:date||todayISO(),who:who||PIPE_STAFF[0],time:''};
+    const mine=PIPE_STAFF.find(n=>staffShort(n)===me().name);
+    const x=id?S.plans.find(p=>p.id===id):{date:date||todayISO(),who:who||mine||PIPE_STAFF[0],time:'',vis:'work'};
+    if(id&&!canEditPlan(x)){ toast('この予定は本人だけが直せます'); return; }
+    const owner=id?planOwner(x):me().id, shareOpts=USERS.filter(u=>(u.role==='gr_admin'||u.role==='guest'||u.role==='office')&&u.id!==owner);
     const whoOpts=[...PIPE_STAFF.map(n=>[n,n]),[PLAN_ALL,'全員（会社の予定）']];
     openDrawer(`${drawerHead(id?'予定':'予定を追加')}${id?lineShareRow(planLineText(x)):''}<form data-form="plan" data-id="${id||''}">
       ${sel('だれの予定','who',whoOpts,x.who)}
@@ -2583,11 +2596,18 @@ const Plan = {
       ${fld('予定','title',x.title||'','text','required placeholder="例：〇〇様 現調"')}
       <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('場所（任意）','place',x.place||'')}${fld('終わりの日（何日か続くとき）','end',x.end||'','date')}</div>
       ${area('メモ','memo',x.memo||'')}
-      <p class="perm-note">この予定はRateruだけが見られます。</p>
+      ${sel('公開範囲','vis',PLAN_VIS,planVis(x))}
+      <div class="plan-share" ${planVis(x)==='limited'?'':'hidden'}><div class="field"><label>見せる相手（本人が選ぶ）</label><div class="row" style="flex-wrap:wrap;gap:6px 14px">${shareOpts.map(u=>`<label class="row" style="gap:4px;font-size:14px"><input type="checkbox" name="share" value="${u.id}" ${(x.shareWith||[]).includes(u.id)?'checked':''}> ${esc(u.name)}</label>`).join('')}</div></div></div>
+      <label class="row plan-busy" style="gap:6px;font-size:14px;margin:4px 0 8px" ${planVis(x)==='work'?'hidden':''}><input type="checkbox" name="busy" ${x.busy?'checked':''}> ほかの人には日時と「予定あり」だけ出す（件名・場所・メモは出さない）</label>
+      <p class="perm-note">${planVis(x)==='work'?'この予定はRateruの全員が見られます。':'この予定は、あなたと、あなたが選んだ人だけが見られます。役職やシステムの権限でも見られません。'}</p>
       <div class="row" style="justify-content:space-between;margin-top:12px">${id?`<button class="btn danger" type="button" data-act="delPlan" data-id="${id}">削除</button>`:'<span></span>'}<button class="btn primary" type="submit">保存</button></div></form>`);
   },
   save(id, v){
     const d=Object.fromEntries(['who','date','end','time','title','place','memo'].map(k=>[k,String(v[k]??'').trim()]));
+    d.vis=['private','limited'].includes(v.vis)?v.vis:'work'; d.busy=d.vis!=='work'&&!!v.busy; d.shareWith=d.vis==='limited'?[...document.querySelectorAll('#drawer input[name="share"]:checked')].map(i=>i.value):[];
+    if(d.vis!=='work'&&d.who===PLAN_ALL){ toast('全員の予定は「仕事の予定」にしてください'); return; }
+    const old=id&&S.plans.find(p=>p.id===id); if(old&&!canEditPlan(old)){ toast('この予定は本人だけが直せます'); return; }
+    if(!old) d.owner=me().id;
     if(!d.title){ toast('予定を入れてください'); return; }
     if(!d.date){ toast('日付を入れてください'); return; }
     if(d.end&&d.end<d.date){ toast('終わりの日が日付より前になっています'); return; }
@@ -2596,7 +2616,7 @@ const Plan = {
     else S.plans.push({id:uid('pn'),...d,ext:'',at:nowISO(),by:myLabel()});
     view.calMonth=d.date.slice(0,7); save(); closeDrawer(); render(); toast('予定を保存しました');
   },
-  del(id){ const x=S.plans.find(p=>p.id===id); confirmBox(`「${x.title}」を削除します。`,'削除する',()=>{ S.plans=S.plans.filter(p=>p.id!==id); save(); closeDrawer(); render(); toast('削除しました'); }); }
+  del(id){ const x=S.plans.find(p=>p.id===id); if(!canEditPlan(x)){ toast('この予定は本人だけが消せます'); return; } confirmBox(`「${x.title}」を削除します。`,'削除する',()=>{ S.plans=S.plans.filter(p=>p.id!==id); save(); closeDrawer(); render(); toast('削除しました'); }); }
 };
 // TimeTree には外からつなぐ仕組みがないため、カレンダー共通のファイル（.ics）でやりとりする
 const Ical = {
@@ -2618,7 +2638,7 @@ const Ical = {
       if(place) L.push(this.fold('LOCATION:'+this.esc(place)));
       if(memo) L.push(this.fold('DESCRIPTION:'+this.esc(memo)));
       L.push('END:VEVENT'); };
-    const plans=(S.plans||[]).filter(p=>!who||p.who===who||p.who===PLAN_ALL), works=pipeWorks().filter(x=>!who||x.tanto1===who||x.tanto2===who);
+    const plans=(S.plans||[]).filter(p=>(!who||p.who===who||p.who===PLAN_ALL)&&canSeePlan(p)), works=pipeWorks().filter(x=>!who||x.tanto1===who||x.tanto2===who);
     plans.forEach(p=>ev(p.ext||p.id,p.date,p.end,p.time,(who?'':staffShort(p.who)+'：')+p.title,p.place,p.memo,p.who));
     works.forEach(x=>ev('pipe-'+x.id,x.start,x.end!==x.start?x.end:'','',x.name+' 工事',x.address,[x.request,x.tanto1&&'担当：'+[x.tanto1,x.tanto2].filter(Boolean).join('・')].filter(Boolean).join('\n')));
     L.push('END:VCALENDAR');
@@ -2669,7 +2689,7 @@ function planLineText(p){
 function pCalendar(){
   const [y,m]=view.calMonth.split('-').map(Number), first=new Date(y,m-1,1), start=new Date(y,m-1,1-first.getDay()), today=todayISO();
   const gr=me().role==='gr_admin', who=gr?(view.calWho||''):'', ev=gr&&who?planEvents(who):calEvents();
-  if(gr&&!who){ const pe=planEvents(''); Object.entries(pe).forEach(([d,a])=>{ ev[d]=[...a.filter(e=>e.cls==='plan'),...(ev[d]||[])]; }); }
+  if(gr&&!who){ const pe=planEvents(''); Object.entries(pe).forEach(([d,a])=>{ ev[d]=[...a.filter(e=>String(e.cls).startsWith('plan')),...(ev[d]||[])]; }); }
   const cells=[...Array(42)].map((_,i)=>{ const d=new Date(start); d.setDate(start.getDate()+i); return d; });
   const chips=gr?`<div class="who-chips" role="tablist" aria-label="だれのカレンダー">
       <button class="who ${!who?'on':''}" role="tab" aria-selected="${!who}" data-act="calWho" data-w="">総合</button>
@@ -3041,6 +3061,7 @@ document.addEventListener('change', async e=>{
   if(el.id==='roleSel'){ S.userId=el.value; save(); toast(`${me().roleLabel}（${me().name}）として表示中`); if(view.page==='project'&&!visibleIds().has(view.pid)) view.page='projects'; render(); return; }
   if(d.filter){ view.filters[d.filter]=el.value; render(); return; }
   if(d.act==='pick'){ view[d.key]=el.value; render(); return; }
+  if(el.name==='vis'&&el.closest('form[data-form="plan"]')){ const fm=el.closest('form'); fm.querySelector('.plan-share').hidden=el.value!=='limited'; fm.querySelector('.plan-busy').hidden=el.value==='work'; return; }
   if(d.act==='custBilling'){ const nk=v=>String(v||'').replace(/[\s　]/g,''), k=nk(d.k); let n=0; (S.pipeline||[]).forEach(x=>{ if(nk(x.customer||x.requester||'（顧客名なし）')===k){ x.billing=el.value; n++; } }); save(); render(); toast(`${d.k}の請求書の送り方を「${el.value||'未設定'}」にしました（${n}件）`); return; }
   if(d.act==='pipeFilter'){ Pipe.f[d.key]=el.type==='checkbox'?el.checked:el.value; render(); return; }
   if(d.sv){ S.surveys[d.pid][d.sv]=el.value; save(); return; }
