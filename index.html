@@ -41,6 +41,13 @@ small{color:var(--muted)}
 .nav button:hover{background:var(--dark2);color:var(--text)}
 .nav button.active{background:var(--accent);color:var(--on-accent);font-weight:700;border-radius:999px}
 .nav .badge{background:var(--band);color:var(--band-text);font-weight:700;border-radius:999px;padding:0 7px;font-size:11px;line-height:18px}
+.side-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin:0 -8px;padding:0 8px 8px}
+.nav-h{font-size:11px;color:var(--side-muted);font-weight:800;letter-spacing:.14em;margin:14px 12px 4px}
+.tabs-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.tabs-bar .tb{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;padding:7px 14px;font-weight:700;font-size:14px}
+.tabs-bar .tb.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.tabs-bar .sp{flex:1}
+.lock-box{max-width:360px;margin:30px auto;text-align:center} .lock-box input{font-size:24px;letter-spacing:.4em;text-align:center;width:100%;padding:10px;border:1px solid var(--line);border-radius:12px;margin:12px 0}
 .sidebar-foot{margin-top:8px;font-size:12px;color:var(--side-muted);padding:0 12px}
 .main{min-width:0}
 .topbar{min-height:67px;background:var(--band);color:var(--band-text);border-bottom:3px solid var(--band-ink);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 24px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
@@ -178,6 +185,11 @@ button.pill{cursor:pointer}
 a.ext.dbx{text-decoration:none;font-size:14px}
 .perm-all summary{cursor:pointer;list-style:revert} .perm-all[open] summary{margin-bottom:10px}
 .dbx-cust{border-top:1px dashed var(--line);padding:8px 0} .dbx-cust summary{cursor:pointer} .dbx-cust .plist{margin-top:8px}
+.stage-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.stage{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.stage b{font-size:22px;line-height:1.1} .stage small{font-size:12px;font-weight:700} .stage.on{outline:3px solid var(--accent);outline-offset:-1px}
+.pcards-m{display:none;flex-direction:column;gap:10px} .pc-m{width:100%;text-align:left}
+@media(max-width:760px){.stage-row{grid-template-columns:repeat(4,minmax(0,1fr))} .pcards-m:not([hidden]){display:flex} .pt-d{display:none}}
 .perm-cat{margin:14px 0 6px;font-size:13px;color:var(--muted)} .perm-list .check{margin-bottom:6px}
 .perm-table{min-width:760px} .perm-table td,.perm-table th{padding:8px} .perm-table .me{background:var(--accent-soft)}
 .pcard .pbtns{flex-wrap:wrap;gap:6px;margin-top:auto}
@@ -371,8 +383,8 @@ body.noscroll{overflow:hidden}
 <div class="app" id="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand"><h1>RateruPAD</h1><small>案件進捗 ＋ 工程スケジュール</small></div>
-    <nav class="nav" id="nav"></nav>
-    <div class="side-projects" id="sideProjects"></div>
+    <div class="side-scroll"><nav class="nav" id="nav"></nav>
+    <div class="side-projects" id="sideProjects"></div></div>
     <div class="sidebar-foot" id="sideFoot">v0.3</div>
   </aside>
   <main class="main">
@@ -633,9 +645,20 @@ const APPROVAL_STATE = {
   reiwa_wait:{label:'元請承認待ち',pill:'wait'}, gr_check:{label:'Rateru確認中',pill:'wait'}, need_answer:{label:'回答要',pill:'ng'},
   approved:{label:'承認済み',pill:'ok'}, rejected:{label:'差戻し',pill:'ng'}, answered:{label:'回答済み',pill:'ok'}
 };
+// 左のメニューの分け方（見出し → 画面）。ここにない画面は、上のタブから開く（案件進捗・案件チャット・工程表・出面・小口現金・財務）
+const NAV_GROUPS = [
+  ['', ['dashboard']],
+  ['案件', ['projects']],
+  ['現場', ['survey','calendar','inspection','docs','reports']],
+  ['元請・協力業者', ['approvals','client','partners']],
+  ['社内（Rateru）', ['internal','office','meetings','templates','sales','dropbox']],
+  ['設定', ['perms','settings']],
+  ['', ['guest']]
+];
+const NAV_ALIAS = {pipeline:'projects', chat:'projects', project:'projects', schedule:'calendar', dezura:'office', petty:'office', finance:'office'};
 const PAGES = [
-  ['dashboard','▦','ダッシュボード'],['projects','▤','案件一覧'],['pipeline','▥','案件進捗'],['survey','⌖','現調・採寸'],['schedule','◷','工程・スケジュール'],
-  ['inspection','✓','品質・検査'],['docs','▣','図面・資料'],['approvals','◎','承認・変更管理'],['chat','◌','案件チャット'],['reports','✎','報告・日報'],['calendar','▦','カレンダー'],['client','◇','元請専用'],['partners','△','協力業者向け'],['internal','◆','Rateru社内フォルダ'],['dezura','☷','出面'],['petty','¤','小口現金・立替'],['finance','¥','財務（川端・舟田）'],['dropbox','☁','Dropbox 資料'],['perms','⚿','権限'],['guest','◇','共有された予定'],['meetings','▤','会議資料'],['templates','▧','書類ひな形'],['sales','¥','売上管理'],['settings','⚙','設定・権限']
+  ['dashboard','▦','ダッシュボード'],['projects','▤','案件（一覧・進捗・チャット）'],['pipeline','▥','案件進捗'],['survey','⌖','現調・採寸'],['schedule','◷','工程・スケジュール'],
+  ['inspection','✓','品質・検査'],['docs','▣','図面・資料'],['approvals','◎','承認・変更管理'],['chat','◌','案件チャット'],['reports','✎','報告・日報'],['calendar','▦','スケジュール・カレンダー'],['office','🔒','事務・財務'],['client','◇','元請専用'],['partners','△','協力業者向け'],['internal','◆','Rateru社内フォルダ'],['dezura','☷','出面'],['petty','¤','小口現金・立替'],['finance','¥','財務（川端・舟田）'],['dropbox','☁','Dropbox 資料'],['perms','⚿','権限'],['guest','◇','共有された予定'],['meetings','▤','会議資料'],['templates','▧','書類ひな形'],['sales','¥','売上管理'],['settings','⚙','設定・権限']
 ];
 const STORE_KEY = 'reiwa-gr-hub-v2';
 // 写真フォルダ：工種 × 施工前/施工中/施工後（ANDPADと同じ考え方）
@@ -669,11 +692,11 @@ function seed(){
     ({id,name,address,area,type,reiwaRep,grRep,partners,status,progress,due,next,note:'',created:'2026-09-18T10:00:00',
       client:'サンプル元請', contractNo:'2026'+id.slice(-6).replace('-',''), mgmtId:String(17770+Number(id.slice(-2))), start:addDays(due,-20)});
   const projects = [
-    P('RWD-260929-01','世田谷 戸建A','東京都世田谷区','関東','戸建','鈴木','奥田 / 高田',['協力監督A'],'build',62,'2026-10-18','中間検査 10/2'),
-    P('RWD-260929-02','横浜 マンションB','神奈川県横浜市','関東','マンション','鈴木','池田 / 奥田',[],'approve',36,'2026-10-25','追加工事承認'),
-    P('RWD-260929-03','大宮 戸建C','埼玉県さいたま市','関東','戸建','鈴木','高田',['協力監督A'],'survey',16,'2026-11-07','採寸・既存写真'),
-    P('RWD-260929-04','大阪市 マンションD','大阪府大阪市','関西','マンション','田中','奥田',[],'check',88,'2026-10-03','是正2件'),
-    P('RWD-260929-05','川崎 戸建E','神奈川県川崎市','関東','戸建','田中','高田',[],'estimate',24,'2026-11-14','見積v1提出')
+    P('RWD-260929-01','世田谷 戸建A','東京都世田谷区','関東','戸建','鈴木','作本 / 川端',['協力監督A'],'build',62,'2026-10-18','中間検査 10/2'),
+    P('RWD-260929-02','横浜 マンションB','神奈川県横浜市','関東','マンション','鈴木','児玉 / 井上',[],'approve',36,'2026-10-25','追加工事承認'),
+    P('RWD-260929-03','大宮 戸建C','埼玉県さいたま市','関東','戸建','鈴木','作本',['協力監督A'],'survey',16,'2026-11-07','採寸・既存写真'),
+    P('RWD-260929-04','大阪市 マンションD','大阪府大阪市','関西','マンション','田中','井上',[],'check',88,'2026-10-03','是正2件'),
+    P('RWD-260929-05','川崎 戸建E','神奈川県川崎市','関東','戸建','田中','児玉',[],'estimate',24,'2026-11-14','見積v1提出')
   ];
   const surveys = {};
   const sv = (pid, states, date, owner) => surveys[pid] = {date, owner, items:SURVEY_TEMPLATE.map(([t,d],i)=>({title:t,desc:d,state:states[i]||'todo',note:''}))};
@@ -749,7 +772,7 @@ function seed(){
     L('2026-09-29T17:40:00','RWD-260929-04','完了検査 / 是正2件'), L('2026-09-29T15:00:00','RWD-260929-01','材料納期確定 / 建具・床材'),
     L('2026-09-29T11:10:00','RWD-260929-02','見積更新 / v3を提出'), L('2026-09-29T09:30:00','RWD-260929-03','現調完了 / 写真46枚・採寸票登録済み')
   ];
-  return {version:2, userId:'u_gr_admin', pipeline:pipelineSeed(), ...officeSeed(), plans:planSeed(), dbxCases:[], dbxFiles:[], dezura:[], bank:[], petty:[], projects, surveys, tasks, estimates, docs, photos:[], reports, notices, todos, inspections, corrections, approvals, messages, activity, changes:[
+  return {version:2, userId:'u_gr_admin', pipeline:pipelineSeed(), ...officeSeed(), plans:planSeed(), dbxCases:[], dbxFiles:[], dezura:[], bank:[], petty:[], settings:[], internal:[], projects, surveys, tasks, estimates, docs, photos:[], reports, notices, todos, inspections, corrections, approvals, messages, activity, changes:[
     {at:'2026-09-29T12:05:00',pid:'RWD-260929-01',text:'外壁下地 追加申請',by:'Rateru 池田'},
     {at:'2026-09-24T17:30:00',pid:'RWD-260929-01',text:'内装仕様 v2 → v3',by:'元請 設計'}
   ]};
@@ -757,7 +780,7 @@ function seed(){
 
 /* ============ 保存（localStorage + IndexedDB） ============ */
 let S;
-function load(){ let d=null; try{ const raw=localStorage.getItem(STORE_KEY); if(raw){ const j=JSON.parse(raw.replace(/令和さん/g,'元請').replace(/令和/g,'元請'));   /* 以前のお試しデータの表記を合わせる */ if(j&&j.version===2) d=j; } }catch(e){} d=d||seed(); ['reports','notices','todos','internal','pipeline','meetings','templates','sales','dbxCases','dbxFiles','dezura','bank','petty'].forEach(k=>d[k]=d[k]||[]); if(!d.plans) d.plans=planSeed(); return d; }
+function load(){ let d=null; try{ const raw=localStorage.getItem(STORE_KEY); if(raw){ const j=JSON.parse(raw.replace(/令和さん/g,'元請').replace(/令和/g,'元請'));   /* 以前のお試しデータの表記を合わせる */ if(j&&j.version===2) d=j; } }catch(e){} d=d||seed(); ['reports','notices','todos','internal','pipeline','meetings','templates','sales','dbxCases','dbxFiles','dezura','bank','petty','settings'].forEach(k=>d[k]=d[k]||[]); if(!d.plans) d.plans=planSeed(); return d; }
 function save(){ if(MODE==='server'){ Sync.schedule(); return; } try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(e){ toast('この端末に保存できませんでした（ブラウザの保存領域を確認してください）'); } }
 const FileStore = (() => {
   let dbp = null; const mem = new Map();
@@ -817,7 +840,7 @@ const ROLE_COMPANY={reiwa_admin:'reiwa',reiwa_sales:'reiwa',gr_admin:'gr',partne
 const ROLE_NAME = {gr_admin:'Rateru 管理者', reiwa_admin:'元請 管理者', reiwa_sales:'元請 営業', partner:'協力会社', office:'事務', guest:'限定予定の閲覧者'};
 const roleLabel = r => ROLE_NAME[r] || r;
 const loginEmail = id => id.includes('@') ? id.trim() : `${id.trim()}@${CFG().loginDomain||'hub.local'}`;
-const emptyState = () => ({version:2,userId:null,projects:[],surveys:{},tasks:[],estimates:[],docs:[],photos:[],reports:[],notices:[],todos:[],inspections:{},corrections:[],approvals:[],messages:[],activity:[],changes:[],internal:[],pipeline:[],meetings:[],templates:[],sales:[],plans:[],dbxCases:[],dbxFiles:[],dezura:[],bank:[],petty:[]});
+const emptyState = () => ({version:2,userId:null,projects:[],surveys:{},tasks:[],estimates:[],docs:[],photos:[],reports:[],notices:[],todos:[],inspections:{},corrections:[],approvals:[],messages:[],activity:[],changes:[],internal:[],pipeline:[],meetings:[],templates:[],sales:[],plans:[],dbxCases:[],dbxFiles:[],dezura:[],bank:[],petty:[],settings:[]});
 function loadScript(src){ return new Promise((res,rej)=>{ const e=document.createElement('script'); e.src=src; e.onload=res; e.onerror=rej; document.head.appendChild(e); }); }
 
 const Remote = {
@@ -827,7 +850,7 @@ const Remote = {
   async del(key){ const [b,path]=this.loc(key); await SB.storage.from(b).remove([path]); }
 };
 
-const OFFICE_KIND = {meeting:'meetings',template:'templates',sale:'sales',plan:'plans',dbxcase:'dbxCases',dbxfile:'dbxFiles',dezura:'dezura',bank:'bank',petty:'petty'};   // 会議資料・書類ひな形・売上（Rateruだけ）
+const OFFICE_KIND = {meeting:'meetings',template:'templates',sale:'sales',plan:'plans',dbxcase:'dbxCases',dbxfile:'dbxFiles',dezura:'dezura',bank:'bank',petty:'petty',setting:'settings'};   // 会議資料・書類ひな形・売上（Rateruだけ）
 const RECORD_KIND = {todo:'todos',report:'reports',notice:'notices',task:'tasks',estimate:'estimates',doc:'docs',photo:'photos',correction:'corrections',approval:'approvals',message:'messages',activity:'activity',change:'changes'};
 const Sync = {
   synced:{projects:new Map(), records:new Map(), internal_records:new Map()},
@@ -848,7 +871,7 @@ const Sync = {
       for(const e of S.estimates) if(ids.has(e.pid)) out.internal_records.push({id:'cost:'+e.id,project_id:e.pid,kind:'estimate_cost',data:{estimateId:e.id,cost:e.cost||0}});
       for(const x of S.internal) out.internal_records.push({id:x.id,project_id:ids.has(x.pid)?x.pid:null,kind:x.kind,data:x});
       for(const x of (S.pipeline||[])) out.internal_records.push({id:x.id,project_id:ids.has(x.pid)?x.pid:null,kind:'pipeline',data:x});   // 案件進捗はRateruだけ
-      for(const [kind,key] of [['meeting','meetings'],['template','templates'],['sale','sales'],['plan','plans'],['dbxcase','dbxCases'],['dbxfile','dbxFiles'],['dezura','dezura'],['bank','bank'],['petty','petty']]) for(const x of (S[key]||[])) out.internal_records.push({id:x.id,project_id:null,kind,data:x});
+      for(const [kind,key] of [['meeting','meetings'],['template','templates'],['sale','sales'],['plan','plans'],['dbxcase','dbxCases'],['dbxfile','dbxFiles'],['dezura','dezura'],['bank','bank'],['petty','petty'],['setting','settings']]) for(const x of (S[key]||[])) out.internal_records.push({id:x.id,project_id:null,kind,data:x});
     }
     return out;
   },
@@ -965,8 +988,10 @@ function pInternal(){
     .sort((a,b)=>b.miss.length-a.miss.length);
   const totalMiss=rows.reduce((s,r)=>s+r.miss.length,0);
   const items=S.internal;
+  const officeCard=`<button class="card tpl" data-act="nav" data-page="office" style="margin-bottom:16px;width:100%"><b>🔒 事務・財務</b><small>出面・小口現金・立替${canFinance()?'・財務（粗利・月末の支払・入金の突き合わせ）':''}。暗証番号で開きます</small></button>`;
   return `<div class="hero"><div><h2>Rateru社内フォルダ</h2><p>Rateruだけが見られる場所です。元請・協力会社の画面には出ず、サーバー側でも読めないように制限しています。</p></div>
     <div class="acts"><button class="btn" data-act="newNote">＋ 社内メモ</button><label class="btn primary">＋ ファイルを入れる<input type="file" multiple hidden data-act="internalFile"></label></div></div>
+  ${officeCard}
   <div class="card section"><h3>こちらが出すべきもの（未提出 ${totalMiss}件）</h3>
     <p class="muted" style="margin-top:0">各案件の今の段階までに必要な提出物を、登録されたデータから自動で判定しています。</p>
     <div class="tablewrap"><table><thead><tr><th>案件</th><th>段階</th><th>未提出</th><th>済</th></tr></thead><tbody>
@@ -1271,7 +1296,7 @@ const Move = {
     const j=JSON.parse(text);
     const pack = j.format==='reiwa-gr-hub-backup' ? j : {format:'reiwa-gr-hub-backup',version:1,exportedAt:null,data:j,files:{}};   // 旧形式（データだけ）も受け付ける
     const d=pack.data; if(!d || !Array.isArray(d.projects)) throw new Error('形式が違います');
-    for(const k of ['tasks','estimates','docs','photos','reports','notices','todos','corrections','approvals','messages','activity','changes','internal','pipeline','meetings','templates','sales','plans','dbxCases','dbxFiles','dezura','bank','petty']) d[k]=Array.isArray(d[k])?d[k]:[];
+    for(const k of ['tasks','estimates','docs','photos','reports','notices','todos','corrections','approvals','messages','activity','changes','internal','pipeline','meetings','templates','sales','plans','dbxCases','dbxFiles','dezura','bank','petty','settings']) d[k]=Array.isArray(d[k])?d[k]:[];
     d.surveys=d.surveys||{}; d.inspections=d.inspections||{}; d.version=2;
     return pack;
   },
@@ -1353,8 +1378,9 @@ function render(){
   renderNav(); renderTop();
   const c=$('#content');
   if(!canSeePage(view.page)) view.page = me().role==='guest' ? 'guest' : me().role==='office' ? 'dezura' : 'dashboard';
-  const fn={dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,perms:pPerms,petty:pPetty,dezura:pDezura,finance:pFinance,dropbox:pDropbox,guest:pGuest,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
+  const fn={dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,perms:pPerms,office:pOfficeHome,petty:pPetty,dezura:pDezura,finance:pFinance,dropbox:pDropbox,guest:pGuest,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
   const ae=document.activeElement, keep=(ae&&ae.id&&c.contains(ae))?{id:ae.id,v:ae.value,s:ae.selectionStart}:null;
+  if(LOCKED_PAGES.has(view.page)&&!view.lockOpen){ c.innerHTML=lockGate(); const pin=$('#lk_pin'); if(pin) setTimeout(()=>pin.focus(),30); return; }
   c.innerHTML=fn();
   if(keep){ const n=document.getElementById(keep.id); if(n){ if(keep.id==='chatInput') n.value=keep.v; n.focus(); try{ n.setSelectionRange(keep.s,keep.s); }catch(e){} } }
   if(view.page==='settings' && MODE==='server' && me().role==='gr_admin'){ Members.load(); LineCfg.load(); }
@@ -1366,11 +1392,12 @@ function renderNav(){
   const ids=visibleIds();
   const pend=S.approvals.filter(a=>ids.has(a.pid)&&['reiwa_wait','gr_check','need_answer'].includes(a.state)).length;
   const active=visibleProjects().filter(p=>p.status!=='done').length;
-  $('#nav').innerHTML=PAGES.filter(([id])=>canSeePage(id)).map(([id,ic,l])=>{
+  const cur=NAV_ALIAS[view.page]||view.page, P=Object.fromEntries(PAGES.map(x=>[x[0],x]));
+  const label=(id,l)=>id==='office'?(canFinance()?'事務・財務':'事務（出面・小口現金）'):l;
+  $('#nav').innerHTML=NAV_GROUPS.map(([h,ids])=>{ const vis=ids.filter(id=>P[id]&&canSeePage(id)); if(!vis.length) return '';
+    return (h?`<div class="nav-h">${h}</div>`:'')+vis.map(id=>{ const [,ic,l]=P[id];
     const b = id==='dashboard'&&active ? `<span class="badge">${active}</span>` : id==='approvals'&&pend ? `<span class="badge">${pend}</span>` : '';
-    const act = view.page===id || (view.page==='project'&&id==='projects');
-    return `<button data-act="nav" data-page="${id}" class="${act?'active':''}"><span>${ic}　${l}</span>${b}</button>`;
-  }).join('');
+    return `<button data-act="nav" data-page="${id}" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('');
   const favs=Favs.get(), act=visibleProjects().filter(p=>p.status!=='done').sort((a,b)=>(favs.has(b.id)-favs.has(a.id)));
   $('#sideProjects').innerHTML=`<h4>進行中案件</h4>${act.slice(0,12).map(p=>`<button data-act="open" data-pid="${p.id}" title="${esc(p.name)}">${favs.has(p.id)?'★ ':''}${esc(p.name)}</button>`).join('')||'<small style="padding:0 12px">ありません</small>'}`;
   $('#sideFoot').textContent = MODE==='server' ? 'v0.3 サーバー版' : 'v0.3 お試し版（この端末に保存）';
@@ -1450,11 +1477,14 @@ function projectBoard(rows){
       ${can?`<div class="row">${i>0?`<button class="btn sm" data-act="moveStage" data-pid="${p.id}" data-d="-1" aria-label="前の段階へ">‹</button>`:'<span></span>'}${i<STATUS_ORDER.length-1?`<button class="btn sm" data-act="moveStage" data-pid="${p.id}" data-d="1" aria-label="次の段階へ">›</button>`:''}</div>`:''}</div>`).join('')||'<small class="muted" style="padding:4px">なし</small>'}</div>`; }).join('')}</div>`;
 }
 function pProjects(){
-  const rows=filteredProjects(), board=view.projView==='board';
-  return `<div class="hero"><div><h2>案件一覧</h2><p>仕入れ後から完工まで、案件単位で一元管理。</p></div>
+  const rows=filteredProjects(), board=view.projView==='board', all=visibleProjects(), f=view.filters.status;
+  const stage=`<div class="stage-row" role="tablist" aria-label="段階で絞り込む"><button class="stage ${!f?'on':''}" data-act="stageFilter" data-s=""><b>${all.length}</b><small>すべて</small></button>${STATUS_ORDER.map(st=>`<button class="stage ${f===st?'on':''} ${STATUS[st].cls}" data-act="stageFilter" data-s="${st}"><b>${all.filter(p=>p.status===st).length}</b><small>${STATUS[st].label}</small></button>`).join('')}</div>`;
+  const cards=`<div class="pcards-m" ${board?'hidden':''}>${rows.map(p=>{ const t=nextTask(p.id); return `<button class="card pcard pc-m" data-act="open" data-pid="${p.id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><span style="min-width:0;text-align:left"><b>${esc(p.name)}</b><small>${p.id} ・ ${esc(p.address||'')}</small></span>${statusBadge(p.status)}</div><div class="row">${progressBar(p.progress)}<small>完工予定 ${md(p.due)}</small></div><small style="text-align:left">担当：${esc(p.grRep||'—')}${t?` ・ 次：${esc(t.trade)}（${md(t.start)}〜）`:''}</small></button>`; }).join('')||'<div class="empty">条件に合う案件はありません</div>'}</div>`;
+  return `${caseTabs()}<div class="hero"><div><h2>案件一覧</h2><p>仕入れ後から完工まで、案件単位で一元管理。段階のカードを押すと絞り込めます。</p></div>
     <div class="acts"><button class="btn ${!board?'primary':''}" data-act="projView" data-v="list">一覧</button><button class="btn ${board?'primary':''}" data-act="projView" data-v="board">案件ボード</button><button class="btn" data-act="csv">CSV出力</button>${perm().createProject?'<button class="btn primary" data-act="newProject">＋ 新規案件</button>':''}</div></div>
+  ${stage}
   <div class="card section">${filterBar(true)}
-    ${board?projectBoard(rows):''}<div class="tablewrap" ${board?'hidden':''}><table><thead><tr><th>案件ID</th><th>物件</th><th>エリア</th><th>区分</th><th>担当</th><th>状況</th><th>進捗</th><th>完工予定</th></tr></thead><tbody>
+    ${board?projectBoard(rows):''}${cards}<div class="tablewrap pt-d" ${board?'hidden':''}><table><thead><tr><th>案件ID</th><th>物件</th><th>エリア</th><th>区分</th><th>担当</th><th>状況</th><th>進捗</th><th>完工予定</th></tr></thead><tbody>
     ${rows.map(p=>`<tr class="clickable" data-act="open" data-pid="${p.id}"><td>${p.id}</td><td><b>${esc(p.name)}</b><br><small>${esc(p.address)}</small></td><td>${esc(p.area)}</td><td>${esc(p.type)}</td><td>${esc(p.grRep)}<br><small>元請：${esc(p.reiwaRep||'—')}</small></td><td>${statusBadge(p.status)}</td><td>${progressBar(p.progress)}</td><td>${md(p.due)}</td></tr>`).join('')||`<tr><td colspan="8" class="empty">条件に合う案件はありません</td></tr>`}
     </tbody></table></div>
     <div class="perm-note">${rows.length}件表示${perm().scope==='mine'?'（担当案件のみ表示される権限です）':''}</div>
@@ -1487,8 +1517,9 @@ function pSurvey(){
 }
 
 /* --- 案件進捗（RateruPAD）：Rateruの「案件進捗シート」をそのまま移したもの。Rateruだけが見られる --- */
-const GR_ONLY_PAGES = new Set(['internal','pipeline','meetings','templates','sales','perms','dropbox','dezura','petty']);
-const OFFICE_PAGES = new Set(['dezura','petty']);   // 事務（内藤さん）が開ける画面
+const GR_ONLY_PAGES = new Set(['internal','pipeline','meetings','templates','sales','perms','dropbox','dezura','petty','office']);
+const OFFICE_PAGES = new Set(['dezura','petty','office']);
+const LOCKED_PAGES = new Set(['office','dezura','petty','finance']);   // 暗証番号で守る（事務・財務）   // 事務（内藤さん）が開ける画面
 // 立場ごとの専用画面（Rateru管理者は確認のため両方見られる）
 const PAGE_ROLES = {client:['gr_admin','reiwa_admin','reiwa_sales'], partners:['gr_admin','partner']};
 const canSeePage = id => me().role==='office' ? OFFICE_PAGES.has(id) : me().role==='guest' ? id==='guest' : id==='guest' ? false : id==='finance' ? (me().role==='gr_admin'&&canFinance()) : GR_ONLY_PAGES.has(id) ? me().role==='gr_admin' : (!PAGE_ROLES[id] || PAGE_ROLES[id].includes(me().role));
@@ -1755,7 +1786,7 @@ function pPipeline(){
       <select data-act="pipeFilter" data-key="kakudo" aria-label="案件確度">${opt(PIPE_KAKUDO,f.kakudo,'確度：すべて')}</select>
       <label class="row" style="gap:6px;font-size:12px;white-space:nowrap"><input type="checkbox" data-act="pipeFilter" data-key="closed" ${f.closed?'checked':''}> 完工・失注も表示</label></div>`;
   const body = Pipe.view==='board' ? pipeBoard() : Pipe.view==='cust' ? pipeCustomers() : pipeSheet();
-  return `<div class="hero"><div><h2>案件進捗</h2><p>Rateruの案件進捗シートをそのまま移したものです。元請・協力会社には表示されません。</p></div>
+  return `${caseTabs()}<div class="hero"><div><h2>案件進捗</h2><p>Rateruの案件進捗シートをそのまま移したものです。元請・協力会社には表示されません。</p></div>
     <div class="acts"><button class="btn ${!['board','cust'].includes(Pipe.view)?'primary':''}" data-act="pipeView" data-v="sheet">シート</button><button class="btn ${Pipe.view==='board'?'primary':''}" data-act="pipeView" data-v="board">状態ボード</button><button class="btn ${Pipe.view==='cust'?'primary':''}" data-act="pipeView" data-v="cust">顧客別</button><button class="btn" data-act="pipeCsv">CSV出力</button><label class="btn">CSV読み込み<input type="file" accept=".csv,text/csv" hidden data-act="pipeImport"></label><button class="btn primary" data-act="newPipe">＋ 追加</button></div></div>
   <div class="kpis">${kpi('進行中',open.length,`全${all.length}件`)}${kpi('お客様判断待ち',open.filter(x=>x.status==='お客様見積判断待ち').length,'見積の返事待ち')}${kpi('見積書 未作成',open.filter(x=>x.estimate!=='完'&&['見積作成中','社内見積判断待ち'].includes(x.status)).length,'見積作成中・社内判断待ち')}${kpi('2週間以内の工事',in14,'工程表に載っている工事')}${kpi('工事日 未入力',noDate,'調整済・着工中なのに日付なし')}</div>
   <div class="card section">${tools}${body}</div>`;
@@ -2124,7 +2155,7 @@ function pFinance(){
   const rate=(a,b)=>a?Math.round((a-b)/a*100)+'%':'—', ys=sum(inY.filter(x=>x.type==='sale')), yb=sum(inY.filter(x=>x.type==='buy'));
   const kpi=(l,n,sub)=>`<div class="card kpi money"><div class="label">${l}</div><div class="num">${n}</div><div class="sub">${sub}</div></div>`;
   const pay=payBlock();
-  return `<div class="hero"><div><h2>財務</h2><p>粗利（案件別・担当別・月別）を見る、川端さん・舟田さんだけの画面です。ほかの人には表示されません。</p></div>
+  return `${officeTabs()}<div class="hero"><div><h2>財務</h2><p>粗利（案件別・担当別・月別）を見る、川端さん・舟田さんだけの画面です。ほかの人には表示されません。</p></div>
     <div class="acts"><button class="btn" data-act="finYear" data-d="-1" aria-label="前の年">‹</button><button class="btn" data-act="finYear" data-d="0">${y}年</button><button class="btn" data-act="finYear" data-d="1" aria-label="次の年">›</button></div></div>
   <div class="alert" style="cursor:default"><b>試作・検証中</b>：見え方は画面で分けています。サーバー側の制御はまだ検証していません。</div>
   ${pay}
@@ -2198,7 +2229,7 @@ const Dz = {
 function pDezura(){
   const m=Dz.month(), p=Dz.period(), [a,b]=Dz.range(), rows=Dz.live().filter(x=>x.date>=a&&x.date<=b);
   const ppl=Dz.people(), tot=a=>a.reduce((n,x)=>n+(Number(x.count)||0),0);
-  return `<div class="hero"><div><h2>出面</h2><p>だれが、どの日に、どの現場で何人工か。10日ごとと月ごとに集計して、各自に送れます。</p></div>
+  return `${officeTabs()}<div class="hero"><div><h2>出面</h2><p>だれが、どの日に、どの現場で何人工か。10日ごとと月ごとに集計して、各自に送れます。</p></div>
     <div class="acts"><button class="btn primary" data-act="dzNew">＋ 出面を入れる</button><button class="btn" data-act="dzFromPlans">予定から作る</button><button class="btn" data-act="dzCsv">CSV出力</button></div></div>
   <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><button class="btn" data-act="dzMonth" data-d="-1" aria-label="前の月">‹</button><b style="min-width:100px;text-align:center">${monthLabel(m)}</b><button class="btn" data-act="dzMonth" data-d="1" aria-label="次の月">›</button>
     <div class="who-chips" style="margin:0">${DZ_PERIODS.map(([k,l])=>`<button class="who ${p===k?'on':''}" data-act="dzPeriod" data-p="${k}">${l}</button>`).join('')}</div></div>
@@ -2248,7 +2279,7 @@ const Petty = {
 };
 function pPetty(){
   const admin=Petty.admin();
-  return `<div class="hero"><div><h2>小口現金・立替</h2><p>使ったらレシートの写真と金額を入れます。${admin?'内藤さん・川端さん・舟田さんは、全員分を見て精算できます。':'自分の分だけが表示されます。'}</p></div>
+  return `${officeTabs()}<div class="hero"><div><h2>小口現金・立替</h2><p>使ったらレシートの写真と金額を入れます。${admin?'内藤さん・川端さん・舟田さんは、全員分を見て精算できます。':'自分の分だけが表示されます。'}</p></div>
     <div class="acts"><button class="btn primary" data-act="pettyNew">＋ レシートを入れる</button></div></div>
   <div class="pgrid">${Petty.people().map(w=>{ const st=Petty.state(w), open=st.xs.filter(x=>(x.kind==='use'||x.kind==='adv')&&!x.settled).sort((a,b)=>b.date.localeCompare(a.date)), hist=st.xs.filter(x=>x.kind==='refill'||x.kind==='refund').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
     return `<div class="card pcard"><b>${esc(w)}</b>
@@ -2259,6 +2290,19 @@ function pPetty(){
       <div class="row pbtns"><button class="btn sm" data-act="pettyNew" data-w="${esc(w)}">＋ 入れる</button>${admin&&st.used?`<button class="btn sm primary" data-act="pettySettle" data-w="${esc(w)}">精算して${yen(st.fl)}に戻す</button>`:''}${admin&&st.adv?`<button class="btn sm primary" data-act="pettyRefund" data-w="${esc(w)}">返金した</button>`:''}</div></div>`; }).join('')}</div>
   <p class="perm-note">精算は、手元の現金と「手元にあるはず」の額が合っているか確かめてから押してください。精算した分の記録は消えずに残ります。</p>`;
 }
+const tabsBar = (items, extra='') => `<div class="tabs-bar" role="tablist">${items.filter(Boolean).map(([id,l])=>`<button class="tb ${view.page===id?'on':''}" role="tab" aria-selected="${view.page===id}" data-act="nav" data-page="${id}">${l}</button>`).join('')}${extra}</div>`;
+const caseTabs = () => tabsBar([['projects','案件一覧'], canSeePage('pipeline')&&['pipeline','案件進捗（社内）'], ['chat','案件チャット']]);
+const schedTabs = () => tabsBar([['calendar','カレンダー'],['schedule','工程表']]);
+const officeTabs = () => tabsBar([['dezura','出面'],['petty','小口現金・立替'], canSeePage('finance')&&['finance','財務（川端・舟田）']],
+  `<span class="sp"></span>${canFinance()?'<button class="btn sm" data-act="pinChange">暗証番号を変える</button>':''}<button class="btn sm" data-act="lockClose">🔒 閉じる</button>`);
+// 事務・財務の暗証番号（最初は 1111。川端・舟田が変えられる）。※画面のロックで、データそのものを暗号にするものではない
+const officePin = () => ((S.settings||[]).find(x=>x.id==='office_pin')||{}).pin || '1111';
+function lockGate(){
+  return `<div class="card section lock-box"><div style="font-size:34px">🔒</div><h2 style="margin:6px 0">事務・財務</h2><p class="muted" style="margin:0">出面・小口現金・立替・財務は、暗証番号で守っています。</p>
+    <form data-form="unlock"><input id="lk_pin" name="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" aria-label="暗証番号" placeholder="••••"><button class="btn primary" style="width:100%" type="submit">開く</button></form>
+    <p class="perm-note">暗証番号は川端さん・舟田さんが変えられます。</p></div>`;
+}
+function pOfficeHome(){ view.page = canSeePage('finance')&&!canSeePage('dezura') ? 'finance' : 'dezura'; return view.page==='finance'?pFinance():pDezura(); }
 function pMeetings(){
   const cur=monthKey(), m=Office.mMonth||cur, set=new Set(S.meetings.map(x=>x.month));
   for(let i=-8;i<=2;i++) set.add(monthAdd(cur,i));
@@ -2361,7 +2405,7 @@ function pSchedule(){
   const pid=view.schedulePid, ids=visibleIds();
   const tasks=S.tasks.filter(t=>pid?t.pid===pid:ids.has(t.pid));
   const can=perm().schedule==='edit';
-  return `<div class="hero"><div><h2>工程・スケジュール</h2><p>工種を横断し、現場を止めない工程管理。</p></div>
+  return `${schedTabs()}<div class="hero"><div><h2>工程表</h2><p>工種を横断し、現場を止めない工程管理。案件ごと・全案件で見られます。</p></div>
     ${can?`<div class="acts"><button class="btn primary" data-act="newTask" data-pid="${pid||''}">＋ 工程を追加</button></div>`:''}</div>
   <div class="card section"><div class="field" style="max-width:360px"><label for="sc_pid">案件</label><select id="sc_pid" data-act="pick" data-key="schedulePid">${projectOptions(pid,true)}</select></div>
     <div class="gantt-wrap">${gantt(tasks,!pid)}</div>${ganttLegend}</div>${pipelineScheduleCard()}`;
@@ -2523,6 +2567,9 @@ function planEvents(who){
     for(let d=p.date; d<=end; d=addDays(d,1)) add(d,{cls:'plan',color:staffColor(p.who),sort:p.time||'',text:`${p.time?p.time+' ':''}${who?'':staffShort(p.who)+'：'}${p.title}`,act:'editPlan',id:p.id,plan:p});
   });
   pipeWorks().filter(x=>!who||x.tanto1===who||x.tanto2===who).forEach(x=>{ for(let d=x.start; d<=x.end; d=addDays(d,1)) add(d,{cls:'pipe',sort:'~',text:`${x.name} 工事`,act:'editPipe',id:x.id}); });
+  if(who){ const sh=staffShort(who), mine=S.projects.filter(p=>String(p.grRep||'').includes(sh)||(p.partners||[]).some(n=>String(n).includes(sh))), ids=new Set(mine.map(p=>p.id));   // 担当している案件（Hub）の工程・検査
+    S.tasks.filter(t=>ids.has(t.pid)).forEach(t=>{ for(let d=t.start; d<=t.end; d=addDays(d,1)) add(d,{cls:'',sort:'~~',text:`${pname(t.pid)} ${t.trade}`,pid:t.pid,tab:'schedule'}); });
+    Object.entries(S.inspections).filter(([pid])=>ids.has(pid)).forEach(([pid,x])=>{ if(x.mid?.date) add(x.mid.date,{cls:'ins',sort:'~',text:`${pname(pid)} 中間検査`,pid,tab:'check'}); if(x.final?.date) add(x.final.date,{cls:'ins',sort:'~',text:`${pname(pid)} 完了検査`,pid,tab:'check'}); }); }
   Object.values(ev).forEach(a=>a.sort((p,q)=>(p.sort||'').localeCompare(q.sort||'',undefined,{numeric:true})));
   return ev;
 }
@@ -2630,9 +2677,9 @@ function pCalendar(){
   const evBtn=e=>`<button class="ev ${e.cls}" data-act="${e.act||'open'}" data-pid="${e.pid||''}" data-tab="${e.tab||''}" data-id="${e.id||''}" title="${esc(e.text)}"${e.color?` style="--pc:${e.color}"`:''}>${esc(e.text)}</button>`;
   const inMonth=Object.keys(ev).filter(d=>d.slice(0,7)===view.calMonth).sort();
   const agenda=gr?`<div class="card section mt"><h3>${y}年${m}月の予定${who?`（${esc(staffShort(who))}）`:'（全員）'}</h3>
-    ${inMonth.map(d=>{ const es=ev[d].filter(e=>e.cls==='plan'||e.cls==='pipe'); if(!es.length) return ''; const w='日月火水木金土'[new Date(d).getDay()];
+    ${inMonth.map(d=>{ const es=ev[d].filter(e=>e.cls==='plan'||e.cls==='pipe'||(who&&(e.cls===''||e.cls==='ins'))); if(!es.length) return ''; const w='日月火水木金土'[new Date(d).getDay()];
       return `<div class="agenda ${d===today?'today':''}"><div class="ad">${Number(d.slice(8))}<small>${w}</small></div><div class="al">${es.map(evBtn).join('')}</div></div>`; }).join('')||'<div class="empty">この月の予定はありません</div>'}</div>`:'';
-  return `<div class="hero"><div><h2>カレンダー</h2><p>${gr?'名前を押すとその人の予定だけになります。「総合」で全員分と工程をまとめて見られます。':'全案件の工程・検査・日報・完工予定を月で見る。'}</p></div>
+  return `${schedTabs()}<div class="hero"><div><h2>スケジュール・カレンダー</h2><p>${gr?'名前を押すとその人の予定だけになります。「総合」で全員分と工程をまとめて見られます。':'全案件の工程・検査・日報・完工予定を月で見る。'}</p></div>
     <div class="acts">${gr?`<button class="btn primary" data-act="newPlan" data-date="${view.calMonth===today.slice(0,7)?today:view.calMonth+'-01'}" data-w="${esc(who)}">＋ 予定</button>`:''}<button class="btn" data-act="calNav" data-d="-1" aria-label="前の月">‹</button><button class="btn" data-act="calNav" data-d="0">今月</button><button class="btn" data-act="calNav" data-d="1" aria-label="次の月">›</button></div></div>
   ${chips}
   <div class="card section"><h3>${y}年${m}月${who?`　<span class="who-title" style="--pc:${staffColor(who)}">${esc(who)}</span>`:''}</h3><div class="cal-wrap"><div class="cal">${['日','月','火','水','木','金','土'].map(w=>`<div class="hd">${w}</div>`).join('')}
@@ -2683,7 +2730,7 @@ function pChat(){
   if(!view.chatPid || !ps.some(p=>p.id===view.chatPid)) view.chatPid=(ps.find(p=>S.messages.some(m=>m.pid===p.id))||ps[0]).id;
   const p=proj(view.chatPid);
   const members=[`元請 / ${p.reiwaRep}`,...p.grRep.split('/').map(s=>'Rateru / '+s.trim()),...(p.partners||[])];
-  return `<div class="hero"><div><h2>案件チャット</h2><p>案件ごとにやり取りを残し、LINE・電話依存を減らす。</p></div></div>
+  return `${caseTabs()}<div class="hero"><div><h2>案件チャット</h2><p>案件ごとにやり取りを残し、LINE・電話依存を減らす。</p></div></div>
   <div class="chat"><div><div class="field" style="max-width:360px"><label for="ch_pid">案件</label><select id="ch_pid" data-act="pick" data-key="chatPid">${projectOptions(view.chatPid)}</select></div>${chatBlock(view.chatPid)}</div>
     <div class="card section"><h3>案件メンバー</h3>${members.map(m=>`<div>${esc(m)}</div>`).join('')}
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0"><h3>通知ルール</h3><small>承認依頼・工程変更・検査NGのみ重要通知。通常会話は案件内に保存。</small></div></div>`;
@@ -2938,6 +2985,10 @@ document.addEventListener('click', async e=>{
   case 'pettySettle': Petty.settle(d.w); break;
   case 'pettyRefund': Petty.refund(d.w); break;
   case 'pettyReceipt': { const x=S.petty.find(v=>v.id===d.id); await openBlob(x.fileKey, x.fileName||'レシート'); break; }
+  case 'lockClose': view.lockOpen=false; go(me().role==='office'?'office':'internal'); toast('事務・財務を閉じました'); break;
+  case 'pinChange': if(!canFinance()){ toast('暗証番号を変えられるのは川端さん・舟田さんです'); break; }
+    openDrawer(`${drawerHead('暗証番号を変える')}<form data-form="pin">${fld('今の暗証番号','cur','','password','required inputmode="numeric" autocomplete="off"')}${fld('新しい暗証番号（4〜8けたの数字）','pin','','password','required inputmode="numeric" autocomplete="off" pattern="\\d{4,8}"')}${fld('もう一度','pin2','','password','required inputmode="numeric" autocomplete="off"')}<button class="btn primary" style="width:100%" type="submit">変える</button></form>`); break;
+  case 'stageFilter': view.filters.status=d.s||''; render(); break;
   case 'finYear': { const c=Number(Office.fYear||todayISO().slice(0,4)); Office.fYear=d.d==='0'?todayISO().slice(0,4):String(c+Number(d.d)); render(); break; }
   case 'saleMonth': Office.sMonth=Number(d.d)?monthAdd(Office.sMonth||monthKey(),Number(d.d)):monthKey(); render(); break;
   case 'saleMonthSet': Office.sMonth=d.m; render(); break;
@@ -3073,6 +3124,9 @@ document.addEventListener('submit', async e=>{
   }
   if(k==='notice'){ const t=v.text.trim(); if(!t) return; S.notices.unshift({id:uid('n'),pid:f.dataset.pid,text:t,at:nowISO(),by:myLabel()}); log(f.dataset.pid,`お知らせ / ${t.slice(0,30)}`); save(); render(); toast('お知らせを掲示しました'); return; }
   if(k==='pipe'){ Pipe.save(f.dataset.id, v); return; }
+  if(k==='unlock'){ if(String(v.pin||'')===officePin()){ view.lockOpen=true; render(); } else { toast('暗証番号が違います'); const i=$('#lk_pin'); if(i){ i.value=''; i.focus(); } } return; }
+  if(k==='pin'){ if(String(v.cur||'')!==officePin()){ toast('今の暗証番号が違います'); return; } const n=String(v.pin||''); if(!/^\d{4,8}$/.test(n)){ toast('4〜8けたの数字にしてください'); return; } if(n!==String(v.pin2||'')){ toast('2回入れた番号が違います'); return; }
+    S.settings=S.settings||[]; const x=S.settings.find(y=>y.id==='office_pin'); if(x) Object.assign(x,{pin:n,at:nowISO(),by:myLabel()}); else S.settings.push({id:'office_pin',pin:n,at:nowISO(),by:myLabel()}); save(); closeDrawer(); toast('暗証番号を変えました'); return; }
   if(k==='dezura'){ Dz.save(f.dataset.id, v); return; }
   if(k==='petty'){ await Petty.save(v, f.querySelector('input[type=file]')?.files[0]); return; }
   if(k==='banknote'){ const b=S.bank.find(x=>x.id===f.dataset.id); b.note=String(v.note||'').trim(); save(); closeDrawer(); render(); toast('メモを保存しました'); return; }
