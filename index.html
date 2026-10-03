@@ -176,6 +176,10 @@ button.pill{cursor:pointer}
 .howto{margin:10px 0 0;padding-left:1.2em;font-size:13px;line-height:1.8}
 .cust-items{display:flex;flex-direction:column;gap:6px} .cust .prow{padding:7px 10px}
 a.ext.dbx{text-decoration:none;font-size:14px}
+.perm-all summary{cursor:pointer;list-style:revert} .perm-all[open] summary{margin-bottom:10px}
+.dbx-cust{border-top:1px dashed var(--line);padding:8px 0} .dbx-cust summary{cursor:pointer} .dbx-cust .plist{margin-top:8px}
+.perm-cat{margin:14px 0 6px;font-size:13px;color:var(--muted)} .perm-list .check{margin-bottom:6px}
+.perm-table{min-width:760px} .perm-table td,.perm-table th{padding:8px} .perm-table .me{background:var(--accent-soft)}
 .pcard .pbtns{flex-wrap:wrap;gap:6px;margin-top:auto}
 @media(max-width:760px){.pgrid{grid-template-columns:minmax(0,1fr)}}
 .soon{position:relative;border:2px dashed var(--line);padding:22px}
@@ -393,6 +397,141 @@ body.noscroll{overflow:hidden}
 <div id="modalRoot"></div>
 
 <script>
+// Dropbox（Rateru案件共有Dropbox）のファイルを、RateruPAD のどこに並べるか決める仕分けのルール。
+// 本番のサーバー（Supabase Edge Function の index.ts）と、画面（build.sh で app.html に埋め込む）の両方で同じものを使う。
+// ファイルの中身は扱わない。名前・場所・日付・大きさだけを見る（原本は Dropbox に置いたまま）。
+// フォルダの形は 2026-10-03 の舟田さんの現状報告に合わせている（直下8フォルダ）。
+(function(root){
+  'use strict';
+  const TEMPLATE_CATS = ['①見積書','②請求書','③注文書','④契約書','⑤作業員名簿等','⑥日報','⑦内装仕上げ表','⑧工事案内','⑨工程表','⑩領収書','⑪Rateru工事実績資料','利益分配表','過去テンプレート','■その他 書類・印鑑など'];
+  const norm = s => String(s||'').normalize('NFKC').replace(/[\s　]/g,'');
+  // 一番上のフォルダ名 → 行き先。名前の空白（全角・半角）の違いは同じ扱い
+  const TOP = {
+    [norm('会議資料')]:          {coll:'meetings', label:'会議資料'},
+    [norm('会社書類 フォーマット')]: {coll:'templates', label:'書類ひな形'},
+    [norm('請求書 売上')]:        {coll:'sales', type:'sale', label:'売上管理（売上）'},
+    [norm('請求書 業者さんから')]:  {coll:'sales', type:'buy', label:'売上管理（仕入）'},
+    [norm('顧客・案件一覧')]:      {coll:'cases', label:'顧客・案件フォルダ'}
+  };
+  const JUNK = /^(\.|~\$)|^(desktop\.ini|thumbs\.db|\.ds_store|icon\r?)$/i;
+  const pad = n => String(n).padStart(2,'0');
+
+  // 「2026年9月」「26年9月」「2026-09」「2026.8」「202609」などから月（YYYY-MM）を読む
+  function monthOf(text){
+    const t=String(text||'').normalize('NFKC');
+    let m=t.match(/(20\d\d)\s*[年\-_.\/]\s*(\d{1,2})(?!\d)/); if(m&&+m[2]>=1&&+m[2]<=12) return `${m[1]}-${pad(+m[2])}`;
+    m=t.match(/(?:^|[^\d])(\d{2})\s*年\s*(\d{1,2})\s*月/); if(m&&+m[2]>=1&&+m[2]<=12) return `20${m[1]}-${pad(+m[2])}`;
+    m=t.match(/(?:^|[^\d])(20\d\d)(0[1-9]|1[0-2])(?!\d)/); if(m) return `${m[1]}-${m[2]}`;
+    return '';
+  }
+  // フォルダの並び（浅い→深い）から月を読む。「2025年 請求書 仕入／1月」のように年と月が別のフォルダでもよい
+  function monthOfPath(segs){
+    for(let i=segs.length-1;i>=0;i--){ const m=monthOf(segs[i]); if(m) return m; }
+    let mon=0, year='';
+    for(let i=segs.length-1;i>=0&&!mon;i--){ const m=String(segs[i]).normalize('NFKC').match(/(?:^|[^\d])(\d{1,2})\s*月/); if(m&&+m[1]>=1&&+m[1]<=12) mon=+m[1]; }
+    for(const s of segs){ const t=String(s).normalize('NFKC'); const y=t.match(/(20\d\d)\s*年/)||t.match(/(?:^|[^\d])(\d{2})\s*年/); if(y){ year=y[1].length===2?'20'+y[1]:y[1]; } }
+    return mon&&year ? `${year}-${pad(mon)}` : '';
+  }
+  const dateOf = iso => { const d=new Date(iso); if(isNaN(d)) return ''; const j=new Date(d.getTime()+9*3600*1000); return `${j.getUTCFullYear()}-${pad(j.getUTCMonth()+1)}-${pad(j.getUTCDate())}`; };   // 日本時間の日付
+  const stripExt = n => String(n).replace(/\.[A-Za-z0-9]{1,5}$/,'');
+  function templateCat(seg){
+    const s=norm(seg).replace(/^(\d+|■)/,'');   // ① は NFKC で 1 になる
+    return TEMPLATE_CATS.find(c=>{ const k=norm(c).replace(/^(\d+|■)/,''); return s && (s===k || s.startsWith(k) || k.startsWith(s)); }) || '';
+  }
+  // 請求書のファイル名から、状態・入金予定・件名を読む（金額は読まない。PAD で入れる）
+  function invoiceInfo(name, type, month){
+    const t=stripExt(name).normalize('NFKC'); let status, due='';
+    if(type==='sale') status = /(入金済|集金済|振込済)/.test(t) ? '入金済み' : /(送付済|再送)/.test(t) ? '送付済み' : '作成中';
+    else status = /(支払済|振込済)/.test(t) ? '支払済み' : '受領';
+    const d=t.match(/(\d{1,2})月(\d{1,2})日\s*(振込|入金|支払)/);
+    if(d){ let y=+(month||'').slice(0,4)||new Date().getFullYear(); if(month&&+d[1]<+month.slice(5,7)) y++; due=`${y}-${pad(+d[1])}-${pad(+d[2])}`; }
+    let title=t
+      .replace(/【[^】]*(請求書|再送)[^】]*】/g,' ')                 // 【御請求書】【ご請求書】【請求書】【再送】
+      .replace(/[※*]\s*(仮|当月)/g,' ')                            // ※仮 ※当月
+      .replace(/[※*]?\s*\d{1,2}月\d{1,2}日\s*(振込|入金|支払|現金集金済み?|集金済み?)/g,' ')
+      .replace(/(お客様)?送付済み?|入金済み?|支払済み?|現金集金済み?|集金済み?|押印済み?/g,' ')
+      .replace(/^[\s　]*(井上|川端|作本|児玉)\s*/,'')
+      .replace(/^[\s　]*20\d\d\.\d{1,2}(?!\d)/,' ')                  // 先頭の「2026.8」
+      .replace(/【(?![^【]*】)/g,' ')                                 // 閉じていない【
+      .replace(/[\s　]+/g,' ').trim();
+    return {status, due, title: title || stripExt(name)};
+  }
+  // 顧客・案件一覧の中の「完工」「失注」などの分けフォルダ
+  const caseStatus = s => { const t=norm(s); return /完工/.test(t)?'完工':/(ボツ|失注)/.test(t)?'失注':''; };
+
+  // 1件のファイル → 行き先と中身
+  function one(e){
+    const path=String(e.path_display||e.path||''), parts=path.split('/').filter(Boolean), name=e.name||parts[parts.length-1]||'';
+    if(!name || JUNK.test(name)) return {skip:'junk'};
+    const modified=e.server_modified||e.client_modified||e.modified||'';
+    const dbx={id:String(e.id||'path:'+path), path, pathLower:String(e.path_lower||path.toLowerCase()), rev:String(e.rev||''), size:Number(e.size)||0, modified, ...(e.local?{local:true}:{})};
+    const i=parts.findIndex(p=>TOP[norm(p)]);
+    // 決まりにないフォルダ（その他フォルダ・単価表・ハピスム案件PDF など）は「Dropbox 資料」に同じ形で並べる
+    if(i<0) return {coll:'files', data:{id:'dbx:'+dbx.id, name, folder:parts.slice(Math.max(0,parts.length>1?1:0),-1).join('/'), dbx}};
+    const rule=TOP[norm(parts[i])], sub=parts.slice(i+1,-1);
+    if(rule.coll==='cases') return {coll:'files', caseFile:true, data:{id:'dbx:'+dbx.id, name, folder:parts.slice(i,-1).join('/'), dbx}};
+    const base={id:'dbx:'+dbx.id, fileName:name, dbx, text:'', link:'', fileKey:null};
+    const month=monthOfPath(sub) || monthOf(name) || dateOf(modified).slice(0,7);
+    let data;
+    if(rule.coll==='meetings') data={...base, month, title:stripExt(name), folder:sub.join('/')};
+    else if(rule.coll==='templates') data={...base, cat:sub.map(templateCat).find(Boolean)||templateCat(name)||TEMPLATE_CATS[TEMPLATE_CATS.length-1], title:stripExt(name)};
+    else { const inv=invoiceInfo(name, rule.type, month); data={...base, type:rule.type, month, date:dateOf(modified), party:'', title:inv.title, amount:0, status:inv.status, due:inv.due, ...(rule.type==='sale'?{method:'振込'}:{})}; }
+    data.autoTitle=data.title;   // 自動で付けた件名（手で直したかどうかの目印）
+    return {coll:rule.coll, label:rule.label, data};
+  }
+
+  // 顧客・案件一覧のフォルダの形 → 顧客と案件の一覧（取引先 → 【完工 案件】などの分け → 案件フォルダ）
+  function casesOf(paths){
+    const custs=new Map();
+    for(const p of paths){
+      const parts=String(p).split('/').filter(Boolean), i=parts.findIndex(x=>norm(x)===norm('顧客・案件一覧'));
+      if(i<0||parts.length<=i+1) continue;
+      const c=parts[i+1], rest=parts.slice(i+2), cpath='/'+parts.slice(0,i+2).join('/');
+      if(!custs.has(norm(c))) custs.set(norm(c),{id:'dbxcust:'+norm(c), name:c, path:cpath, cases:new Map()});
+      const cu=custs.get(norm(c));
+      let j=0, status='';
+      while(j<rest.length-1 && caseStatus(rest[j])){ status=caseStatus(rest[j]); j++; }   // 分けフォルダの下が案件
+      if(j>=rest.length) continue;
+      const name=rest[j]; if(caseStatus(name)&&rest.length===j+1) continue;   // 分けフォルダそのもの
+      const k=norm(name)+'|'+status;
+      if(!cu.cases.has(k)) cu.cases.set(k,{name, status, path:'/'+parts.slice(0,i+2+j+1).join('/')});
+    }
+    return [...custs.values()].map(c=>({id:c.id, name:c.name, path:c.path, cases:[...c.cases.values()]}));
+  }
+
+  // たくさんのエントリ（ファイル・フォルダ） → 行き先ごとの一覧
+  function plan(entries){
+    const items=[], files=[], paths=[]; let junk=0, folders=0;
+    const isCase=p=>String(p).split('/').some(x=>norm(x)===norm('顧客・案件一覧'));
+    for(const e of entries||[]){
+      const p=e.path_display||e.path||'';
+      if(e['.tag']==='folder'){ folders++; if(isCase(p)) paths.push(p+'/'); continue; }
+      if(e['.tag']&&e['.tag']!=='file') continue;
+      const r=one(e);
+      if(r.skip) { junk++; continue; }
+      if(isCase(p)) paths.push(p.split('/').slice(0,-1).join('/')+'/');   // ファイルがあれば、そのフォルダもある
+      if(r.coll==='files') files.push(r.data); else if(r.coll!=='cases') items.push(r);
+    }
+    const by=c=>items.filter(x=>x.coll===c).length, cases=casesOf(paths);
+    return {items, files, cases, junk, folders,
+      counts:{meetings:by('meetings'), templates:by('templates'), sale:items.filter(x=>x.data.type==='sale').length, buy:items.filter(x=>x.data.type==='buy').length,
+        customers:cases.length, cases:cases.reduce((n,c)=>n+c.cases.length,0), files:files.length}};
+  }
+
+  // すでに PAD にある記録へ重ねる：PAD で入れた内容（金額・請求先・メモ・案件など）は残し、Dropbox 側の情報だけ新しくする
+  function merge(old, data){
+    if(!old) return data;
+    const keep={...old, dbx:data.dbx, fileName:data.fileName, autoTitle:data.autoTitle};
+    if(!old.title || old.title===old.autoTitle) keep.title=data.title;   // 件名を手で直していなければ合わせる
+    return keep;
+  }
+  // Dropbox から消えたファイル（.tag = deleted）：記録は消さずに印を付ける（PAD で入れた金額などを失わないため）
+  function markDeleted(old){ return old ? {...old, dbx:{...(old.dbx||{}), deleted:true}} : old; }
+
+  const api={TEMPLATE_CATS, monthOf, monthOfPath, templateCat, invoiceInfo, caseStatus, casesOf, one, plan, merge, markDeleted, norm};
+  root.DropboxMap=api;
+  if(typeof module!=='undefined' && module.exports) module.exports=api;
+})(typeof globalThis!=='undefined'?globalThis:this);
 'use strict';
 /* ============ 定数 ============ */
 const STATUS = {
@@ -403,15 +542,72 @@ const STATUS_ORDER = ['survey','estimate','approve','build','check','done'];
 const USERS = [
   {id:'u_reiwa_admin', name:'佐藤', company:'元請', role:'reiwa_admin', roleLabel:'元請 管理者'},
   {id:'u_reiwa_sales', name:'鈴木', company:'元請', role:'reiwa_sales', roleLabel:'元請 営業'},
-  {id:'u_gr_admin',    name:'奥田', company:'Rateru',   role:'gr_admin',    roleLabel:'Rateru 管理者'},
-  {id:'u_partner',     name:'協力監督A', company:'協力', role:'partner', roleLabel:'協力会社'}
+  {id:'u_gr_admin',    name:'川端', company:'Rateru',   role:'gr_admin',    pos:'head',    roleLabel:'Rateru 統括'},
+  {id:'u_inoue',       name:'井上', company:'Rateru',   role:'gr_admin',    pos:'deputy',  roleLabel:'Rateru 副社長'},
+  {id:'u_sakumoto',    name:'作本', company:'Rateru',   role:'gr_admin',    pos:'staff',   roleLabel:'Rateru 実務'},
+  {id:'u_kodama',      name:'児玉', company:'Rateru',   role:'gr_admin',    pos:'staff',   roleLabel:'Rateru 実務'},
+  {id:'u_funada',      name:'舟田', company:'Rateru',   role:'gr_admin',    pos:'finance', roleLabel:'財務支援'},
+  {id:'u_mukai',       name:'向',   company:'Rateru',   role:'gr_admin',    pos:'system',  roleLabel:'システム支援'},
+  {id:'u_partner',     name:'協力監督A', company:'協力', role:'partner', roleLabel:'協力会社'},
+  {id:'u_naito',       name:'内藤', company:'Rateru', role:'office', pos:'office', roleLabel:'事務'},
+  {id:'u_guest',       name:'ゲスト（家族・試作）', company:'ゲスト', role:'guest', pos:'guest', roleLabel:'限定予定の閲覧者'}
 ];
+// 社内の立場（2026-10-03 の権限一覧・試作検証版）。小林は組織・承認先・通知先に入れない
+const POS_NAME = {head:'川端',deputy:'井上',staff:'作本・児玉',finance:'舟田',system:'向'};
+const POS_ROLE = {head:'全社統括・最終判断',deputy:'取締役副社長・業務統括兼現場実務',staff:'実務担当',finance:'財務の専門支援',system:'AI・システムの専門支援'};
+const POS_ORDER = ['head','deputy','staff','finance','system'];
+// 権限一覧（docs/権限見直し/RateruPAD_権限一覧_試作検証版_20261003.xlsx と同じ内容。列は 川端・井上・作本/児玉・舟田・向）
+const PERM36 = [
+  ['P01','共通閲覧','全社の売上・支出の明細',['全社閲覧','全社閲覧','全社閲覧','全社閲覧','全社閲覧'],'本体4名の全社共有は確定。担当外の金額も隠さない'],
+  ['P02','共通閲覧','仕入・月ごとの売上と支出の合計',['全社閲覧','全社閲覧','全社閲覧','全社閲覧','全社閲覧'],'利益と現預金を混同しない。未登録の残高を推定表示しない'],
+  ['P02F','財務専用','粗利（案件別・担当別・月別）・原価・財務の画面',['管理','不可','不可','管理','不可'],'2026-10-03 ryo さん決定：粗利は川端・舟田だけ。財務の画面に入れるのも2人だけ'],
+  ['P03','共通閲覧','請求・入金状況・支払予定',['全社閲覧','全社閲覧','全社閲覧','全社閲覧','全社閲覧'],'銀行の認証情報や未確定の個人機密は含まない'],
+  ['P04','共通閲覧','全案件・進捗・図面・写真・仕様',['全社閲覧','全社閲覧','全社閲覧','全社閲覧','全社閲覧'],'Rateru内の通常共有業務情報'],
+  ['P05','共通閲覧','共有会議資料・書類ひな形',['全社閲覧','全社閲覧','全社閲覧','全社閲覧','全社閲覧'],'私的メモや限定共有資料は区別する'],
+  ['P06','案件・実務','案件の新規登録・通常項目更新',['全案件','全案件','担当内','閲覧のみ','閲覧のみ'],'実務担当は自分を担当にした下書きを新規登録できる'],
+  ['P07','案件・実務','現調・写真・日報・進捗・報告',['全案件','全案件','担当内','閲覧のみ','閲覧のみ'],'担当変更は反映時点で権限を再判定'],
+  ['P08','案件・実務','担当者の割当・変更',['全案件','全案件','変更申請','変更申請','変更申請'],'井上までで日常の人員配置を完結'],
+  ['P09','案件・実務','工程・タスク・実務調整',['全案件','全案件','担当内','自分・財務','自分・保守'],'契約工期・承認済み条件の変更は別決裁'],
+  ['P10','見積・金額','見積・売上・支出の下書き入力',['全案件','全案件','担当内','財務全件','閲覧のみ'],'確定済み金額を直接上書きしない'],
+  ['P11','見積・金額','受注・見積条件の確定判断',['最終判断','委任条件内','申請','確認・申請','不可'],'委任条件が未設定なら保留'],
+  ['P12','見積・金額','承認済み予算内の手配判断',['最終判断','委任条件内','申請','確認・申請','不可'],'条件内は井上で完結。実発注・支払はしない'],
+  ['P13','見積・金額','予算超過・値引き・重要条件変更',['最終判断','申請','申請','確認・申請','不可'],'例外だけ川端へ'],
+  ['P14','財務操作','計上・入金済み・支払済みの記録',['管理・確定','閲覧のみ','閲覧のみ','管理・確定','閲覧のみ'],'帳簿上の状態だけ。銀行の資金移動とは別'],
+  ['P15','財務操作','確定済み金額の訂正・取消',['承認・訂正','訂正申請','訂正申請','承認後訂正','不可'],'元を消さず訂正版を追加'],
+  ['P16','財務操作','銀行振込・実発注・実請求の送信',['停止','停止','停止','停止','停止'],'試作では全員停止'],
+  ['P17','予定','全体の業務予定の閲覧',['全社閲覧','全社閲覧','全社閲覧','全社閲覧','全社閲覧'],'場所は登録した予定の場所。GPS追跡ではない'],
+  ['P18','予定','業務予定の登録・変更',['全社調整','全社調整','自分・担当','自分・財務','自分'],'案件由来の工事日は案件側が正本'],
+  ['P19','予定','自分の非公開予定の閲覧・編集',['本人','本人','本人','本人','本人'],'役職・財務・保守の権限で他人の非公開予定を見ない'],
+  ['P20','予定','限定共有予定の閲覧',['本人・指定者','本人・指定者','本人・指定者','本人・指定者','本人・指定者'],'予定ごとに本人が指定した人だけ'],
+  ['P21','予定','限定予定の編集・公開範囲設定',['本人','本人','本人','本人','本人'],'共有された人は編集・再共有できない'],
+  ['P22','予定','川端の限定予定への招待・解除',['本人のみ','不可','不可','不可','不可'],'自動で追加しない。実際の招待送信は停止'],
+  ['P23','資料・出力','資料・議事録の追加・改訂',['全案件','全案件','自分・担当','財務資料','保守資料'],'上書きで旧版を失わない'],
+  ['P24','資料・出力','書類ひな形の変更',['全社','全社','改訂案','財務ひな形','改訂案'],'全社の正本の変更は別操作'],
+  ['P25','資料・出力','共有資料・金額の保存／CSV出力',['閲覧範囲内','閲覧範囲内','閲覧範囲内','閲覧範囲内','閲覧範囲内'],'非公開情報を混ぜない'],
+  ['P26','資料・出力','LINE共有・外部招待・通知送信',['模擬のみ','模擬のみ','模擬のみ','模擬のみ','模擬のみ'],'実送信はしない'],
+  ['P27','履歴・削除','最終更新／共有データの全変更履歴',['共有範囲内','共有範囲内','共有範囲内','共有範囲内','共有範囲内'],'非公開予定の履歴は非公開のまま'],
+  ['P28','履歴・削除','案件等のアーカイブ・復元',['全案件','通常業務','申請','財務は申請','不可'],'本削除は追加しない'],
+  ['P29','履歴・削除','変更履歴の改変・削除',['不可','不可','不可','不可','不可'],'通常アプリ権限で禁止'],
+  ['P30','権限・管理','業務権限の変更方針・最終承認',['決定','変更申請','変更申請','変更申請','変更申請'],'個人予定・保守資格情報への万能権限は与えない'],
+  ['P31','権限・管理','承認済み権限設定の反映',['確認・反映','不可','不可','不可','承認後反映'],'向の自己承認での拡大は不可'],
+  ['P32','権限・管理','利用者の追加・停止・期限付き代行',['決定','変更申請','不可','変更申請','承認後反映'],'パスワード共有なし'],
+  ['P33','権限・管理','AI／システム／連携の設定',['方針確認','要望・確認','要望','要望・確認','保守管理'],'向にも業務決裁・私用情報の閲覧は付けない'],
+  ['P34','AI','AI検索・要約・下書き',['閲覧範囲内','閲覧範囲内','閲覧範囲内','閲覧範囲内','閲覧範囲内'],'今の RateruPAD には AI 機能なし（今回は対象外）'],
+  ['P35','個人情報','個人給与明細・機微情報の公開',['未確定','未確定','未確定','未確定','未確定'],'実データを持ち込まない'],
+  ['P36','環境','本番変更・デプロイ・実サービス接続',['停止','停止','停止','停止','停止'],'今回の作業範囲外']
+];
+const canFinance = () => ['head','finance'].includes(myPos());   // 粗利・原価・財務の画面（川端・舟田だけ）
+const myPos = () => me().pos || (me().role==='gr_admin' ? 'head' : '');   // 本番版は立場の列ができるまで Rateru 管理者を統括として扱う
+const permCell = (id, pos=myPos()) => { const r=PERM36.find(x=>x[0]===id); const i=POS_ORDER.indexOf(pos); return r&&i>=0 ? r[3][i] : ''; };
+const permPill = v => /停止|不可/.test(v)?'ng':/申請|改訂案|要望/.test(v)?'wait':/閲覧|範囲内/.test(v)?'info':/未確定|模擬/.test(v)?'todo':'ok';
 // 権限表（設定・権限ページの表と同じ内容をコードで実際に適用する）
 const PERMS = {
   reiwa_admin:{scope:'all',  estimate:'view', docs:'edit', approval:'decide',  inspection:'view', cost:false, createProject:true,  survey:'view', schedule:'view'},
   reiwa_sales:{scope:'mine', estimate:'view', docs:'view', approval:'request', inspection:'view', cost:false, createProject:false, survey:'view', schedule:'view'},
   gr_admin:   {scope:'all',  estimate:'edit', docs:'edit', approval:'request', inspection:'edit', cost:true,  createProject:true,  survey:'edit', schedule:'edit'},
-  partner:    {scope:'mine', estimate:'none', docs:'view', approval:'none',    inspection:'photo',cost:false, createProject:false, survey:'edit', schedule:'view'}
+  partner:    {scope:'mine', estimate:'none', docs:'view', approval:'none',    inspection:'photo',cost:false, createProject:false, survey:'edit', schedule:'view'},
+  office:     {scope:'none', estimate:'none', docs:'none', approval:'none',    inspection:'none', cost:false, createProject:false, survey:'none', schedule:'none'},
+  guest:      {scope:'none', estimate:'none', docs:'none', approval:'none',    inspection:'none', cost:false, createProject:false, survey:'none', schedule:'none'}
 };
 const PERM_ROWS = [
   ['案件閲覧',  {reiwa_admin:'全件',reiwa_sales:'担当案件',gr_admin:'全件',partner:'担当案件のみ'}],
@@ -439,7 +635,7 @@ const APPROVAL_STATE = {
 };
 const PAGES = [
   ['dashboard','▦','ダッシュボード'],['projects','▤','案件一覧'],['pipeline','▥','案件進捗'],['survey','⌖','現調・採寸'],['schedule','◷','工程・スケジュール'],
-  ['inspection','✓','品質・検査'],['docs','▣','図面・資料'],['approvals','◎','承認・変更管理'],['chat','◌','案件チャット'],['reports','✎','報告・日報'],['calendar','▦','カレンダー'],['client','◇','元請専用'],['partners','△','協力業者向け'],['internal','◆','Rateru社内フォルダ'],['meetings','▤','会議資料'],['templates','▧','書類ひな形'],['sales','¥','売上管理'],['settings','⚙','設定・権限']
+  ['inspection','✓','品質・検査'],['docs','▣','図面・資料'],['approvals','◎','承認・変更管理'],['chat','◌','案件チャット'],['reports','✎','報告・日報'],['calendar','▦','カレンダー'],['client','◇','元請専用'],['partners','△','協力業者向け'],['internal','◆','Rateru社内フォルダ'],['dezura','☷','出面'],['petty','¤','小口現金・立替'],['finance','¥','財務（川端・舟田）'],['dropbox','☁','Dropbox 資料'],['perms','⚿','権限'],['guest','◇','共有された予定'],['meetings','▤','会議資料'],['templates','▧','書類ひな形'],['sales','¥','売上管理'],['settings','⚙','設定・権限']
 ];
 const STORE_KEY = 'reiwa-gr-hub-v2';
 // 写真フォルダ：工種 × 施工前/施工中/施工後（ANDPADと同じ考え方）
@@ -553,7 +749,7 @@ function seed(){
     L('2026-09-29T17:40:00','RWD-260929-04','完了検査 / 是正2件'), L('2026-09-29T15:00:00','RWD-260929-01','材料納期確定 / 建具・床材'),
     L('2026-09-29T11:10:00','RWD-260929-02','見積更新 / v3を提出'), L('2026-09-29T09:30:00','RWD-260929-03','現調完了 / 写真46枚・採寸票登録済み')
   ];
-  return {version:2, userId:'u_gr_admin', pipeline:pipelineSeed(), ...officeSeed(), plans:planSeed(), projects, surveys, tasks, estimates, docs, photos:[], reports, notices, todos, inspections, corrections, approvals, messages, activity, changes:[
+  return {version:2, userId:'u_gr_admin', pipeline:pipelineSeed(), ...officeSeed(), plans:planSeed(), dbxCases:[], dbxFiles:[], dezura:[], bank:[], petty:[], projects, surveys, tasks, estimates, docs, photos:[], reports, notices, todos, inspections, corrections, approvals, messages, activity, changes:[
     {at:'2026-09-29T12:05:00',pid:'RWD-260929-01',text:'外壁下地 追加申請',by:'Rateru 池田'},
     {at:'2026-09-24T17:30:00',pid:'RWD-260929-01',text:'内装仕様 v2 → v3',by:'元請 設計'}
   ]};
@@ -561,7 +757,7 @@ function seed(){
 
 /* ============ 保存（localStorage + IndexedDB） ============ */
 let S;
-function load(){ let d=null; try{ const raw=localStorage.getItem(STORE_KEY); if(raw){ const j=JSON.parse(raw.replace(/令和さん/g,'元請').replace(/令和/g,'元請'));   /* 以前のお試しデータの表記を合わせる */ if(j&&j.version===2) d=j; } }catch(e){} d=d||seed(); ['reports','notices','todos','internal','pipeline','meetings','templates','sales'].forEach(k=>d[k]=d[k]||[]); if(!d.plans) d.plans=planSeed(); return d; }
+function load(){ let d=null; try{ const raw=localStorage.getItem(STORE_KEY); if(raw){ const j=JSON.parse(raw.replace(/令和さん/g,'元請').replace(/令和/g,'元請'));   /* 以前のお試しデータの表記を合わせる */ if(j&&j.version===2) d=j; } }catch(e){} d=d||seed(); ['reports','notices','todos','internal','pipeline','meetings','templates','sales','dbxCases','dbxFiles','dezura','bank','petty'].forEach(k=>d[k]=d[k]||[]); if(!d.plans) d.plans=planSeed(); return d; }
 function save(){ if(MODE==='server'){ Sync.schedule(); return; } try{ localStorage.setItem(STORE_KEY, JSON.stringify(S)); }catch(e){ toast('この端末に保存できませんでした（ブラウザの保存領域を確認してください）'); } }
 const FileStore = (() => {
   let dbp = null; const mem = new Map();
@@ -618,9 +814,10 @@ const SERVER={user:null};
 const CFG = () => window.HUB_CONFIG || {};
 const COMPANY_LABEL={reiwa:'元請',gr:'Rateru',partner:'協力'};
 const ROLE_COMPANY={reiwa_admin:'reiwa',reiwa_sales:'reiwa',gr_admin:'gr',partner:'partner'};
-const roleLabel = r => (USERS.find(u=>u.role===r)||{}).roleLabel || r;
+const ROLE_NAME = {gr_admin:'Rateru 管理者', reiwa_admin:'元請 管理者', reiwa_sales:'元請 営業', partner:'協力会社', office:'事務', guest:'限定予定の閲覧者'};
+const roleLabel = r => ROLE_NAME[r] || r;
 const loginEmail = id => id.includes('@') ? id.trim() : `${id.trim()}@${CFG().loginDomain||'hub.local'}`;
-const emptyState = () => ({version:2,userId:null,projects:[],surveys:{},tasks:[],estimates:[],docs:[],photos:[],reports:[],notices:[],todos:[],inspections:{},corrections:[],approvals:[],messages:[],activity:[],changes:[],internal:[],pipeline:[],meetings:[],templates:[],sales:[],plans:[]});
+const emptyState = () => ({version:2,userId:null,projects:[],surveys:{},tasks:[],estimates:[],docs:[],photos:[],reports:[],notices:[],todos:[],inspections:{},corrections:[],approvals:[],messages:[],activity:[],changes:[],internal:[],pipeline:[],meetings:[],templates:[],sales:[],plans:[],dbxCases:[],dbxFiles:[],dezura:[],bank:[],petty:[]});
 function loadScript(src){ return new Promise((res,rej)=>{ const e=document.createElement('script'); e.src=src; e.onload=res; e.onerror=rej; document.head.appendChild(e); }); }
 
 const Remote = {
@@ -630,7 +827,7 @@ const Remote = {
   async del(key){ const [b,path]=this.loc(key); await SB.storage.from(b).remove([path]); }
 };
 
-const OFFICE_KIND = {meeting:'meetings',template:'templates',sale:'sales',plan:'plans'};   // 会議資料・書類ひな形・売上（Rateruだけ）
+const OFFICE_KIND = {meeting:'meetings',template:'templates',sale:'sales',plan:'plans',dbxcase:'dbxCases',dbxfile:'dbxFiles',dezura:'dezura',bank:'bank',petty:'petty'};   // 会議資料・書類ひな形・売上（Rateruだけ）
 const RECORD_KIND = {todo:'todos',report:'reports',notice:'notices',task:'tasks',estimate:'estimates',doc:'docs',photo:'photos',correction:'corrections',approval:'approvals',message:'messages',activity:'activity',change:'changes'};
 const Sync = {
   synced:{projects:new Map(), records:new Map(), internal_records:new Map()},
@@ -651,7 +848,7 @@ const Sync = {
       for(const e of S.estimates) if(ids.has(e.pid)) out.internal_records.push({id:'cost:'+e.id,project_id:e.pid,kind:'estimate_cost',data:{estimateId:e.id,cost:e.cost||0}});
       for(const x of S.internal) out.internal_records.push({id:x.id,project_id:ids.has(x.pid)?x.pid:null,kind:x.kind,data:x});
       for(const x of (S.pipeline||[])) out.internal_records.push({id:x.id,project_id:ids.has(x.pid)?x.pid:null,kind:'pipeline',data:x});   // 案件進捗はRateruだけ
-      for(const [kind,key] of [['meeting','meetings'],['template','templates'],['sale','sales'],['plan','plans']]) for(const x of (S[key]||[])) out.internal_records.push({id:x.id,project_id:null,kind,data:x});
+      for(const [kind,key] of [['meeting','meetings'],['template','templates'],['sale','sales'],['plan','plans'],['dbxcase','dbxCases'],['dbxfile','dbxFiles'],['dezura','dezura'],['bank','bank'],['petty','petty']]) for(const x of (S[key]||[])) out.internal_records.push({id:x.id,project_id:null,kind,data:x});
     }
     return out;
   },
@@ -991,7 +1188,7 @@ function pipeLineText(x){
   const sales=(S.sales||[]).filter(v=>v.pipeId===x.id), sum=t=>sales.filter(v=>v.type===t).reduce((a,v)=>a+(Number(v.amount)||0),0);
   return [`【案件進捗】${x.name}`, `状態：${x.status}${x.kakudo?`（確度 ${x.kakudo}）`:''}`, x.address&&`住所：${x.address}`, x.customer&&`顧客：${x.customer}`,
     x.start&&`工事日：${jpDate(x.start)}${x.end&&x.end!==x.start?` 〜 ${jpDate(x.end)}`:''}`, x.progress&&`進捗：${x.progress}`, x.next&&`次回アクション：${x.next}`,
-    sales.length&&`売上 ${yen(sum('sale'))} ・ 仕入 ${yen(sum('buy'))} ・ 粗利 ${yen(sum('sale')-sum('buy'))}`].filter(Boolean).join('\n');
+    sales.length&&`売上 ${yen(sum('sale'))} ・ 仕入 ${yen(sum('buy'))}`].filter(Boolean).join('\n');   // 粗利は LINE に出さない（川端・舟田だけの情報）
 }
 function lineShareRow(text, coll, x){
   if(x?.fileKey) FileStore.get(x.fileKey); // 押したときにすぐ渡せるよう先に読み込んでおく
@@ -1063,7 +1260,7 @@ const canMove = () => MODE==='demo' || me().role==='gr_admin';
 async function blobToB64(b){ const u=new Uint8Array(await b.arrayBuffer()); let s=''; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
 function b64ToBlob(b64,type){ const bin=atob(b64), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return new Blob([u],{type}); }
 const Move = {
-  keys(st){ return [...st.photos, ...st.docs, ...(st.internal||[]), ...(st.meetings||[]), ...(st.templates||[]), ...(st.sales||[])].map(x=>x.fileKey).filter(Boolean); },
+  keys(st){ return [...st.photos, ...st.docs, ...(st.internal||[]), ...(st.meetings||[]), ...(st.templates||[]), ...(st.sales||[]), ...(st.petty||[])].map(x=>x.fileKey).filter(Boolean); },
   async pack(){
     const files={}; let miss=0;
     for(const k of new Set(this.keys(S))){ const b=await FileStore.get(k); if(!b){ miss++; continue; } files[k]={type:b.type||'application/octet-stream', b64:await blobToB64(b)}; }
@@ -1074,7 +1271,7 @@ const Move = {
     const j=JSON.parse(text);
     const pack = j.format==='reiwa-gr-hub-backup' ? j : {format:'reiwa-gr-hub-backup',version:1,exportedAt:null,data:j,files:{}};   // 旧形式（データだけ）も受け付ける
     const d=pack.data; if(!d || !Array.isArray(d.projects)) throw new Error('形式が違います');
-    for(const k of ['tasks','estimates','docs','photos','reports','notices','todos','corrections','approvals','messages','activity','changes','internal','pipeline','meetings','templates','sales','plans']) d[k]=Array.isArray(d[k])?d[k]:[];
+    for(const k of ['tasks','estimates','docs','photos','reports','notices','todos','corrections','approvals','messages','activity','changes','internal','pipeline','meetings','templates','sales','plans','dbxCases','dbxFiles','dezura','bank','petty']) d[k]=Array.isArray(d[k])?d[k]:[];
     d.surveys=d.surveys||{}; d.inspections=d.inspections||{}; d.version=2;
     return pack;
   },
@@ -1094,13 +1291,14 @@ const Move = {
 };
 
 /* ============ 状態アクセス ============ */
-const me = () => (MODE==='server' && SERVER.user) ? SERVER.user : (USERS.find(u=>u.id===S.userId) || USERS[2]);
+const me = () => (MODE==='server' && SERVER.user) ? SERVER.user : (USERS.find(u=>u.id===S.userId) || USERS.find(u=>u.id==='u_gr_admin'));
 const perm = () => PERMS[me().role];
 const myLabel = () => `${me().company} / ${me().name}`;
 function visibleProjects(){
   const u=me(), p=perm();
   if(MODE==='server' || p.scope==='all') return S.projects;  // サーバー版は見えてよい案件だけが届く
   if(u.role==='reiwa_sales') return S.projects.filter(x=>x.reiwaRep===u.name);
+  if(u.role==='guest'||u.role==='office') return [];
   return S.projects.filter(x=>(x.partners||[]).includes(u.name));
 }
 const visibleIds = () => new Set(visibleProjects().map(p=>p.id));
@@ -1128,6 +1326,8 @@ function attentionItems(){
     const w=s.items.filter(i=>i.state==='wait'||i.state==='ng'); if(w.length && ['survey','estimate'].includes((proj(pid)||{}).status))
       out.push({pid,level:'warn',text:`現調 未確定：${w.map(i=>i.title).join('・')}`,go:['survey',pid]});
   });
+  if(me().role==='gr_admin') (S.pipeline||[]).filter(x=>x.status==='完了'&&!(S.sales||[]).some(v=>v.type==='sale'&&v.pipeId===x.id)).forEach(x=>
+    out.push({pid:x.pid||'',title:x.name,level:'ng',text:`完工したのに請求書がつながっていません${x.billing?`（送り方：${x.billing}）`:''}`,go:['pipeline']}));
   if(me().role==='gr_admin') (S.pipeline||[]).filter(x=>['工事日調整済','着工中'].includes(x.status)&&!x.start).forEach(x=>
     out.push({pid:x.pid||'',title:x.name,level:'warn',text:`工事日 未入力：状態は「${x.status}」（案件進捗）`,go:['pipeline']}));
   if(me().role==='gr_admin') (S.sales||[]).filter(x=>x.type==='sale'&&x.status!=='入金済み'&&x.due&&x.due<today).forEach(x=>
@@ -1149,11 +1349,11 @@ function go(page, pid, tab){
 
 /* ============ 描画 ============ */
 function render(){
-  document.getElementById('app').classList.toggle('hide-cost', !perm().cost);
+  document.getElementById('app').classList.toggle('hide-cost', !perm().cost || !canFinance());
   renderNav(); renderTop();
   const c=$('#content');
-  if(!canSeePage(view.page)) view.page='dashboard';
-  const fn={dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
+  if(!canSeePage(view.page)) view.page = me().role==='guest' ? 'guest' : me().role==='office' ? 'dezura' : 'dashboard';
+  const fn={dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,perms:pPerms,petty:pPetty,dezura:pDezura,finance:pFinance,dropbox:pDropbox,guest:pGuest,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
   const ae=document.activeElement, keep=(ae&&ae.id&&c.contains(ae))?{id:ae.id,v:ae.value,s:ae.selectionStart}:null;
   c.innerHTML=fn();
   if(keep){ const n=document.getElementById(keep.id); if(n){ if(keep.id==='chatInput') n.value=keep.v; n.focus(); try{ n.setSelectionRange(keep.s,keep.s); }catch(e){} } }
@@ -1287,10 +1487,11 @@ function pSurvey(){
 }
 
 /* --- 案件進捗（RateruPAD）：Rateruの「案件進捗シート」をそのまま移したもの。Rateruだけが見られる --- */
-const GR_ONLY_PAGES = new Set(['internal','pipeline','meetings','templates','sales']);
+const GR_ONLY_PAGES = new Set(['internal','pipeline','meetings','templates','sales','perms','dropbox','dezura','petty']);
+const OFFICE_PAGES = new Set(['dezura','petty']);   // 事務（内藤さん）が開ける画面
 // 立場ごとの専用画面（Rateru管理者は確認のため両方見られる）
 const PAGE_ROLES = {client:['gr_admin','reiwa_admin','reiwa_sales'], partners:['gr_admin','partner']};
-const canSeePage = id => GR_ONLY_PAGES.has(id) ? me().role==='gr_admin' : (!PAGE_ROLES[id] || PAGE_ROLES[id].includes(me().role));
+const canSeePage = id => me().role==='office' ? OFFICE_PAGES.has(id) : me().role==='guest' ? id==='guest' : id==='guest' ? false : id==='finance' ? (me().role==='gr_admin'&&canFinance()) : GR_ONLY_PAGES.has(id) ? me().role==='gr_admin' : (!PAGE_ROLES[id] || PAGE_ROLES[id].includes(me().role));
 // 元請・協力業者が自分で操作する入口。見せるのは担当案件の記録だけ（案件進捗・売上・原価・社内資料は出さない）
 const portalNote = who => me().role==='gr_admin' ? `<div class="perm-note">${who}に見える画面です。Rateru管理者は確認のため見られます（Rateru管理者には全案件が出ます）。</div>` : '';
 const nextTask = pid => S.tasks.filter(t=>t.pid===pid&&!t.done&&t.end>=todayISO()).sort((a,b)=>a.start.localeCompare(b.start))[0];
@@ -1375,6 +1576,7 @@ const PIPE_STATUS = [
 const PIPE_CLOSED = new Set(['完了','キャンセル']);
 const PIPE_KAKUDO = ['決定','高い','50%','低い'];
 const PIPE_STAFF = ['川端 陸寛','井上 大士','作本 直樹','児玉 雄大'];
+const BILLING = ['','郵送','メール','専用サイト','手渡し'];   // 請求書の送り方（取引先ごとに決まっている）
 const PIPE_ARRANGE = [['colorPattern','物件カラーパターン'],['hyoso','表装手配'],['tosou','塗装手配'],['gas','ガス工事手配'],['jusetsu','住設手配']];
 const pipeBadge = s => { const x=PIPE_STATUS.find(v=>v[0]===s)||PIPE_STATUS[0]; return `<span class="rp-st rp-${x[1]}">${esc(x[0])}</span>`; };
 // 工事日が入っている案件（キャンセルは除く）。工程表・カレンダーに載る
@@ -1391,6 +1593,21 @@ function planSeed(){
 }
 const safeUrl = u => /^https:\/\/[^\s"'<>]+$/.test(String(u||'').trim()) ? String(u).trim() : '';
 const extLink = (u, label, cls='') => safeUrl(u) ? `<a class="ext ${cls}" href="${esc(safeUrl(u))}" target="_blank" rel="noopener noreferrer">${label}</a>` : '';
+const mNorm = v => String(v||'').normalize('NFKC').toLowerCase().replace(/[\s　【】\[\]（）()「」『』・,、。.\/\\_\-－—~〜:：]/g,'');
+const mTokens = v => [...new Set(String(v||'').normalize('NFKC').split(/[\s　【】\[\]（）()「」『』・,、。\/\\_\-－—~〜:：]+/).map(mNorm).filter(t=>t.length>=2&&!/^(御?請求書?|ご請求書|見積書?|御見積書?|工事|株式会社|有限会社|株|御中|様|分|の|pdf|xlsx?|jpg|png|\d{1,4})$/.test(t)))];
+// sale/buy 1件 → 近い案件（点数の高い順）。Dropbox の案件フォルダの中にある請求書は、そのフォルダ名を強く見る
+function caseCandidates(x, n=3){
+  const src=[x.title, x.fileName, x.party, x.text].join(' '), toks=mTokens(src), path=String(x.dbx?.path||'');
+  const casePart=(()=>{ const m=path.split('/'); const i=m.findIndex(p=>mNorm(p)===mNorm('顧客・案件一覧')); return i>=0?m.slice(i+1,-1):[]; })();
+  return (S.pipeline||[]).map(p=>{
+    const hay=mNorm([p.name,p.address,p.customer,p.requester,p.alias].join(' '));
+    let sc=0; for(const t of toks) if(hay.includes(t)) sc+=Math.min(t.length,8);
+    for(const seg of casePart){ const k=mNorm(seg); if(k.length>=2&&(mNorm(p.name).includes(k)||k.includes(mNorm(p.name)))) sc+=20; }
+    for(const a of String(p.alias||'').split(/[,、\n]/).map(mNorm).filter(v=>v.length>=2)) if(mNorm(src).includes(a)) sc+=12;
+    if(x.party&&p.customer&&mNorm(p.customer)&&mNorm(x.party).includes(mNorm(p.customer))) sc+=4;
+    return {p, sc};
+  }).filter(c=>c.sc>=4).sort((a,b)=>b.sc-a.sc).slice(0,n);
+}
 const pipeWorks = () => (S.pipeline||[]).filter(x=>x.start&&x.status!=='キャンセル').map(x=>({...x,end:x.end||x.start}));
 
 function pipelineSeed(){
@@ -1448,6 +1665,8 @@ const Pipe = {
       ${two(fld('工事開始日','start',g('start'),'date'),fld('工事終了日','end',g('end'),'date'))}
       ${sel('Hubの案件とつなげる（元請の案件のとき）','pid',hubOpts,g('pid'))}
       ${fld('Dropboxのフォルダ（共有リンク）','folder',g('folder'),'url','placeholder="https://www.dropbox.com/…" inputmode="url"')}
+      ${area('別名（業者さんの請求書での呼び名・住所など。「、」で区切る）','alias',g('alias'),'例：〇〇ハイツ、大阪市中央区〇〇1-2-3')}
+      ${sel('請求書の送り方（取引先ごと）','billing',BILLING,g('billing')||(x.customer?((S.pipeline||[]).find(p=>p.customer===x.customer&&p.billing)||{}).billing:'')||'')}
       <h3 style="margin:18px 0 8px;font-size:14px">各種手配</h3>
       ${PIPE_ARRANGE.map(([k,l])=>fld(l,k,g(k))).join('')}
       <p class="perm-note">この内容はRateruだけが見られます。元請・協力会社には表示されません。</p>
@@ -1455,7 +1674,7 @@ const Pipe = {
       </form>`);
   },
   save(id, v){
-    const keys=['name','address','customer','requester','phone','inputDate','tanto1','tanto2','request','status','kakudo','estimate','schedule','cost','progress','next','start','end','pid','folder',...PIPE_ARRANGE.map(a=>a[0])];
+    const keys=['name','address','customer','requester','phone','inputDate','tanto1','tanto2','request','status','kakudo','estimate','schedule','cost','progress','next','start','end','pid','folder','billing','alias',...PIPE_ARRANGE.map(a=>a[0])];
     const data={}; keys.forEach(k=>data[k]=String(v[k]??'').trim());
     if(!data.name){ toast('物件名を入れてください'); return; }
     if(data.folder&&!safeUrl(data.folder)){ toast('Dropboxのリンクは https:// で始まるものを貼り付けてください'); return; }
@@ -1575,7 +1794,7 @@ function pipeCustomers(){
       ${g.people.length?`<dt>依頼主</dt><dd>${g.people.map(esc).join('・')}</dd>`:''}
       ${g.phones.length?`<dt>電話</dt><dd>${g.phones.map(p=>`<a class="ext" href="tel:${esc(p.replace(/[^\d+]/g,''))}">${esc(p)}</a>`).join('<br>')}</dd>`:''}
       ${g.staff.length?`<dt>担当</dt><dd>${g.staff.map(esc).join('・')}</dd>`:''}
-      ${g.sale?`<dt>売上</dt><dd>${yen(g.sale)}</dd>`:''}</dl>
+      ${g.sale?`<dt>売上</dt><dd>${yen(g.sale)}</dd>`:''}<dt>請求書</dt><dd><select data-act="custBilling" data-k="${esc(g.name)}" aria-label="請求書の送り方">${BILLING.map(b=>`<option value="${b}" ${(g.items.find(x=>x.billing)||{}).billing===b?'selected':''}>${b||'送り方（未設定）'}</option>`).join('')}</select></dd></dl>
     <div class="cust-items">${g.items.slice().sort((a,b)=>(b.inputDate||'').localeCompare(a.inputDate||'')).map(x=>`<button class="prow" data-act="editPipe" data-id="${x.id}"><span class="pm"><b>${esc(x.name)}</b><small>${[x.inputDate&&md(x.inputDate),esc(x.request||x.address||'')].filter(Boolean).join(' ・ ')}</small></span>${pipeBadge(x.status)}</button>`).join('')}</div></div>`).join('')}</div>`;
 }
 function pipeBoard(){
@@ -1598,15 +1817,18 @@ function pipelineScheduleCard(){
 }
 
 /* --- 会議資料・書類ひな形・売上管理（Rateruだけが見られる。Dropbox「Rateru案件共有」のフォルダ構成に合わせている） --- */
-const TEMPLATE_CATS = ['①見積書','②請求書','③注文書','④契約書','⑤作業員名簿等','⑥日報','⑦内装仕上げ表','⑧工事案内','⑨工程表','⑩領収書','■その他 書類・印鑑など'];
+const TEMPLATE_CATS = ['①見積書','②請求書','③注文書','④契約書','⑤作業員名簿等','⑥日報','⑦内装仕上げ表','⑧工事案内','⑨工程表','⑩領収書','⑪Rateru工事実績資料','利益分配表','過去テンプレート','■その他 書類・印鑑など'];
 const SALE_STATE = {sale:['作成中','送付済み','入金済み'], buy:['受領','支払済み']};
+const SALE_DONE = new Set(['入金済み','支払済み']);   // 帳簿の確定。川端・舟田だけ
 const SALE_PILL = {'作成中':'todo','送付済み':'wait','入金済み':'ok','受領':'wait','支払済み':'ok'};
 const PAY_METHOD = ['振込','現金','その他'];
 const monthKey = iso => (iso||todayISO()).slice(0,7);
 const monthLabel = m => `${m.slice(0,4)}年${Number(m.slice(5,7))}月`;
 const monthAdd = (m,n) => { const d=new Date(Number(m.slice(0,4)), Number(m.slice(5,7))-1+n, 1); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; };
-const officeColl = c => ({meetings:S.meetings, templates:S.templates, sales:S.sales})[c];
-const fileBtns = (x,coll) => `${x.fileKey?`<button class="btn sm" data-act="openOffice" data-coll="${coll}" data-id="${x.id}">開く</button>`:''}${x.link?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener">Dropboxで開く</a>`:''}`;
+const officeColl = c => ({meetings:S.meetings, templates:S.templates, sales:S.sales, dbxFiles:(S.dbxFiles=S.dbxFiles||[])})[c];
+const dbxTag = x => x.dbx ? (x.dbx.deleted ? '<span class="pill ng">Dropboxから消えています</span>' : '<span class="pill info">Dropbox</span>') : '';
+const dbxBtn = (x,coll,label='開く') => x.dbx&&!x.dbx.deleted ? `<button class="btn sm" data-act="openDbx" data-coll="${coll}" data-id="${esc(x.id)}">${label}</button>` : '';
+const fileBtns = (x,coll) => `${dbxTag(x)}${dbxBtn(x,coll)}${x.fileKey?`<button class="btn sm" data-act="openOffice" data-coll="${coll}" data-id="${x.id}">開く</button>`:''}${x.link?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener">Dropboxで開く</a>`:''}`;
 
 function officeSeed(){
   const m=monthKey(), p=monthAdd(m,-1), X=o=>({id:uid('of'),at:nowISO(),by:'Rateru 奥田',text:'',fileKey:null,fileName:'',link:'',...o});
@@ -1673,9 +1895,11 @@ const Office = {
       <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('計上月','month',x?.month||m,'month','required')}${fld('請求日','date',x?.date||'','date')}</div>
       ${fld(t==='sale'?'請求先':'業者名','party',x?.party||'','text','required')}
       ${fld('件名・工事名','title',x?.title||'')}
-      <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('金額（税込・円）','amount',x?.amount??'','number','required min="0" step="1" inputmode="numeric"')}${sel('状態','status',SALE_STATE[t],x?.status||SALE_STATE[t][0])}</div>
+      <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('金額（税込・円）','amount',x?.amount??'','number','required min="0" step="1" inputmode="numeric"')}${sel('状態','status',canFinance()?SALE_STATE[t]:SALE_STATE[t].filter(v=>!SALE_DONE.has(v)||v===x?.status),x?.status||SALE_STATE[t][0])}</div>
+      ${canFinance()?'':'<p class="perm-note">「入金済み」「支払済み」にできるのは川端さん・舟田さんだけです（権限一覧 P14）。</p>'}
       ${t==='sale'?`<div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${sel('入金方法','method',PAY_METHOD,x?.method||'振込')}${fld('入金予定日','due',x?.due||'','date')}</div>`:fld('支払予定日','due',x?.due||'','date')}
       ${sel('案件進捗とつなげる','pipeId',pipeOpts,x?.pipeId||'')}
+      ${x?.id&&!x.pipeId?(()=>{ const c=caseCandidates(x); return c.length?`<div class="row" style="flex-wrap:wrap;gap:6px;margin:-4px 0 10px"><small class="muted">この案件では？</small>${c.map(k=>`<button type="button" class="btn sm" data-act="pickCase" data-pipe="${k.p.id}">${esc(k.p.name)}</button>`).join('')}</div>`:''; })():''}
       ${area('メモ','text',x?.text||'')}${this.fileField(x)}
       <div class="row" style="justify-content:space-between;margin-top:12px">${this.delBtn('sales',x)}<button class="btn primary" type="submit">保存</button></div></form>`);
   },
@@ -1685,10 +1909,356 @@ const Office = {
     if(coll==='meetings'){ const d=pick(['month','title','text','link','pipeId']); if(!d.title&&!file&&!id){ toast('件名かファイルを入れてください'); return; } await this.save(coll,id,d,file); this.mMonth=d.month; }
     else if(coll==='templates'){ const d=pick(['cat','title','text','link']); if(!d.title&&!file&&!id){ toast('名前かファイルを入れてください'); return; } await this.save(coll,id,d,file); }
     else { const d=pick(['type','month','date','party','title','status','method','due','pipeId','text','link']); d.amount=Math.round(Number(v.amount)||0);
+      const prev=id?S.sales.find(y=>y.id===id):null;
+      if(SALE_DONE.has(d.status)&&prev?.status!==d.status&&!canFinance()){ toast('入金済み・支払済みにできるのは川端さん・舟田さんだけです'); return; }
+      if(prev&&SALE_DONE.has(prev.status)&&!canFinance()&&(d.amount!==prev.amount||d.status!==prev.status)){ toast('確定した金額・状態は変えられません（訂正は川端さん・舟田さんへ）'); return; }
       if(!d.party){ toast(d.type==='sale'?'請求先を入れてください':'業者名を入れてください'); return; } await this.save(coll,id,d,file); }
   }
 };
 
+const dbxWeb = (path, label='Dropboxで開く') => path ? `<a class="ext btn sm" href="https://www.dropbox.com/home${esc(encodeURI(path))}" target="_blank" rel="noopener noreferrer">${label}</a>` : '';
+const Dbx = {
+  ready: () => typeof DropboxMap!=='undefined',
+  // 本番：開くときにその場で Dropbox から取り出す（数時間だけ使える一時的なリンク）。お試し版は一覧だけ
+  async open(x){
+    if(!x||!x.dbx) return;
+    if(MODE!=='server'||x.dbx.local){ toast('お試し版では一覧だけです。本番で Dropbox とつなぐと、ここから開けます'); return; }
+    const {data,error}=await SB.functions.invoke('dropbox',{body:{action:'link',id:x.dbx.id}});
+    if(error||!data?.link){ toast('Dropbox から開けませんでした'+(data?.error?'：'+data.error:'')); return; }
+    window.open(data.link,'_blank','noopener');
+  },
+  async connect(){
+    const {data,error}=await SB.functions.invoke('dropbox',{body:{action:'connect'}});
+    if(error||!data?.url){ toast('Dropbox とつなげませんでした'+(data?.error?'：'+data.error:'')); return; }
+    window.open(data.url,'_blank','noopener');
+  },
+  async sync(){
+    const {data,error}=await SB.functions.invoke('dropbox',{body:{action:'sync'}});
+    toast(error||data?.error ? 'Dropbox から取り込めませんでした'+(data?.error?'：'+data.error:'') : `Dropbox から取り込みました（新しく${data.added||0}件・更新${data.updated||0}件）${data.more?'。まだ続きがあるので、もう一度押してください':''}${data.missing?.length?`。見つからないフォルダ：${data.missing.join('・')}`:''}`);
+  },
+  // パソコンで選んだフォルダ（Dropbox のフォルダと同じ形）で、どこに何件入るかを試す。ファイルの中身は読まない
+  previewLocal(files){
+    if(!this.ready()){ toast('仕分けのルールが読み込まれていません（build.sh で作り直してください）'); return; }
+    const entries=files.map(f=>{ const rel=f.webkitRelativePath||f.name; return {'.tag':'file',id:'local:'+rel,path_display:'/'+rel,name:f.name,size:f.size,server_modified:new Date(f.lastModified||Date.now()).toISOString(),rev:String(f.lastModified||''),local:true}; });
+    const P=DropboxMap.plan(entries), c=P.counts, mb=n=>n>=1e9?(n/1e9).toFixed(1)+'GB':n>=1e6?Math.round(n/1e6)+'MB':Math.max(1,Math.round(n/1e3))+'KB';
+    this._plan=P;
+    const row=(l,n,go)=>`<div class="check"><div style="min-width:0"><div class="title">${l}</div><div class="desc">もと：${go}</div></div><b style="white-space:nowrap">${n}件</b></div>`;
+    openDrawer(`${drawerHead('Dropbox の取り込み（試し）')}
+      <p class="muted" style="margin-top:0">選んだフォルダの ${files.length}件を、フォルダの名前で仕分けました。ファイルの中身は読んでいません（名前・日付・大きさだけ）。</p>
+      <h3>行き先</h3><div class="plist">
+        ${row('会議資料',c.meetings,'会議資料')}${row('書類ひな形',c.templates,'会社書類 フォーマット')}${row('売上管理（売上）',c.sale,'請求書 売上')}${row('売上管理（仕入）',c.buy,'請求書 業者さんから')}${row(`顧客・案件フォルダ（${c.customers}社）`,c.cases,'顧客・案件一覧')}${row('Dropbox 資料（同じフォルダの形）',c.files,'その他フォルダ・単価表・ハピスム案件PDF・案件フォルダの中のファイル など')}</div>
+      ${P.junk?`<p class="perm-note">一時ファイル・設定ファイル ${P.junk}件は入れません。</p>`:''}
+      <p class="perm-note">売上・仕入は金額が入っていない状態で入ります。あとで1件ずつ金額と請求先を入れてください。入れた内容は、同じファイルをもう一度取り込んでも消えません。</p>
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" data-act="closeDrawer">やめる</button><button class="btn primary" id="dbxApply" ${P.items.length+P.files.length+P.cases.length?'':'disabled'}>この内容で登録する</button></div>`);
+    $('#dbxApply').onclick=()=>this.apply(P, true);
+  },
+  // 登録：同じファイル（Dropbox の ID）は重ねる。PAD で入れた金額などは残す
+  apply(P, local){
+    let added=0, updated=0;
+    for(const it of P.items){ const arr=officeColl(it.coll), old=arr.find(v=>v.id===it.data.id);
+      if(old){ Object.assign(old, DropboxMap.merge(old, it.data)); updated++; }
+      else { arr.unshift({...it.data, at:nowISO(), by:'Dropbox'}); added++; } }
+    for(const x of P.files){ const i=S.dbxFiles.findIndex(v=>v.id===x.id); if(i>=0){ S.dbxFiles[i]=x; updated++; } else { S.dbxFiles.push(x); added++; } }
+    for(const c of P.cases){ const old=S.dbxCases.find(v=>v.id===c.id), cs=new Map((old?.cases||[]).map(k=>[k.name+'|'+k.status,k]));
+      c.cases.forEach(k=>cs.set(k.name+'|'+k.status,k)); const nx={...c, cases:[...cs.values()], ...(local?{local:true}:{})};
+      if(old) Object.assign(old,nx); else S.dbxCases.push(nx); }
+    save(); closeDrawer(); render(); toast(`新しく${added}件・更新${updated}件を登録しました`);
+  },
+  localCount: () => ['meetings','templates','sales','dbxFiles'].reduce((n,c)=>n+officeColl(c).filter(x=>x.dbx?.local).length,0) + S.dbxCases.filter(x=>x.local).length,
+  clearLocal(){
+    const n=this.localCount(); if(!n) return;
+    confirmBox(`試しで取り込んだ ${n}件を消します（Dropbox のファイルは消えません）。`,'消す',()=>{ for(const c of ['meetings','templates','sales','dbxFiles']){ const arr=officeColl(c); for(let i=arr.length-1;i>=0;i--) if(arr[i].dbx?.local) arr.splice(i,1); } S.dbxCases=S.dbxCases.filter(x=>!x.local); save(); render(); toast('試しで取り込んだ分を消しました'); });
+  },
+  card(){
+    if(me().role!=='gr_admin') return '';
+    if(MODE==='server') return `<div class="card section mt"><h3>Dropbox の取り込み</h3><p class="muted" style="margin-top:0">Dropbox（Rateru案件共有）の会議資料・会社書類 フォーマット・請求書のフォルダに入れたファイルが、自動でここに並びます。急ぐときは下のボタンで今すぐ取り込めます。</p>
+      <div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn primary" data-act="dbxConnect">Dropbox とつなぐ</button><button class="btn" data-act="dbxSync">Dropbox から今すぐ取り込む</button></div>
+      <p class="perm-note">「Dropbox とつなぐ」は最初の1回だけ。Dropbox チームの管理者（舟田さん・川端くん）が押して、Dropbox の画面で「許可」を選びます。パスワードを PAD に入れることはありません。</p></div>`;
+    const n=this.localCount();
+    return `<div class="card section mt"><h3>Dropbox の取り込み（試し）</h3>
+      <p class="muted" style="margin-top:0">パソコンにある Dropbox のフォルダ（例：Rateru案件共有Dropbox）を選ぶと、フォルダの名前で会議資料・書類ひな形・売上管理・顧客と案件の一覧・Dropbox 資料に仕分けて並べます。本番では Dropbox を自動で見に行って、同じように並べます。</p>
+      <div class="row" style="flex-wrap:wrap;gap:8px"><label class="btn primary">フォルダを選んで試す<input type="file" webkitdirectory directory multiple hidden data-act="dbxFolder"></label>${n?`<button class="btn danger" data-act="dbxClear">試しで取り込んだ ${n}件を消す</button>`:''}</div>
+      <ul class="muted howto"><li>ファイルの中身は読みません。名前・日付・大きさだけを使います。この画面（ブラウザ）の中にだけ入ります。</li><li>お試し版では一覧だけで、ファイルを開くことはできません（本番で開けるようになります）。</li></ul></div>`;
+  }
+};
+function pPerms(){
+  const pos=myPos(), mine=pos&&POS_ORDER.includes(pos);
+  const cats=[...new Set(PERM36.map(r=>r[1]))];
+  const cell=v=>`<span class="pill ${permPill(v)}">${esc(v)}</span>`;
+  const myList=mine?cats.map(c=>`<h4 class="perm-cat">${esc(c)}</h4>${PERM36.filter(r=>r[1]===c).map(r=>`<div class="check"><div style="min-width:0"><div class="title">${esc(r[2])}</div><div class="desc">${esc(r[4])}</div></div>${cell(r[3][POS_ORDER.indexOf(pos)])}</div>`).join('')}`).join(''):'';
+  return `<div class="hero"><div><h2>権限</h2><p>だれが何を見られて、何を変えられるか。売上・支出は全員共有で、役職の差は「変更・判断できる範囲」です。</p></div></div>
+  <div class="alert" style="cursor:default"><b>試作・検証中</b>：この画面の権限は表示の確認用です。サーバー側の制御はまだ検証していません。本番には反映していません。</div>
+  ${mine?`<div class="card section"><h3>自分の権限（${esc(me().name)}・${esc(POS_ROLE[pos])}）</h3><div class="row perm-note" style="flex-wrap:wrap;gap:6px">${cell('できる')}${cell('閲覧のみ')}${cell('申請')}${cell('不可・停止')}${cell('未確定・模擬')}</div><div class="perm-list">${myList}</div></div>`:''}
+  <details class="card section mt perm-all" ${mine?'':'open'}><summary><h3 style="display:inline">権限一覧（全員）</h3> <small class="muted">押すと開きます</small></summary><p class="perm-note" style="margin-top:0">「全社」はRateruだけ。「担当内」は自分が担当の案件だけ。「本人・指定者」は予定の本人と、本人が個別に指定した相手だけ（全員ではありません）。「停止」「模擬のみ」は川端さんを含む全員です。</p>
+    <div class="tablewrap"><table class="perm-table"><thead><tr><th>番号</th><th>機能・操作</th>${POS_ORDER.map(p=>`<th${p===pos?' class="me"':''}>${POS_NAME[p]}</th>`).join('')}</tr></thead><tbody>
+    ${PERM36.map(r=>`<tr><td><small>${r[0]}</small></td><td><b>${esc(r[2])}</b><br><small class="muted">${esc(r[1])}</small></td>${r[3].map((v,i)=>`<td${POS_ORDER[i]===pos?' class="me"':''}>${cell(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></details>
+  <div class="card section mt"><h3>組織</h3><p style="margin:0;line-height:1.9">川端（全社統括・最終判断）→ 井上（取締役副社長・業務統括兼現場実務）→ 作本・児玉（実務担当）<br>専門支援：舟田（財務）・向（AI・システム）。上の人は下の人の通常業務の権限を含みます。ただし個人の予定・銀行の資格情報・保守の権限は引き継ぎません。</p></div>`;
+}
+// 家族・パートナー用：本人から共有された予定だけを見る画面（会社の案件・金額・書類・全体予定は見えない）
+function pGuest(){
+  return `<div class="hero"><div><h2>共有された予定</h2><p>あなたに共有された予定だけが表示されます。会社の案件・金額・書類・全体の予定は見られません。</p></div></div>
+  <div class="card section"><div class="empty">共有された予定はまだありません。</div></div>`;
+}
+function pDropbox(){
+  const cs=(S.dbxCases||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'ja')), fs=S.dbxFiles||[];
+  const q=(view.dbxQ||'').trim().toLowerCase(), hit=t=>!q||String(t).toLowerCase().includes(q);
+  const groups={}; fs.filter(x=>hit(x.name)||hit(x.folder)).forEach(x=>(groups[x.folder||'（一番上）']=groups[x.folder||'（一番上）']||[]).push(x));
+  const stPill=s=>s==='完工'?'<span class="pill ok">完工</span>':s==='失注'?'<span class="pill todo">失注・ボツ</span>':'';
+  const cust=cs.filter(c=>hit(c.name)||c.cases.some(k=>hit(k.name)));
+  return `<div class="hero"><div><h2>Dropbox 資料</h2><p>Dropbox（Rateru案件共有Dropbox）の中身を、同じフォルダの形で並べています。原本は Dropbox にあります。Rateruだけが見られます。</p></div></div>
+  <div class="card section"><input class="search" id="dbx_q" placeholder="顧客名・案件名・ファイル名で探す" value="${esc(view.dbxQ||'')}" aria-label="Dropbox 資料を探す"></div>
+  <div class="card section mt"><h3>顧客・案件フォルダ（${cust.length}社・${cust.reduce((n,c)=>n+c.cases.length,0)}件）</h3>
+    ${cust.map(c=>{ const live=c.cases.filter(k=>!k.status).length;
+      return `<details class="dbx-cust"><summary><b>${esc(c.name)}</b> <small class="muted">案件 ${c.cases.length}件${live?`（分けていないもの ${live}件）`:''}</small></summary>
+        <div class="plist">${c.cases.slice().sort((a,b)=>(a.status||'').localeCompare(b.status||'')||a.name.localeCompare(b.name,'ja')).map(k=>`<div class="prow" style="cursor:default"><span class="pm"><b>${esc(k.name)}</b></span>${stPill(k.status)}${c.local?'':dbxWeb(k.path,'開く')}</div>`).join('')||'<small class="muted">案件フォルダはありません</small>'}</div>
+        ${c.local?'':`<div class="row" style="margin-top:6px">${dbxWeb(c.path,'この顧客のフォルダを開く')}</div>`}</details>`; }).join('')||'<div class="empty">まだ取り込んでいません。「設定・権限 → Dropbox の取り込み」から取り込めます。</div>'}
+    <p class="perm-note">【完工 案件】【ボツ 案件】■失注 などのフォルダに入っている案件は、完工・失注の印を付けています（フォルダの名前で判断しているだけで、実際の状況は確かめていません）。</p></div>
+  <div class="card section mt"><h3>その他の資料（${fs.length}件）</h3>
+    ${Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ja')).map(g=>`<details class="dbx-cust"><summary><b>📁 ${esc(g)}</b> <small class="muted">${groups[g].length}件</small></summary><div class="plist">${groups[g].sort((a,b)=>a.name.localeCompare(b.name,'ja')).map(x=>`<div class="prow" style="cursor:default"><span class="pm"><b>${esc(x.name)}</b><small>${x.dbx?.size?Math.max(1,Math.round(x.dbx.size/1024))+'KB・':''}${x.dbx?.modified?md(x.dbx.modified.slice(0,10)):''}</small></span>${dbxBtn(x,'dbxFiles')}</div>`).join('')}</div></details>`).join('')||'<div class="empty">まだありません</div>'}</div>`;
+}
+// 財務：粗利（案件別・担当別・月別）。粗利が正しく出るように、案件につながっていない売上・仕入も並べる
+// 月末の支払：今月の業者さんの請求書 → 川端さんが確認 → 支払済みを記録（振込は銀行で。PAD ではしない）
+const payMonth = () => Office.payMonth || todayISO().slice(0,7);
+const payTargets = m => (S.sales||[]).filter(x=>x.type==='buy'&&x.month===m);
+const paySig = xs => xs.map(x=>`${x.id}:${Number(x.amount)||0}`).sort().join('|');
+const payOk = m => (S.sales||[]).filter(x=>x.type==='payok'&&x.month===m).sort((a,b)=>b.at.localeCompare(a.at))[0];
+const normParty = v => String(v||'').normalize('NFKC').replace(/[\s　]|株式会社|\(株\)|㈱|有限会社|\(有\)/g,'');
+function payBlock(){
+  const m=payMonth(), xs=payTargets(m), open=xs.filter(x=>x.status!=='支払済み'), sum=a=>a.reduce((n,x)=>n+(Number(x.amount)||0),0);
+  const ok=payOk(m), sig=paySig(open), fresh=ok&&ok.sig===sig&&open.length, changed=ok&&ok.sig!==sig&&open.length;
+  const prev=new Map(payTargets(monthAdd(m,-1)).filter(x=>x.party).map(x=>[normParty(x.party),x.party])), now=new Set(xs.map(x=>normParty(x.party)));
+  const missing=[...prev].filter(([k])=>!now.has(k)).map(([,v])=>v);
+  const head=myPos()==='head', zero=open.filter(x=>!x.amount).length;
+  return `<div class="card section"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">月末の支払（${monthLabel(m)}分）</h3>
+      <div class="row"><button class="btn sm" data-act="payMonth" data-d="-1" aria-label="前の月">‹</button><button class="btn sm" data-act="payMonth" data-d="0">今月</button><button class="btn sm" data-act="payMonth" data-d="1" aria-label="次の月">›</button></div></div>
+    <div class="kpis money" style="margin-top:12px">${pkpi('支払予定',yen(sum(open)),`${open.length}件`)}${pkpi('支払済み',yen(sum(xs.filter(x=>x.status==='支払済み'))),`${xs.filter(x=>x.status==='支払済み').length}件`)}${pkpi('川端さんの確認',fresh?'確認済み':changed?'要再確認':!open.length&&xs.length?'全部支払済み':'まだ',ok?`${esc(ok.by)} ${mdhm(ok.at)}`:'—')}</div>
+    ${missing.length?`<div class="alert ng" style="cursor:default"><b>先月は来たのに、今月まだ請求書がない業者さん（${missing.length}）</b><br>${missing.map(esc).join('・')}<br><small>郵送でまだスキャンしていない・担当者の LINE にだけ来ている、などがないか確かめてください。</small></div>`:''}
+    ${zero?`<div class="alert" style="cursor:default">金額が入っていない請求書が ${zero}件 あります。確認の前に金額を入れてください。</div>`:''}
+    ${changed?'<div class="alert ng" style="cursor:default"><b>川端さんが確認したあとに、請求書の件数か金額が変わりました。</b>もう一度確認が必要です（前の確認は使いません）。</div>':''}
+    <div class="tablewrap"><table><thead><tr><th>業者さん</th><th>件名</th><th style="text-align:right">金額</th><th>支払予定日</th><th>状態</th><th>案件</th></tr></thead><tbody>
+    ${xs.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')||String(a.party).localeCompare(String(b.party),'ja')).map(x=>`<tr class="clickable" data-act="editSale" data-id="${x.id}"><td><b>${esc(x.party||'（未入力）')}</b></td><td>${esc(x.title)}</td><td class="num" style="text-align:right">${x.amount?yen(x.amount):'<span class="pill wait">金額を入れる</span>'}</td><td>${x.due?md(x.due):'—'}</td><td><span class="pill ${SALE_PILL[x.status]||'todo'}">${esc(x.status)}</span></td><td>${x.pipeId?'<span class="pill ok">あり</span>':'<span class="pill wait">なし</span>'}</td></tr>`).join('')||`<tr><td colspan="6" class="empty">${monthLabel(m)}の業者さんの請求書はまだありません</td></tr>`}</tbody></table></div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">
+      ${head&&open.length&&!fresh?`<button class="btn primary" data-act="payApprove" ${zero?'disabled':''}>この内容で支払ってよい（川端さんの確認）</button>`:''}
+      ${fresh?'<button class="btn primary" data-act="payDone">支払済みにする（記録だけ）</button>':''}</div>
+    <p class="perm-note">振込そのものは銀行で行います。PAD では振込はしません（権限一覧 P16）。「支払済みにする」は、川端さんの確認のあとに、帳簿の記録として付けます。</p></div>`;
+}
+// 入金の突き合わせ：ネットバンキングの入出金明細（CSV）→ 請求書（売上）と金額・振込名義でつなぐ。銀行の ID・パスワードは使わない
+const Bank = {
+  num: v => { const t=String(v??'').normalize('NFKC').replace(/[,\s円¥\\]/g,''); return t&&!isNaN(+t)?Math.round(+t):0; },
+  date(v){ const t=String(v||'').normalize('NFKC').trim(); let m;
+    if((m=t.match(/^(20\d\d)[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/))) return `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+    if((m=t.match(/^(20\d\d)(\d{2})(\d{2})$/))) return `${m[1]}-${m[2]}-${m[3]}`;
+    if((m=t.match(/^(?:R|令和)\s*(\d{1,2})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/))) return `${2018+ +m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+    return ''; },
+  payerKey: v => String(v||'').normalize('NFKC').replace(/^(振込|フリコミ|ﾌﾘｺﾐ|振替|入金)[\s:：]*/,'').replace(/[\s　()（）]/g,'').toUpperCase(),
+  // 銀行ごとに違う見出しを読み分ける
+  parse(text, acct){
+    const rows=parseCsv(text), hi=rows.findIndex(r=>r.some(c=>/(日付|取引日|年月日|勘定日)/.test(c))&&r.some(c=>/(入金|お預|預入|出金|お引出|支払|金額)/.test(c)));
+    if(hi<0) return [];
+    const H=rows[hi].map(c=>String(c).normalize('NFKC').trim()), col=re=>H.findIndex(h=>re.test(h));
+    const ci={date:col(/(日付|取引日|年月日|勘定日)/), in:col(/(入金|お預|預入|受入)/), out:col(/(出金|お引出|払出|支払)/), bal:col(/残高/), amt:col(/^金額|取引金額/), kind:col(/(区分|入払|入出)/)};
+    const descCols=H.map((h,i)=>/(摘要|内容|依頼人|お名前|名義|備考|メモ)/.test(h)?i:-1).filter(i=>i>=0);
+    const out=[];
+    for(const r of rows.slice(hi+1)){
+      const date=this.date(r[ci.date]); if(!date) continue;
+      let inA=ci.in>=0?this.num(r[ci.in]):0, outA=ci.out>=0?this.num(r[ci.out]):0;
+      if(!inA&&!outA&&ci.amt>=0){ const a=this.num(r[ci.amt]); if(ci.kind>=0&&/出|払/.test(r[ci.kind])) outA=Math.abs(a); else if(a<0) outA=-a; else inA=a; }
+      if(!inA&&!outA) continue;
+      const desc=descCols.map(i=>String(r[i]||'').trim()).filter(Boolean).join(' ');
+      const bal=ci.bal>=0&&String(r[ci.bal]||'').trim()!==''?this.num(r[ci.bal]):null;
+      out.push({acct, date, desc, in:inA, out:outA, bal, key:[acct,date,desc,inA,outA,bal].join('|')});
+    }
+    return out;
+  },
+  async importFile(file){
+    const buf=await file.arrayBuffer(); let text=new TextDecoder('utf-8').decode(buf);
+    if(text.includes('\uFFFD')) try{ text=new TextDecoder('shift_jis').decode(buf); }catch(e){}
+    const guess=file.name.replace(/\.[^.]+$/,'').replace(/[_\-]?\d{6,8}.*$/,'').trim()||'口座';
+    const acctOpts=[...new Set([...(S.bank||[]).map(x=>x.acct), guess])];
+    $('#modalRoot').innerHTML=`<div class="modal"><div class="box"><p style="margin-top:0">入出金明細を読み込みます。どの口座の明細ですか？</p>
+      <div class="field"><label for="bk_acct">口座の名前</label><input id="bk_acct" list="bk_accts" value="${esc(guess)}"><datalist id="bk_accts">${acctOpts.map(a=>`<option value="${esc(a)}">`).join('')}</datalist></div>
+      <p class="perm-note">銀行の ID・パスワードは使いません。ファイルの中の日付・内容・金額・残高だけを読みます。</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">やめる</button><button class="btn primary" id="modalOk">読み込む</button></div></div></div>`;
+    $('#modalOk').onclick=()=>{ const acct=$('#bk_acct').value.trim()||guess; $('#modalRoot').innerHTML='';
+      const items=this.parse(text, acct); if(!items.length){ toast('明細が見つかりませんでした。ネットバンキングの入出金明細（CSV）を選んでください'); return; }
+      const have=new Set((S.bank||[]).map(x=>x.key)), add=items.filter(x=>!have.has(x.key));
+      add.forEach(x=>S.bank.push({id:uid('bk'),...x,at:nowISO(),by:myLabel()}));
+      save(); render(); toast(`${acct}：${add.length}件を読み込みました${items.length-add.length?`（${items.length-add.length}件は読み込み済み）`:''}`); };
+  },
+  // 入金1件 → 請求書（売上）の候補。金額が同じ・振込手数料を引いた額・前に同じ名義でつないだ請求先
+  candidates(b, n=3){
+    const pk=this.payerKey(b.desc), known=(S.bank||[]).filter(x=>x.saleId&&x.party&&this.payerKey(x.desc)===pk).map(x=>x.party);
+    return (S.sales||[]).filter(x=>x.type==='sale'&&x.status!=='入金済み'&&x.amount>0).map(x=>{
+      let sc=0, why=[]; const diff=x.amount-b.in;
+      if(diff===0){ sc+=10; why.push('金額が同じ'); } else if(diff>0&&diff<=880){ sc+=6; why.push(`手数料 ${yen(diff)} を引いた額`); } else return null;
+      if(known.includes(x.party)){ sc+=8; why.push('前に同じ名義でつないだ請求先'); }
+      if(x.due){ const dd=Math.abs((new Date(b.date)-new Date(x.due))/86400000); if(dd<=10){ sc+=2; why.push('入金予定日が近い'); } }
+      return {x, sc, why};
+    }).filter(Boolean).sort((a,b2)=>b2.sc-a.sc).slice(0,n);
+  },
+  link(bid, sid){ const b=S.bank.find(v=>v.id===bid), x=S.sales.find(v=>v.id===sid);
+    confirmBox(`${md(b.date)} の入金 ${yen(b.in)}（${b.desc||'内容なし'}）を、${x.party||''}「${x.title||''}」${yen(x.amount)} の入金にします。請求書は「入金済み」になります。`,'つなぐ',()=>{
+      Object.assign(b,{saleId:x.id, party:x.party, linkAt:nowISO(), linkBy:myLabel()}); Object.assign(x,{status:'入金済み', paidAt:b.date, bankId:b.id, at:nowISO(), by:myLabel()}); save(); render(); toast('入金をつなぎました'); }); },
+  note(bid){ const b=S.bank.find(v=>v.id===bid);
+    openDrawer(`${drawerHead('どこの入金かメモ')}<p class="muted" style="margin-top:0">${md(b.date)} ${esc(b.acct)} ${yen(b.in)}<br>${esc(b.desc||'')}</p><form data-form="banknote" data-id="${b.id}">${area('メモ（どこの会社・何の案件・元請など）','note',b.note||'','例：〇〇様 個人。△△マンションの契約金。元請は□□')}<button class="btn primary" style="width:100%" type="submit">保存</button></form>`); },
+  block(){
+    const B=S.bank||[], ins=B.filter(x=>x.in>0), open=ins.filter(x=>!x.saleId).sort((a,b)=>b.date.localeCompare(a.date)), done=ins.filter(x=>x.saleId);
+    const accts=[...new Set(B.map(x=>x.acct))].map(a=>{ const r=B.filter(x=>x.acct===a&&x.bal!=null).sort((p,q)=>p.date.localeCompare(q.date)); const last=r[r.length-1]; return {a, last}; });
+    return `<div class="card section mt"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">入金の突き合わせ（銀行の明細）</h3><label class="btn sm primary">明細ファイルを読み込む<input type="file" accept=".csv,text/csv" hidden data-act="bankImport"></label></div>
+      ${accts.length?`<div class="kpis money" style="margin-top:12px">${accts.map(({a,last})=>pkpi(esc(a),last?yen(last.bal):'未登録',last?`${md(last.date)} の明細の残高`:'残高の列がありません')).join('')}</div>`:''}
+      ${open.length?`<h4 class="perm-cat">どの請求書の入金か、まだ分からないもの（${open.length}件）</h4>${open.slice(0,40).map(b=>{ const c=this.candidates(b);
+        return `<div class="check"><div style="min-width:0;flex:1"><div class="title">${md(b.date)}　${yen(b.in)}　<small class="muted">${esc(b.acct)}</small></div><div class="desc">${esc(b.desc||'（内容なし）')}${b.note?`<br>📝 ${esc(b.note)}`:''}</div>
+          <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">${c.map(k=>`<button class="btn sm" data-act="bankLink" data-b="${b.id}" data-s="${k.x.id}" title="${esc(k.why.join('・'))}">→ ${esc(k.x.party||'')} ${esc(String(k.x.title||'').slice(0,16))} ${yen(k.x.amount)}</button>`).join('')||'<small class="muted">金額が合う請求書がありません</small>'}<button class="btn sm" data-act="bankNote" data-b="${b.id}">メモ</button></div></div></div>`; }).join('')}`:B.length?'<p class="muted">分からない入金はありません。</p>':'<p class="muted">まだ明細を読み込んでいません。ネットバンキングから入出金明細（CSV）を落として読み込んでください。</p>'}
+      ${done.length?`<details class="mt"><summary>つないだ入金（${done.length}件）</summary>${done.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,50).map(b=>{ const x=(S.sales||[]).find(v=>v.id===b.saleId)||{}; return `<div class="prow" style="cursor:default"><span class="pd">${md(b.date)}</span><span class="pm"><b>${yen(b.in)} → ${esc(x.party||'')} ${esc(x.title||'')}</b><small>${esc(b.desc||'')}・${esc(b.linkBy||'')}</small></span></div>`; }).join('')}</details>`:''}
+      <p class="perm-note">候補は「金額が同じ」「振込手数料（880円まで）を引いた額」「前に同じ振込名義でつないだ請求先」「入金予定日が近い」で選んでいます。出金（支払）との突き合わせはこれから。</p></div>`;
+  }
+};
+function pFinance(){
+  const y=(Office.fYear||todayISO().slice(0,4)), all=(S.sales||[]).filter(x=>x.type==='sale'||x.type==='buy'),   // 支払の確認の記録（payok）は数えない
+    P=S.pipeline||[], sum=a=>a.reduce((n,x)=>n+(Number(x.amount)||0),0);
+  const inY=all.filter(x=>String(x.month||'').startsWith(y));
+  const months=[...Array(12)].map((_,i)=>`${y}-${pad(i+1)}`).map(k=>{ const a=inY.filter(x=>x.month===k); const sa=sum(a.filter(x=>x.type==='sale')), bu=sum(a.filter(x=>x.type==='buy')); return {k,sa,bu}; });
+  const cases=P.map(p=>{ const a=all.filter(x=>x.pipeId===p.id); const sa=sum(a.filter(x=>x.type==='sale')), bu=sum(a.filter(x=>x.type==='buy')); return {p,sa,bu,n:a.length,noBuy:sa>0&&!a.some(x=>x.type==='buy')}; }).filter(c=>c.n);
+  const staff={}; cases.forEach(c=>{ const who=staffShort(c.p.tanto1)||'担当なし'; staff[who]=staff[who]||{sa:0,bu:0,n:0}; staff[who].sa+=c.sa; staff[who].bu+=c.bu; staff[who].n++; });
+  const loose=inY.filter(x=>!x.pipeId), ls=loose.filter(x=>x.type==='sale'), lb=loose.filter(x=>x.type==='buy');
+  const rate=(a,b)=>a?Math.round((a-b)/a*100)+'%':'—', ys=sum(inY.filter(x=>x.type==='sale')), yb=sum(inY.filter(x=>x.type==='buy'));
+  const kpi=(l,n,sub)=>`<div class="card kpi money"><div class="label">${l}</div><div class="num">${n}</div><div class="sub">${sub}</div></div>`;
+  const pay=payBlock();
+  return `<div class="hero"><div><h2>財務</h2><p>粗利（案件別・担当別・月別）を見る、川端さん・舟田さんだけの画面です。ほかの人には表示されません。</p></div>
+    <div class="acts"><button class="btn" data-act="finYear" data-d="-1" aria-label="前の年">‹</button><button class="btn" data-act="finYear" data-d="0">${y}年</button><button class="btn" data-act="finYear" data-d="1" aria-label="次の年">›</button></div></div>
+  <div class="alert" style="cursor:default"><b>試作・検証中</b>：見え方は画面で分けています。サーバー側の制御はまだ検証していません。</div>
+  ${pay}
+  ${Bank.block()}
+  <div class="kpis money">${kpi(`${y}年 売上`,yen(ys),`${inY.filter(x=>x.type==='sale').length}件`)}${kpi(`${y}年 仕入`,yen(yb),`${inY.filter(x=>x.type==='buy').length}件`)}${kpi(`${y}年 粗利`,yen(ys-yb),`粗利率 ${rate(ys,yb)}`)}${kpi('案件につながっていない',loose.length+'件',`売上 ${ls.length}件・仕入 ${lb.length}件`)}</div>
+  ${loose.length?`<div class="card section"><h3>案件につながっていない売上・仕入（${loose.length}件）</h3><p class="perm-note" style="margin-top:0">ここが0件になると、案件別の粗利が正しく出ます。行を押して「案件進捗とつなげる」を選んでください。</p>
+    <div class="tablewrap"><table><thead><tr><th>月</th><th>種類</th><th>相手</th><th>件名</th><th style="text-align:right">金額</th><th>候補</th></tr></thead><tbody>
+    ${loose.sort((a,b)=>(b.month||'').localeCompare(a.month||'')).slice(0,50).map(x=>`<tr class="clickable" data-act="editSale" data-id="${x.id}"><td>${esc(x.month?Number(x.month.slice(5))+'月':'')}</td><td>${x.type==='sale'?'売上':'仕入'}</td><td>${esc(x.party||'（未入力）')}</td><td>${esc(x.title)}</td><td class="num" style="text-align:right">${yen(x.amount)}</td><td>${(()=>{ const c=caseCandidates(x,1)[0]; return c?`<button class="btn sm" data-act="linkCase" data-id="${x.id}" data-pipe="${c.p.id}" title="この案件につなぐ">→ ${esc(c.p.name)}</button>`:'<small class="muted">候補なし</small>'; })()}</td></tr>`).join('')}</tbody></table></div>${loose.length>50?`<small class="muted">ほか${loose.length-50}件</small>`:''}</div>`:''}
+  <div class="card section mt"><h3>案件別の粗利（${cases.length}件）</h3><div class="tablewrap"><table><thead><tr><th>案件</th><th>担当</th><th style="text-align:right">売上</th><th style="text-align:right">仕入</th><th style="text-align:right">粗利</th><th style="text-align:right">粗利率</th></tr></thead><tbody>
+    ${cases.sort((a,b)=>(b.sa-b.bu)-(a.sa-a.bu)).map(c=>`<tr class="clickable" data-act="editPipe" data-id="${c.p.id}"><td><b>${esc(c.p.name)}</b>${c.noBuy?'<br><span class="pill wait">仕入がまだ0件</span>':''}</td><td>${esc(staffShort(c.p.tanto1)||'—')}</td><td class="num" style="text-align:right">${yen(c.sa)}</td><td class="num" style="text-align:right">${yen(c.bu)}</td><td class="num" style="text-align:right"><b>${yen(c.sa-c.bu)}</b></td><td style="text-align:right">${rate(c.sa,c.bu)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">案件につながった売上・仕入はまだありません</td></tr>'}</tbody></table></div>
+    <p class="perm-note">売上・仕入の「案件進捗とつなげる」で選んだ案件ごとに計算しています（期間は全部）。仕入がまだ入っていない案件は、粗利が大きく見えます。</p></div>
+  <div class="grid2 mt">
+    <div class="card section"><h3>担当別の粗利</h3><div class="tablewrap"><table><thead><tr><th>担当（担当①）</th><th style="text-align:right">案件</th><th style="text-align:right">売上</th><th style="text-align:right">粗利</th></tr></thead><tbody>
+      ${Object.entries(staff).sort((a,b)=>(b[1].sa-b[1].bu)-(a[1].sa-a[1].bu)).map(([w,v])=>`<tr><td>${esc(w)}</td><td style="text-align:right">${v.n}</td><td class="num" style="text-align:right">${yen(v.sa)}</td><td class="num" style="text-align:right"><b>${yen(v.sa-v.bu)}</b></td></tr>`).join('')||'<tr><td colspan="4" class="empty">まだありません</td></tr>'}</tbody></table></div></div>
+    <div class="card section"><h3>${y}年の月別</h3><div class="tablewrap"><table><thead><tr><th>月</th><th style="text-align:right">売上</th><th style="text-align:right">仕入</th><th style="text-align:right">粗利</th></tr></thead><tbody>
+      ${months.map(r=>`<tr><td>${Number(r.k.slice(5))}月</td><td class="num" style="text-align:right">${r.sa?yen(r.sa):'—'}</td><td class="num" style="text-align:right">${r.bu?yen(r.bu):'—'}</td><td class="num" style="text-align:right">${r.sa||r.bu?yen(r.sa-r.bu):'—'}</td></tr>`).join('')}</tbody></table></div></div>
+  </div>`;
+}
+/* --- 出面（人工）：だれがどの日にどの現場で何人工か。10日ごと・月ごとに集計して各自へ送る --- */
+const DZ_PERIODS = [['a','1〜10日'],['b','11〜20日'],['c','21日〜月末'],['m','月全体']];
+const Dz = {
+  month: () => view.dzMonth || todayISO().slice(0,7),
+  period: () => view.dzPeriod || (()=>{ const d=+todayISO().slice(8); return d<=10?'a':d<=20?'b':'c'; })(),
+  range(m=this.month(), p=this.period()){ const [y,mo]=m.split('-').map(Number), last=new Date(y,mo,0).getDate(); const r={a:[1,10],b:[11,20],c:[21,last],m:[1,last]}[p]; return [`${m}-${pad(r[0])}`,`${m}-${pad(r[1])}`]; },
+  live: () => (S.dezura||[]).filter(x=>x.type!=='check'&&!x.void),
+  people(){ return [...new Set([...PIPE_STAFF, ...this.live().map(x=>x.who)])]; },
+  siteName: x => x.pid ? ((S.pipeline||[]).find(p=>p.id===x.pid)||{}).name || x.site || '' : x.site || '',
+  form(id, date, who){
+    const x=id?S.dezura.find(v=>v.id===id):{date:date||todayISO(), who:who||PIPE_STAFF[0], count:1, kind:'日中'};
+    const ppl=[...new Set([...PIPE_STAFF, x.who].filter(Boolean))];
+    const pipeOpts=[['','（案件から選ばない）'],...(S.pipeline||[]).filter(p=>!PIPE_CLOSED.has(p.status)||p.id===x.pid).map(p=>[p.id,p.name])];
+    openDrawer(`${drawerHead(id?'出面':'出面を入れる')}<form data-form="dezura" data-id="${id||''}">
+      <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('日付','date',x.date,'date','required')}${sel('だれ','who',ppl,x.who)}</div>
+      ${fld('ほかの人（職人さんなど。入れるとこちらが優先）','whoOther','','text','placeholder="例：大工 川井さん"')}
+      ${sel('現場（案件進捗から選ぶ）','pid',pipeOpts,x.pid||'')}${fld('現場名（案件にないとき）','site',x.site||'','text','placeholder="例：〇〇マンション 302号室"')}
+      <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('人工','count',x.count??1,'number','required min="0" max="3" step="0.5" inputmode="decimal"')}${sel('区分','kind',['日中','夜間','残業'],x.kind||'日中')}</div>
+      ${area('メモ','memo',x.memo||'')}
+      <p class="perm-note">出面はだれでも見られます。</p>
+      <div class="row" style="justify-content:space-between;margin-top:12px">${id?`<button class="btn danger" type="button" data-act="dzVoid" data-id="${id}">取り消し</button>`:'<span></span>'}<button class="btn primary" type="submit">保存</button></div></form>`);
+  },
+  save(id, v){
+    const who=String(v.whoOther||'').trim()||String(v.who||'').trim(), d={date:String(v.date||''), who, pid:String(v.pid||''), site:String(v.site||'').trim(), count:Number(v.count), kind:v.kind||'日中', memo:String(v.memo||'').trim()};
+    if(!d.date||!d.who){ toast('日付とだれを入れてください'); return; }
+    if(!(d.count>=0)){ toast('人工を数字で入れてください'); return; }
+    if(!d.pid&&!d.site){ toast('現場を選ぶか、現場名を入れてください'); return; }
+    if(id){ const x=S.dezura.find(v=>v.id===id); Object.assign(x, d, {at:nowISO(), by:myLabel()}); delete x.from; }   // 直したら下書きではなくなる
+    else S.dezura.push({id:uid('dz'), ...d, at:nowISO(), by:myLabel()});
+    view.dzMonth=d.date.slice(0,7); save(); closeDrawer(); render(); toast('出面を保存しました');
+  },
+  void(id){ const x=S.dezura.find(v=>v.id===id); confirmBox(`${md(x.date)} ${x.who} の出面を取り消します（記録は残ります）。`,'取り消す',()=>{ Object.assign(x,{void:true, voidAt:nowISO(), voidBy:myLabel()}); save(); closeDrawer(); render(); toast('取り消しました'); }); },
+  // 予定と工事日から、その日の出面の下書きを作る（すでに入っている日・人は作らない）
+  fromPlans(){
+    const [a,b]=this.range(), have=new Set(this.live().map(x=>x.date+'|'+x.who)), out=[];
+    for(const p of (S.plans||[])){ if(!PIPE_STAFF.includes(p.who)) continue; const end=p.end&&p.end>p.date?p.end:p.date;
+      for(let d=p.date; d<=end; d=addDays(d,1)){ if(d<a||d>b||have.has(d+'|'+p.who)) continue; have.add(d+'|'+p.who); out.push({date:d, who:p.who, site:p.title+(p.place?'（'+p.place+'）':''), count:1, kind:/夜/.test(p.time||'')?'夜間':'日中', from:'予定'}); } }
+    for(const w of pipeWorks()){ for(const who of [w.tanto1,w.tanto2].filter(n=>PIPE_STAFF.includes(n))){
+      for(let d=w.start; d<=w.end; d=addDays(d,1)){ if(d<a||d>b||have.has(d+'|'+who)) continue; have.add(d+'|'+who); out.push({date:d, who, pid:w.id, count:1, kind:'日中', from:'工事日'}); } } }
+    if(!out.length){ toast('予定から作れる出面はありませんでした（もう入っているか、予定がありません）'); return; }
+    confirmBox(`予定と工事日から、出面の下書きを ${out.length}件 作ります。あとで1件ずつ直せます（休み・半日などは直してください）。`,'作る',()=>{ out.forEach(x=>S.dezura.push({id:uid('dz'),...x,memo:'',at:nowISO(),by:myLabel()})); save(); render(); toast(`${out.length}件の下書きを作りました`); });
+  },
+  key: (who) => `${Dz.month()}-${Dz.period()}|${who}`,
+  checked(who){ return (S.dezura||[]).find(x=>x.type==='check'&&x.key===this.key(who)); },
+  check(who){ S.dezura.push({id:uid('dzc'), type:'check', key:this.key(who), who, at:nowISO(), by:myLabel()}); save(); render(); toast(`${who}の出面を確認済みにしました`); },
+  text(who, rows, total){ const [a,b]=this.range(); return [`【出面】${who}　${jpDate(a)}〜${jpDate(b)}`, ...rows.map(x=>`${md(x.date)}　${this.siteName(x)}　${x.count}人工${x.kind!=='日中'?'（'+x.kind+'）':''}`), `合計　${total}人工`].join('\n'); },
+  csv(){
+    const [a,b]=this.range(), rows=this.live().filter(x=>x.date>=a&&x.date<=b).sort((p,q)=>(p.date+p.who).localeCompare(q.date+q.who));
+    const q=v=>`"${String(v??'').replace(/"/g,'""')}"`, lines=[['日付','だれ','現場','人工','区分','メモ'],...rows.map(x=>[x.date,x.who,this.siteName(x),x.count,x.kind,x.memo])].map(r=>r.map(q).join(','));
+    const u=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv'})); const el=document.createElement('a'); el.href=u; el.download=`出面_${a}_${b}.csv`; document.body.appendChild(el); el.click(); el.remove(); toast('CSVを書き出しました');
+  }
+};
+function pDezura(){
+  const m=Dz.month(), p=Dz.period(), [a,b]=Dz.range(), rows=Dz.live().filter(x=>x.date>=a&&x.date<=b);
+  const ppl=Dz.people(), tot=a=>a.reduce((n,x)=>n+(Number(x.count)||0),0);
+  return `<div class="hero"><div><h2>出面</h2><p>だれが、どの日に、どの現場で何人工か。10日ごとと月ごとに集計して、各自に送れます。</p></div>
+    <div class="acts"><button class="btn primary" data-act="dzNew">＋ 出面を入れる</button><button class="btn" data-act="dzFromPlans">予定から作る</button><button class="btn" data-act="dzCsv">CSV出力</button></div></div>
+  <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><button class="btn" data-act="dzMonth" data-d="-1" aria-label="前の月">‹</button><b style="min-width:100px;text-align:center">${monthLabel(m)}</b><button class="btn" data-act="dzMonth" data-d="1" aria-label="次の月">›</button>
+    <div class="who-chips" style="margin:0">${DZ_PERIODS.map(([k,l])=>`<button class="who ${p===k?'on':''}" data-act="dzPeriod" data-p="${k}">${l}</button>`).join('')}</div></div>
+  <div class="kpis portal">${pkpi('この期間の人工',tot(rows),`${jpDate(a)}〜${jpDate(b)}`)}${pkpi('入っている日・人',rows.length+'件',`${new Set(rows.map(x=>x.who)).size}人`)}${pkpi('確認済み',ppl.filter(w=>Dz.checked(w)).length+'人',`全${ppl.length}人`)}</div>
+  <div class="pgrid">${ppl.map(w=>{ const rs=rows.filter(x=>x.who===w).sort((p,q)=>p.date.localeCompare(q.date)), t=tot(rs), ck=Dz.checked(w);
+    return `<div class="card pcard"><div class="row" style="justify-content:space-between"><b>${esc(w)}</b><span class="pill ${ck?'ok':'todo'}">${ck?'確認済み':'未確認'}</span></div>
+      <div class="num" style="font-size:22px;font-weight:800">${t}<small class="muted" style="font-size:13px;font-weight:400"> 人工</small></div>
+      <div class="plist">${rs.map(x=>`<button class="prow" data-act="dzEdit" data-id="${x.id}"><span class="pd">${md(x.date)}</span><span class="pm"><b>${esc(Dz.siteName(x)||'（現場未入力）')}</b><small>${x.count}人工${x.kind!=='日中'?'・'+esc(x.kind):''}${x.from?'・'+esc(x.from)+'から（下書き）':''}</small></span></button>`).join('')||'<small class="muted">この期間の出面はありません</small>'}</div>
+      <div class="row pbtns"><button class="btn sm" data-act="dzNewFor" data-w="${esc(w)}">＋ 入れる</button>${rs.length?lineBtn(Dz.text(w,rs,t),'LINEで送る'):''}${ck?`<small class="muted">${esc(ck.by)} ${mdhm(ck.at)}</small>`:`<button class="btn sm" data-act="dzCheck" data-w="${esc(w)}">確認しました</button>`}</div></div>`; }).join('')}</div>
+  <p class="perm-note">「予定から作る」は、担当者ごとの予定と案件進捗の工事日から、その期間の出面の下書きを作ります（もう入っている日・人は作りません）。休み・半日・夜間は1件ずつ直してください。消したいときは「取り消し」（記録は残ります）。</p>`;
+}
+/* --- 小口現金・立替：作本・児玉は5万円ずつ預けて、使った分のレシートで精算して5万円に戻す。井上は立替 → 返金 --- */
+const PETTY_FLOAT = {'作本 直樹':50000, '児玉 雄大':50000};   // 預けている小口現金（2026-10 時点の舟田さんの説明）
+const PETTY_KIND = {use:'使った（小口現金）', adv:'立替えた', refill:'補充（精算）', refund:'返金'};
+const Petty = {
+  admin: () => me().role==='office' || canFinance(),   // 内藤さん・川端さん・舟田さん：全員分を見て精算できる
+  meName: () => PIPE_STAFF.find(n=>staffShort(n)===me().name) || me().name,
+  people(){ const all=[...new Set([...Object.keys(PETTY_FLOAT), ...(S.petty||[]).map(x=>x.who)])]; return this.admin()?all.concat(PIPE_STAFF.filter(n=>!all.includes(n))):[this.meName()]; },
+  live: () => (S.petty||[]).filter(x=>!x.void),
+  state(who){ const xs=this.live().filter(x=>x.who===who), sum=k=>xs.filter(x=>x.kind===k&&!x.settled).reduce((n,x)=>n+(Number(x.amount)||0),0);
+    const fl=PETTY_FLOAT[who]||0; return {fl, used:sum('use'), adv:sum('adv'), left:fl-sum('use'), xs}; },
+  form(who){
+    const ppl=this.admin()?this.people():[this.meName()];
+    openDrawer(`${drawerHead('レシートを入れる')}<form data-form="petty">${sel('だれ','who',ppl,who||ppl[0])}
+      <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('日付','date',todayISO(),'date','required')}${sel('種類','kind',[['use',PETTY_KIND.use],['adv',PETTY_KIND.adv]],PETTY_FLOAT[who||ppl[0]]?'use':'adv')}</div>
+      ${fld('金額（円）','amount','','number','required min="1" step="1" inputmode="numeric"')}${fld('何に使ったか','desc','','text','required placeholder="例：ホームセンター 養生テープ"')}
+      ${sel('案件（わかれば）','pid',[['','（なし）'],...(S.pipeline||[]).filter(p=>!PIPE_CLOSED.has(p.status)).map(p=>[p.id,p.name])],'')}
+      <div class="field"><label for="fm_file">レシートの写真</label><input id="fm_file" name="file" type="file" accept="image/*,application/pdf" capture="environment"></div>
+      <button class="btn primary" style="width:100%" type="submit">保存</button></form>`);
+  },
+  async save(v, file){
+    const d={who:String(v.who||''), date:String(v.date||''), kind:v.kind==='adv'?'adv':'use', amount:Math.round(Number(v.amount)||0), desc:String(v.desc||'').trim(), pid:String(v.pid||'')};
+    if(!d.who||!d.date||!(d.amount>0)||!d.desc){ toast('だれ・日付・金額・何に使ったかを入れてください'); return; }
+    if(!this.admin()&&d.who!==this.meName()){ toast('自分の分だけ入れられます'); return; }
+    const x={id:uid('pc'), ...d, at:nowISO(), by:myLabel()};
+    if(file&&file.size){ const key='gi:'+uid('f'); await FileStore.put(key, await shrinkImage(file)); x.fileKey=key; x.fileName=file.name; }
+    S.petty.push(x); save(); closeDrawer(); render(); toast('入れました');
+  },
+  // 精算：使った分を補充して、預け金に戻す（使った分の記録は「精算済み」に）
+  settle(who){ if(!this.admin()){ toast('精算は内藤さん・川端さん・舟田さんです'); return; } const st=this.state(who), use=st.xs.filter(x=>x.kind==='use'&&!x.settled);
+    if(!use.length){ toast('精算するレシートがありません'); return; }
+    confirmBox(`${staffShort(who)}さんの小口現金を精算します。使った ${use.length}件・${yen(st.used)} を補充して、${yen(st.fl)} に戻します。現金とレシートの合計が合っているか確かめてから押してください。`,'精算する',()=>{
+      const sid=uid('ps'); use.forEach(x=>{ x.settled=sid; }); S.petty.push({id:sid, who, date:todayISO(), kind:'refill', amount:st.used, desc:`${use.length}件の精算`, at:nowISO(), by:myLabel()}); save(); render(); toast('精算しました'); }); },
+  refund(who){ if(!this.admin()){ toast('返金の記録は内藤さん・川端さん・舟田さんです'); return; } const st=this.state(who), adv=st.xs.filter(x=>x.kind==='adv'&&!x.settled);
+    if(!adv.length){ toast('返金する立替がありません'); return; }
+    confirmBox(`${staffShort(who)}さんの立替 ${adv.length}件・${yen(st.adv)} を返金したと記録します。`,'記録する',()=>{ const sid=uid('pr'); adv.forEach(x=>{ x.settled=sid; }); S.petty.push({id:sid, who, date:todayISO(), kind:'refund', amount:st.adv, desc:`${adv.length}件の立替の返金`, at:nowISO(), by:myLabel()}); save(); render(); toast('返金を記録しました'); }); }
+};
+function pPetty(){
+  const admin=Petty.admin();
+  return `<div class="hero"><div><h2>小口現金・立替</h2><p>使ったらレシートの写真と金額を入れます。${admin?'内藤さん・川端さん・舟田さんは、全員分を見て精算できます。':'自分の分だけが表示されます。'}</p></div>
+    <div class="acts"><button class="btn primary" data-act="pettyNew">＋ レシートを入れる</button></div></div>
+  <div class="pgrid">${Petty.people().map(w=>{ const st=Petty.state(w), open=st.xs.filter(x=>(x.kind==='use'||x.kind==='adv')&&!x.settled).sort((a,b)=>b.date.localeCompare(a.date)), hist=st.xs.filter(x=>x.kind==='refill'||x.kind==='refund').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
+    return `<div class="card pcard"><b>${esc(w)}</b>
+      <dl>${st.fl?`<dt>預けている額</dt><dd>${yen(st.fl)}</dd><dt>使った（未精算）</dt><dd>${yen(st.used)}</dd><dt>手元にあるはず</dt><dd><b>${yen(st.left)}</b>${st.left<10000?' <span class="pill wait">少なくなっています</span>':''}</dd>`:''}
+        ${st.adv||!st.fl?`<dt>立替（未返金）</dt><dd><b>${yen(st.adv)}</b></dd>`:''}</dl>
+      <div class="plist">${open.map(x=>`<div class="prow" style="cursor:default"><span class="pd">${md(x.date)}</span><span class="pm"><b>${esc(x.desc)}</b><small>${PETTY_KIND[x.kind]}・${yen(x.amount)}${x.pid?'・'+esc(((S.pipeline||[]).find(p=>p.id===x.pid)||{}).name||''):''}</small></span>${x.fileKey?`<button class="btn sm" data-act="pettyReceipt" data-id="${x.id}">レシート</button>`:''}</div>`).join('')||'<small class="muted">未精算のレシートはありません</small>'}</div>
+      ${hist.length?`<small class="muted">${hist.map(h=>`${md(h.date)} ${PETTY_KIND[h.kind]} ${yen(h.amount)}（${esc(h.by)}）`).join('<br>')}</small>`:''}
+      <div class="row pbtns"><button class="btn sm" data-act="pettyNew" data-w="${esc(w)}">＋ 入れる</button>${admin&&st.used?`<button class="btn sm primary" data-act="pettySettle" data-w="${esc(w)}">精算して${yen(st.fl)}に戻す</button>`:''}${admin&&st.adv?`<button class="btn sm primary" data-act="pettyRefund" data-w="${esc(w)}">返金した</button>`:''}</div></div>`; }).join('')}</div>
+  <p class="perm-note">精算は、手元の現金と「手元にあるはず」の額が合っているか確かめてから押してください。精算した分の記録は消えずに残ります。</p>`;
+}
 function pMeetings(){
   const cur=monthKey(), m=Office.mMonth||cur, set=new Set(S.meetings.map(x=>x.month));
   for(let i=-8;i<=2;i++) set.add(monthAdd(cur,i));
@@ -1732,7 +2302,7 @@ function pSales(){
   const kpi=(l,n,s)=>`<div class="card kpi money"><div class="label">${l}</div><div class="num">${n}</div><div class="sub">${s}</div></div>`;
   const row=x=>`<tr class="clickable" data-act="editSale" data-id="${x.id}"><td>${esc(x.date?md(x.date):'—')}</td><td><b>${esc(x.party)}</b>${x.pipeId?`<br><button class="linkbtn" data-act="editPipe" data-id="${x.pipeId}">${esc((S.pipeline.find(p=>p.id===x.pipeId)||{}).name||'')}</button>`:''}</td><td>${esc(x.title)}</td>
     <td class="num" style="text-align:right">${yen(x.amount)}</td><td><span class="pill ${x.status!=='入金済み'&&x.status!=='支払済み'&&x.due&&x.due<today?'ng':SALE_PILL[x.status]||'todo'}">${esc(x.status)}</span>${x.type==='sale'&&x.method?`<br><small>${esc(x.method)}</small>`:''}</td>
-    <td><small>${x.due?md(x.due):''}</small></td><td>${x.fileKey?`<button class="btn sm" data-act="openOffice" data-coll="sales" data-id="${x.id}">PDF</button>`:''}${x.link?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener">Dropbox</a>`:''}</td></tr>`;
+    <td><small>${x.due?md(x.due):''}</small></td><td>${x.dbx&&!x.amount?'<span class="pill wait">金額を入れる</span> ':''}${dbxTag(x)}${dbxBtn(x,'sales','PDF')}${x.fileKey?`<button class="btn sm" data-act="openOffice" data-coll="sales" data-id="${x.id}">PDF</button>`:''}${x.link?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener">Dropbox</a>`:''}</td></tr>`;
   const table=(title,type,arr)=>`<div class="card section mt"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${title}（${arr.length}件 ・ ${yen(sum(arr))}）</h3><button class="btn sm primary" data-act="newSale" data-t="${type}">＋ 追加</button></div>
     <div class="tablewrap"><table><thead><tr><th>請求日</th><th>${type==='sale'?'請求先':'業者名'}</th><th>件名</th><th style="text-align:right">金額（税込）</th><th>状態</th><th>${type==='sale'?'入金予定':'支払予定'}</th><th>書類</th></tr></thead>
     <tbody>${arr.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(row).join('')||`<tr><td colspan="7" class="empty">${monthLabel(m)}の${type==='sale'?'売上':'仕入'}はまだありません</td></tr>`}</tbody></table></div></div>`;
@@ -1740,10 +2310,10 @@ function pSales(){
   const max=Math.max(1,...year.map(r=>Math.max(r.s,r.b)));
   return `<div class="hero"><div><h2>売上管理</h2><p>請求書（売上）と業者さんからの請求書（仕入）を月ごとにまとめます。Rateruだけが見られます。</p></div>
     <div class="acts"><button class="btn" data-act="saleMonth" data-d="-1" aria-label="前の月">‹</button><button class="btn" data-act="saleMonth" data-d="0">${monthLabel(m)}</button><button class="btn" data-act="saleMonth" data-d="1" aria-label="次の月">›</button></div></div>
-  <div class="kpis money">${kpi(`${monthLabel(m)} 売上`,yen(sum(sales)),`${sales.length}件`)}${kpi(`${monthLabel(m)} 仕入`,yen(sum(buys)),`${buys.length}件`)}${kpi('粗利',yen(sum(sales)-sum(buys)),sum(sales)?`粗利率 ${Math.round((sum(sales)-sum(buys))/sum(sales)*100)}%`:'—')}${kpi('入金待ち（請求済み）',yen(sum(unpaid)),`${unpaid.length}件${draft.length?` ・ 作成中 ${draft.length}件 ${yen(sum(draft))}`:''}`)}${kpi('入金予定を過ぎた',late.length,late.length?yen(sum(late)):'なし')}</div>
+  <div class="kpis money">${kpi(`${monthLabel(m)} 売上`,yen(sum(sales)),`${sales.length}件`)}${kpi(`${monthLabel(m)} 仕入`,yen(sum(buys)),`${buys.length}件`)}${canFinance()?kpi('粗利',yen(sum(sales)-sum(buys)),sum(sales)?`粗利率 ${Math.round((sum(sales)-sum(buys))/sum(sales)*100)}%`:'—'):''}${kpi('入金待ち（請求済み）',yen(sum(unpaid)),`${unpaid.length}件${draft.length?` ・ 作成中 ${draft.length}件 ${yen(sum(draft))}`:''}`)}${kpi('入金予定を過ぎた',late.length,late.length?yen(sum(late)):'なし')}</div>
   ${table('売上（請求書 売上）','sale',sales)}${table('仕入（請求書 業者さんから）','buy',buys)}
-  <div class="card section mt"><h3>${y}年の月別</h3><div class="tablewrap"><table class="year-table"><thead><tr><th>月</th><th style="text-align:right">売上</th><th style="text-align:right">仕入</th><th style="text-align:right">粗利</th><th style="min-width:180px">売上と仕入の比較</th></tr></thead><tbody>
-    ${year.map(r=>`<tr class="clickable ${r.k===m?'on':''}" data-act="saleMonthSet" data-m="${r.k}"><td>${Number(r.k.slice(5))}月</td><td class="num" style="text-align:right">${r.s?yen(r.s):'—'}</td><td class="num" style="text-align:right">${r.b?yen(r.b):'—'}</td><td class="num" style="text-align:right">${r.s||r.b?yen(r.s-r.b):'—'}</td>
+  <div class="card section mt"><h3>${y}年の月別</h3><div class="tablewrap"><table class="year-table"><thead><tr><th>月</th><th style="text-align:right">売上</th><th style="text-align:right">仕入</th>${canFinance()?'<th style="text-align:right">粗利</th>':''}<th style="min-width:180px">売上と仕入の比較</th></tr></thead><tbody>
+    ${year.map(r=>`<tr class="clickable ${r.k===m?'on':''}" data-act="saleMonthSet" data-m="${r.k}"><td>${Number(r.k.slice(5))}月</td><td class="num" style="text-align:right">${r.s?yen(r.s):'—'}</td><td class="num" style="text-align:right">${r.b?yen(r.b):'—'}</td>${canFinance()?`<td class="num" style="text-align:right">${r.s||r.b?yen(r.s-r.b):'—'}</td>`:''}
       <td><div class="ybar"><span class="s" style="width:${r.s/max*100}%"></span></div><div class="ybar"><span class="b" style="width:${r.b/max*100}%"></span></div></td></tr>`).join('')}
     </tbody></table></div><div class="row perm-note"><span class="pill" style="background:var(--band);color:var(--band-text)">売上</span><span class="pill todo">仕入</span><span>行を押すとその月を表示します。</span></div></div>`;
 }
@@ -1757,7 +2327,7 @@ function pipeRelated(x){
   return `<div class="card section" style="margin:14px 0;padding:12px"><h3 style="margin:0 0 6px;font-size:14px">この案件につながっているもの</h3>
     ${x.folder?`<div class="rel">${extLink(x.folder,'📁 Dropboxのフォルダを開く','linkbtn')}<small>図面・写真・見積などの元ファイル</small></div>`:''}
     ${x.pid?li(`Hubの案件：${esc(pname(x.pid))}`,esc(x.pid),'open',x.pid):''}
-    <div class="muted" style="font-size:13px;margin:6px 0 2px">売上 ${yen(s)} ・ 仕入 ${yen(b)} ・ 粗利 ${yen(s-b)}</div>
+    <div class="muted" style="font-size:13px;margin:6px 0 2px">売上 ${yen(s)} ・ 仕入 ${yen(b)}${canFinance()?` ・ 粗利 ${yen(s-b)}`:''}</div>
     ${sales.map(v=>li(`${v.type==='sale'?'売上':'仕入'}：${esc(v.party)} ${yen(v.amount)}`,`${monthLabel(v.month)} ・ ${esc(v.status)}${v.fileName?' ・ 📎 '+esc(v.fileName):''}`,'editSale',v.id)).join('')}
     ${meets.map(v=>li(`会議資料：${esc(v.title)}`,`${monthLabel(v.month)}${v.fileName?' ・ 📎 '+esc(v.fileName):''}`,'editMeeting',v.id)).join('')}
     ${!sales.length&&!meets.length?'<div class="muted" style="font-size:13px">まだありません。売上や会議資料を登録するときに、この案件を選ぶとここに並びます。</div>':''}
@@ -2124,7 +2694,7 @@ function pSettings(){
   const roles=['reiwa_admin','reiwa_sales','gr_admin','partner'];
   return `<div class="hero"><div><h2>設定・権限</h2><p>会社・役割ごとに「見えるもの」「編集できるもの」を制御。${MODE==='demo'?'右上の切替で各ロールの見え方を試せます。':''}</p></div></div>
   <div class="card section"><div class="tablewrap"><table><thead><tr><th>ロール</th>${PERM_ROWS.map(r=>`<th>${r[0]}</th>`).join('')}</tr></thead><tbody>
-  ${roles.map(r=>`<tr ${me().role===r?'style="background:var(--accent-soft)"':''}><td><b>${USERS.find(u=>u.role===r).roleLabel}</b></td>${PERM_ROWS.map(x=>`<td>${x[1][r]}</td>`).join('')}</tr>`).join('')}
+  ${roles.map(r=>`<tr ${me().role===r?'style="background:var(--accent-soft)"':''}><td><b>${roleLabel(r)}</b></td>${PERM_ROWS.map(x=>`<td>${x[1][r]}</td>`).join('')}</tr>`).join('')}
   </tbody></table></div></div>
   <div class="card section mt"><h3>データ管理</h3>
     <p class="muted" style="margin-top:0">${MODE==='server'?'データはサーバーに保存され、ログインした全員に自動で反映されます。会社ごとに見える範囲はサーバー側で制限されています。':'このアプリのデータは今使っているブラウザの中に保存されています（お試し版）。別の端末や他の人とは共有されません。'}</p>
@@ -2135,6 +2705,7 @@ function pSettings(){
       ${MODE==='server'&&me().role==='gr_admin'&&!S.projects.length?'<button class="btn" data-act="loadSample">サンプル案件を入れる</button>':''}</div>
     ${canMove()?'<p class="perm-note">引っ越しデータには、案件・記録・原価・社内フォルダ・写真・図面ファイルがすべて1つのファイルに入ります。お試し版からサーバー版へ、またはサーバーを変えるときに、読み込むだけで全部移せます（ログインIDは移行先で作り直します）。</p>':''}
     <div id="moveStatus" class="perm-note"></div></div>
+  ${Dbx.card()}
   ${lineSettingsCard()}
   ${MODE==='server'&&me().role==='gr_admin'?'<div class="card section mt" id="membersBox"><h3>メンバー管理</h3><div class="muted">読み込み中…</div></div>':''}`;
 }
@@ -2344,8 +2915,36 @@ document.addEventListener('click', async e=>{
   case 'editTemplate': Office.templateForm(d.id); break;
   case 'newSale': Office.saleForm(null, d.t, d.pipe); break;
   case 'editSale': Office.saleForm(d.id); break;
+  case 'dzNew': Dz.form(null); break;
+  case 'dzNewFor': Dz.form(null, Dz.range()[0]<=todayISO()&&todayISO()<=Dz.range()[1]?todayISO():Dz.range()[0], d.w); break;
+  case 'dzEdit': Dz.form(d.id); break;
+  case 'dzVoid': Dz.void(d.id); break;
+  case 'dzFromPlans': Dz.fromPlans(); break;
+  case 'dzCsv': Dz.csv(); break;
+  case 'dzCheck': Dz.check(d.w); break;
+  case 'dzPeriod': view.dzPeriod=d.p; render(); break;
+  case 'dzMonth': view.dzMonth=monthAdd(Dz.month(),Number(d.d)); render(); break;
+  case 'payMonth': Office.payMonth=d.d==='0'?todayISO().slice(0,7):monthAdd(payMonth(),Number(d.d)); render(); break;
+  case 'payApprove': { if(myPos()!=='head'){ toast('支払の確認は川端さんだけです'); break; } const m=payMonth(), open=payTargets(m).filter(x=>x.status!=='支払済み'), total=open.reduce((n,x)=>n+(Number(x.amount)||0),0);
+    confirmBox(`${monthLabel(m)}分の支払 ${open.length}件・${yen(total)} をこの内容で確認します。`,'確認しました',()=>{ S.sales.push({id:uid('po'),type:'payok',month:m,sig:paySig(open),total,count:open.length,at:nowISO(),by:myLabel()}); save(); render(); toast('支払の内容を確認しました'); }); break; }
+  case 'payDone': { if(!canFinance()){ toast('支払済みの記録は川端さん・舟田さんだけです'); break; } const m=payMonth(), open=payTargets(m).filter(x=>x.status!=='支払済み'), ok=payOk(m);
+    if(!ok||ok.sig!==paySig(open)){ toast('川端さんの確認がまだか、確認のあとに変わっています'); break; }
+    confirmBox(`${open.length}件を「支払済み」として記録します（振込は銀行で済ませてから押してください）。`,'記録する',()=>{ open.forEach(x=>{ x.status='支払済み'; x.paidAt=nowISO(); x.paidBy=myLabel(); }); save(); render(); toast(`${open.length}件を支払済みにしました`); }); break; }
+  case 'pickCase': { const el2=$('#fm_pipeId'); if(el2){ el2.value=d.pipe; toast('案件を選びました。「保存」で決まります'); } break; }
+  case 'linkCase': { const x=S.sales.find(v=>v.id===d.id); x.pipeId=d.pipe; x.at=nowISO(); x.by=myLabel(); save(); render(); toast(`「${(S.pipeline.find(p=>p.id===d.pipe)||{}).name}」につなぎました`); break; }
+  case 'bankLink': Bank.link(d.b, d.s); break;
+  case 'bankNote': Bank.note(d.b); break;
+  case 'pettyNew': Petty.form(d.w); break;
+  case 'pettySettle': Petty.settle(d.w); break;
+  case 'pettyRefund': Petty.refund(d.w); break;
+  case 'pettyReceipt': { const x=S.petty.find(v=>v.id===d.id); await openBlob(x.fileKey, x.fileName||'レシート'); break; }
+  case 'finYear': { const c=Number(Office.fYear||todayISO().slice(0,4)); Office.fYear=d.d==='0'?todayISO().slice(0,4):String(c+Number(d.d)); render(); break; }
   case 'saleMonth': Office.sMonth=Number(d.d)?monthAdd(Office.sMonth||monthKey(),Number(d.d)):monthKey(); render(); break;
   case 'saleMonthSet': Office.sMonth=d.m; render(); break;
+  case 'openDbx': await Dbx.open(officeColl(d.coll).find(v=>v.id===d.id)); break;
+  case 'dbxClear': Dbx.clearLocal(); break;
+  case 'dbxSync': await Dbx.sync(); break;
+  case 'dbxConnect': await Dbx.connect(); break;
   case 'openOffice': { const x=officeColl(d.coll).find(v=>v.id===d.id); await openBlob(x.fileKey, x.fileName||x.title); break; }
   case 'delOffice': Office.del(d.coll, d.id); break;
   case 'shareOfficeFile': await shareOfficeFile(d.coll, d.id); break;
@@ -2391,6 +2990,7 @@ document.addEventListener('change', async e=>{
   if(el.id==='roleSel'){ S.userId=el.value; save(); toast(`${me().roleLabel}（${me().name}）として表示中`); if(view.page==='project'&&!visibleIds().has(view.pid)) view.page='projects'; render(); return; }
   if(d.filter){ view.filters[d.filter]=el.value; render(); return; }
   if(d.act==='pick'){ view[d.key]=el.value; render(); return; }
+  if(d.act==='custBilling'){ const nk=v=>String(v||'').replace(/[\s　]/g,''), k=nk(d.k); let n=0; (S.pipeline||[]).forEach(x=>{ if(nk(x.customer||x.requester||'（顧客名なし）')===k){ x.billing=el.value; n++; } }); save(); render(); toast(`${d.k}の請求書の送り方を「${el.value||'未設定'}」にしました（${n}件）`); return; }
   if(d.act==='pipeFilter'){ Pipe.f[d.key]=el.type==='checkbox'?el.checked:el.value; render(); return; }
   if(d.sv){ S.surveys[d.pid][d.sv]=el.value; save(); return; }
   if(d.svnote!==undefined){ S.surveys[d.pid].items[+d.svnote].note=el.value; save(); return; }
@@ -2431,6 +3031,8 @@ document.addEventListener('change', async e=>{
     const key=doc.visibility==='gr'?'gi:'+uid('f'):`${doc.pid}/${uid('f')}`; await FileStore.put(key,f); doc.fileKey=key; doc.fileName=f.name; doc.ver++; doc.updated=nowISO(); doc.type=(f.name.split('.').pop()||doc.type).toUpperCase();
     change(doc.pid,`${doc.name} v${doc.ver-1} → v${doc.ver}（旧版は使用停止）`); log(doc.pid,`図面更新 / ${doc.name} v${doc.ver}`); save(); render(); toast(`${doc.name} を v${doc.ver} に更新しました`); return;
   }
+  if(d.act==='bankImport'){ const f2=el.files[0]; el.value=''; if(f2) await Bank.importFile(f2); return; }
+  if(d.act==='dbxFolder'){ const fs=[...el.files]; el.value=''; if(fs.length) Dbx.previewLocal(fs); return; }
   if(d.act==='icsImport'){ const f=el.files[0]; el.value=''; if(f) await Ical.importFile(f, d.w||''); return; }
   if(d.act==='pipeImport'){ const f=el.files[0]; el.value=''; if(f) await Pipe.importFile(f); return; }
   if(d.act==='officeFiles'){ const files=[...el.files]; if(!files.length) return; await Office.addFiles(d.coll, files, d.coll==='meetings'?{month:d.month}:{cat:d.cat}); return; }
@@ -2453,7 +3055,7 @@ document.addEventListener('change', async e=>{
     });
   }
 });
-document.addEventListener('input', e=>{ const d=e.target.dataset; if(e.target.id==='ph_note'){ view.boardNote=e.target.value; return; } if(d.filter==='q'){ view.filters.q=e.target.value; render(); } if(e.target.id==='rp_q'){ Pipe.f.q=e.target.value; render(); } });
+document.addEventListener('input', e=>{ const d=e.target.dataset; if(e.target.id==='ph_note'){ view.boardNote=e.target.value; return; } if(d.filter==='q'){ view.filters.q=e.target.value; render(); } if(e.target.id==='rp_q'){ Pipe.f.q=e.target.value; render(); } if(e.target.id==='dbx_q'){ view.dbxQ=e.target.value; render(); } });
 document.addEventListener('submit', async e=>{
   const f=e.target; e.preventDefault();
   if(f.dataset.act==='send'){ const i=f.querySelector('input'); const t=i.value.trim(); if(!t) return; const u=me(); S.messages.push({id:uid('m'),pid:f.dataset.pid,company:u.company,name:u.name,at:nowISO(),text:t}); save(); render(); const n=$('#chatInput'); if(n) n.focus(); return; }
@@ -2471,6 +3073,9 @@ document.addEventListener('submit', async e=>{
   }
   if(k==='notice'){ const t=v.text.trim(); if(!t) return; S.notices.unshift({id:uid('n'),pid:f.dataset.pid,text:t,at:nowISO(),by:myLabel()}); log(f.dataset.pid,`お知らせ / ${t.slice(0,30)}`); save(); render(); toast('お知らせを掲示しました'); return; }
   if(k==='pipe'){ Pipe.save(f.dataset.id, v); return; }
+  if(k==='dezura'){ Dz.save(f.dataset.id, v); return; }
+  if(k==='petty'){ await Petty.save(v, f.querySelector('input[type=file]')?.files[0]); return; }
+  if(k==='banknote'){ const b=S.bank.find(x=>x.id===f.dataset.id); b.note=String(v.note||'').trim(); save(); closeDrawer(); render(); toast('メモを保存しました'); return; }
   if(k==='plan'){ Plan.save(f.dataset.id, v); return; }
   if(k==='office'){ await Office.submit(f, v); return; }
   if(k==='note'){ S.internal.unshift({id:uid('in'),pid:v.pid,kind:'note',title:v.title.trim(),text:v.text,fileKey:null,at:nowISO(),by:myLabel()}); save(); closeDrawer(); render(); toast('社内メモを保存しました'); return; }
