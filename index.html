@@ -288,9 +288,8 @@ a.btn{display:inline-flex;align-items:center;gap:4px}
 .kv{display:grid;grid-template-columns:120px minmax(0,1fr);border-top:1px solid var(--line);margin-bottom:14px}
 .kv div{padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px;min-width:0;overflow-wrap:anywhere}
 .kv div:nth-child(odd){color:var(--muted);background:var(--panel2)}
-.cal-wrap{overflow-x:auto}
-.cal{display:grid;grid-template-columns:repeat(7,minmax(90px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:640px}
-@media(max-width:640px){.cal-wrap{overflow-x:visible}.cal{grid-template-columns:repeat(7,minmax(0,1fr));min-width:0}.cal .d{min-height:64px;padding:2px}.cal .dn{display:block;width:100%;min-height:32px;text-align:left;padding:4px}.cal .ev{font-size:9px;padding:2px;white-space:normal;overflow-wrap:anywhere;max-height:29px}.cal .hd{padding:6px 0}}
+.cal-wrap{overflow-x:visible;min-width:0}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0;width:100%}
 .cal .hd{background:var(--panel2);text-align:center;padding:6px;font-size:12px;font-weight:700}
 .cal .d{background:var(--panel);min-height:96px;padding:4px;font-size:11px;min-width:0}
 .cal .d.other{background:var(--panel2);color:var(--muted)}
@@ -299,6 +298,9 @@ a.btn{display:inline-flex;align-items:center;gap:4px}
 .cal .ev.ins{background:var(--violet-bg);color:var(--violet)}
 .cal .ev.rep{background:var(--ok-bg);color:var(--ok)}
 .cal .ev.due{background:var(--ng-bg);color:var(--ng)}
+@media(max-width:640px){.cal .d{min-height:64px;padding:2px}.cal .dn{display:block;width:100%;min-height:32px;text-align:left;padding:4px;touch-action:manipulation}.cal .ev{font-size:9px;padding:2px;white-space:normal;overflow-wrap:anywhere;max-height:29px}.cal .hd{padding:6px 0}}
+.app-update{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:55;max-width:560px;margin:auto;padding:12px 14px;border-radius:12px;background:var(--panel);border:2px solid var(--accent);box-shadow:0 8px 28px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+.app-update[hidden]{display:none}
 .report .meta2{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:4px 0}
 .report .txt{white-space:pre-wrap;font-size:13px}
 .board{display:grid;grid-template-columns:repeat(6,minmax(200px,1fr));gap:10px;overflow-x:auto;padding-bottom:6px}
@@ -422,6 +424,7 @@ body.noscroll{overflow:hidden}
 <div class="overlay" id="overlay" hidden></div>
 <div class="drawer" id="drawer" aria-hidden="true"></div>
 <div id="modalRoot"></div>
+<div id="appUpdate" class="app-update" role="status" hidden></div>
 
 <script>
 // Dropbox（Rateru案件共有Dropbox）のファイルを、RateruPAD のどこに並べるか決める仕分けのルール。
@@ -680,12 +683,32 @@ const PAGES = [
 // 試運転版（資料_非公開\RateruPAD_試運転.html。server/tools/make_trial.mjs が作る）は、本物のデータを最初から持っている（window.RATERU_START）。見本の入ったお試し版とは保存場所を分ける
 const TRIAL = typeof window!=='undefined' && window.RATERU_START || null;
 const STORE_KEY = TRIAL ? 'rateru-pad-trial-v1' : 'reiwa-gr-hub-v2';
-const APP_RELEASE='2026-10-06-4', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release';
+const APP_RELEASE='2026-10-06-5', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
   async show(title,body){ if('Notification' in window&&Notification.permission==='granted'){ try{ new Notification(title,{body}); return; }catch(e){} } toast(`${title}：${body}`); },
   async request(){ if('Notification' in window&&Notification.permission==='default') await Notification.requestPermission(); }
+};
+const AppUpdate={
+  last:0,checking:false,next:'',
+  async check(manual=false){
+    if(MODE!=='demo'||TRIAL||!/^https?:$/.test(location.protocol)) return;
+    if((this.checking&&!manual)||(!manual&&Date.now()-this.last<300000)) return;
+    this.checking=true; this.last=Date.now();
+    try{
+      const url=new URL(location.href); url.searchParams.set('_release',String(Date.now()));
+      const response=await fetch(url,{cache:'no-store'});
+      if(!response.ok) throw new Error('更新確認失敗');
+      const html=await response.text(), release=html.match(/const APP_RELEASE='([^']+)'/ )?.[1];
+      if(!release) throw new Error('版番号なし');
+      if(release!==APP_RELEASE){ this.next=release; const box=$('#appUpdate'); box.innerHTML=`<span>新しい版 ${esc(release)} があります。入力途中の内容を保存してから更新してください。</span><button class="btn primary" data-act="reloadApp">更新</button>`; box.hidden=false; }
+      else if(manual) toast(`最新版です（${APP_RELEASE}）`);
+    }catch(e){ if(manual) toast('更新を確認できませんでした。通信を確認してください'); }
+    finally{ this.checking=false; }
+  },
+  reload(){ if(!this.next) return; const url=new URL(location.href); url.searchParams.delete('_release'); url.searchParams.set('v',this.next); location.assign(url.href); },
+  start(){ this.check(); window.addEventListener('focus',()=>this.check()); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) this.check(); }); setInterval(()=>{ if(!document.hidden) this.check(); },300000); }
 };
 const SAMPLE_ARCHIVE_KEY = STORE_KEY+'-before-sample-cleanup-v1';
 // 写真フォルダ：工種 × 施工前/施工中/施工後（ANDPADと同じ考え方）
@@ -1499,7 +1522,7 @@ function renderNav(){
     return `<button data-act="nav" data-page="${id}" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('');
   const favs=Favs.get(), act=visibleProjects().filter(p=>p.status!=='done').sort((a,b)=>(favs.has(b.id)-favs.has(a.id)));
   $('#sideProjects').innerHTML=`<h4>進行中案件</h4>${act.slice(0,12).map(p=>`<button data-act="open" data-pid="${p.id}" title="${esc(p.name)}">${favs.has(p.id)?'★ ':''}${esc(p.name)}</button>`).join('')||'<small style="padding:0 12px">ありません</small>'}`;
-  $('#sideFoot').textContent = MODE==='server' ? 'v0.3 サーバー版' : (TRIAL?'v0.3 試運転版（この端末に保存）':'v0.3 お試し版（この端末に保存）');
+  $('#sideFoot').textContent = MODE==='server' ? 'v0.3 サーバー版' : (TRIAL?'v0.3 試運転版（この端末に保存）':`お試し版 ${APP_RELEASE}（この端末に保存）`);
 }
 const Favs = {
   get(){ try{ return new Set(JSON.parse(localStorage.getItem('hub-favs')||'[]')); }catch(e){ return this._m||(this._m=new Set()); } },
@@ -3012,7 +3035,7 @@ function pSettings(){
   <div class="card section"><div class="tablewrap"><table><thead><tr><th>ロール</th>${PERM_ROWS.map(r=>`<th>${r[0]}</th>`).join('')}</tr></thead><tbody>
   ${roles.map(r=>`<tr ${me().role===r?'style="background:var(--accent-soft)"':''}><td><b>${roleLabel(r)}</b></td>${PERM_ROWS.map(x=>`<td>${x[1][r]}</td>`).join('')}</tr>`).join('')}
   </tbody></table></div></div>
-  <div class="card section mt"><h3>通知設定</h3><label class="row"><input type="checkbox" data-act="noticePref" data-key="changes" ${NoticePrefs.get().changes?'checked':''}> 案件・予定の変更を通知</label><label class="row mt"><input type="checkbox" data-act="noticePref" data-key="app" ${NoticePrefs.get().app?'checked':''}> アプリの更新を通知</label><p class="perm-note">公開お試し版では、この端末の別タブで変更された内容と、この端末でアプリを更新して開いた時に通知します。アプリを閉じている間や、他の人の端末での変更は通知できません。</p></div>
+  <div class="card section mt"><h3>通知設定</h3><label class="row"><input type="checkbox" data-act="noticePref" data-key="changes" ${NoticePrefs.get().changes?'checked':''}> 案件・予定の変更を通知</label><label class="row mt"><input type="checkbox" data-act="noticePref" data-key="app" ${NoticePrefs.get().app?'checked':''}> アプリの更新を通知</label><p class="perm-note">公開お試し版では、この端末の別タブで変更された内容と、この端末でアプリを更新して開いた時に通知します。アプリを閉じている間や、他の人の端末での変更は通知できません。</p>${MODE==='demo'&&!TRIAL?`<div class="row"><button class="btn" data-act="checkAppUpdate">更新を確認</button><small>画面の版：${APP_RELEASE}</small></div>`:''}</div>
   <div class="card section mt"><h3>データ管理</h3>
     <p class="muted" style="margin-top:0">${MODE==='server'?'データはサーバーに保存され、ログインした全員に自動で反映されます。会社ごとに見える範囲はサーバー側で制限されています。':'このアプリのデータは今使っているブラウザの中に保存されています（お試し版）。別の端末や他の人とは共有されません。'}</p>
     ${canMove()?`<div class="row"><button class="btn primary" data-act="export">引っ越しデータを書き出す</button>
@@ -3209,6 +3232,8 @@ document.addEventListener('click', async e=>{
   case 'printDoc': printDoc(S.docs.find(x=>x.id===d.id)); break;
   case 'printSchedule': printSchedule(d.pid||''); break;
   case 'printCalendar': { if(me().role!=='gr_admin') break; const rows=calendarRows(view.calMonth,view.calWho||'').map(r=>[r.date+(r.end?'〜'+r.end:''),r.time,r.who,r.title+(r.kind==='工事'?'（工事）':''),r.place]); printSheet(`${view.calMonth} スケジュール表`,['日付','時間','担当','予定・工事','場所'],rows); break; }
+  case 'checkAppUpdate': AppUpdate.check(true); break;
+  case 'reloadApp': AppUpdate.reload(); break;
   case 'openInternal': { const x=S.internal.find(v=>v.id===d.id); await openBlob(x.fileKey, x.fileName||x.title); break; }
   case 'delInternal': confirmBox(`「${S.internal.find(v=>v.id===d.id).title}」を削除します。`,'削除する',()=>{ const x=S.internal.find(v=>v.id===d.id); if(x.fileKey) FileStore.del(x.fileKey); S.internal=S.internal.filter(v=>v.id!==d.id); save(); render(); toast('削除しました'); }); break;
   case 'newNote': openDrawer(`${drawerHead('社内メモ')}<form data-form="note">${sel('案件（任意）','pid',[['','（案件なし）'],...S.projects.map(p=>[p.id,p.name])],'')}${fld('件名','title','','text','required placeholder="例：元請と打ち合わせ 9/29"')}${area('内容','text','','決まったこと・次にやること・注意点')}<button class="btn primary" style="width:100%" type="submit">保存</button></form>`); break;
@@ -3510,7 +3535,7 @@ async function boot(){
   if(!CFG().supabaseUrl){ MODE='demo'; S=load();
     if(loadIssue){ $('#app').hidden=true; $('#modalRoot').innerHTML=`<div class="modal"><div class="box"><h2>保存データを保護しました</h2><p>${esc(loadIssue)}</p><p>この画面では新しい内容を保存しません。元のデータを控えてから確認してください。</p><button class="btn primary" id="rawDataExport">元データを書き出す</button></div></div>`;
       $('#rawDataExport').onclick=()=>{ const raw=localStorage.getItem(STORE_KEY); if(raw) saveFile(new Blob([raw],{type:'application/json'}),`rateru-pad-original-${todayISO()}.json`); }; return; }
-    S.internal=S.internal||[]; render(); openFromHash(); Big.init().then(()=>Start.run());
+    S.internal=S.internal||[]; render(); openFromHash(); Big.init().then(()=>Start.run()); AppUpdate.start();
     try{ const prior=localStorage.getItem(RELEASE_KEY);
       if(prior!==APP_RELEASE){ const raw=localStorage.getItem(STORE_KEY); if(raw){ try{ localStorage.setItem(STORE_KEY+'-backup',raw); }catch(e){ toast('更新前の控えを保存できませんでした。設定から引っ越しデータを書き出してください'); } } }
       localStorage.setItem(RELEASE_KEY,APP_RELEASE); if(prior&&prior!==APP_RELEASE&&NoticePrefs.get().app) NoticePrefs.show('RateruPADを更新しました','入力済みデータはこの端末に残ります'); }catch(e){}
