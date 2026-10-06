@@ -331,6 +331,7 @@ a.btn{display:inline-flex;align-items:center;gap:4px}
 }
 @media(max-width:640px){
  .content{padding:16px}
+ .drawer .formgrid{grid-template-columns:minmax(0,1fr)!important}
  .topbar{padding:8px 16px}
  .topbar .right{gap:6px} .topbar .btn{padding:7px 9px} .rolesel{max-width:118px} .top-brand{font-size:18px;white-space:nowrap}
  .hide-sm{display:none}
@@ -672,7 +673,7 @@ const PAGES = [
 // 試運転版（資料_非公開\RateruPAD_試運転.html。server/tools/make_trial.mjs が作る）は、本物のデータを最初から持っている（window.RATERU_START）。見本の入ったお試し版とは保存場所を分ける
 const TRIAL = typeof window!=='undefined' && window.RATERU_START || null;
 const STORE_KEY = TRIAL ? 'rateru-pad-trial-v1' : 'reiwa-gr-hub-v2';
-const APP_RELEASE='2026-10-06-2', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release';
+const APP_RELEASE='2026-10-06-3', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
