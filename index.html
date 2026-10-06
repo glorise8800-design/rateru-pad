@@ -290,6 +290,7 @@ a.btn{display:inline-flex;align-items:center;gap:4px}
 .kv div:nth-child(odd){color:var(--muted);background:var(--panel2)}
 .cal-wrap{overflow-x:auto}
 .cal{display:grid;grid-template-columns:repeat(7,minmax(90px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:640px}
+@media(max-width:640px){.cal-wrap{overflow-x:visible}.cal{grid-template-columns:repeat(7,minmax(0,1fr));min-width:0}.cal .d{min-height:64px;padding:2px}.cal .dn{display:block;width:100%;min-height:32px;text-align:left;padding:4px}.cal .ev{font-size:9px;padding:2px;white-space:normal;overflow-wrap:anywhere;max-height:29px}.cal .hd{padding:6px 0}}
 .cal .hd{background:var(--panel2);text-align:center;padding:6px;font-size:12px;font-weight:700}
 .cal .d{background:var(--panel);min-height:96px;padding:4px;font-size:11px;min-width:0}
 .cal .d.other{background:var(--panel2);color:var(--muted)}
@@ -671,11 +672,18 @@ const PAGES = [
 // 試運転版（資料_非公開\RateruPAD_試運転.html。server/tools/make_trial.mjs が作る）は、本物のデータを最初から持っている（window.RATERU_START）。見本の入ったお試し版とは保存場所を分ける
 const TRIAL = typeof window!=='undefined' && window.RATERU_START || null;
 const STORE_KEY = TRIAL ? 'rateru-pad-trial-v1' : 'reiwa-gr-hub-v2';
+const APP_RELEASE='2026-10-06-2', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release';
+const NoticePrefs={
+  get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
+  set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
+  async show(title,body){ if('Notification' in window&&Notification.permission==='granted'){ try{ new Notification(title,{body}); return; }catch(e){} } toast(`${title}：${body}`); },
+  async request(){ if('Notification' in window&&Notification.permission==='default') await Notification.requestPermission(); }
+};
 const SAMPLE_ARCHIVE_KEY = STORE_KEY+'-before-sample-cleanup-v1';
 // 写真フォルダ：工種 × 施工前/施工中/施工後（ANDPADと同じ考え方）
 const PHOTO_TRADES = ['解体工事','電気工事','設備工事','大工工事','床工事','内装工事','キッチン施工','UB施工','外装工事','美装・クリーニング'];
 const PHOTO_PHASES = ['施工前','施工中','施工後'];
-const PHOTO_FOLDERS = ['現地調査', ...PHOTO_TRADES.flatMap(t=>PHOTO_PHASES.map(ph=>`${t}/${ph}`)), '検査', '完工'];
+const PHOTO_FOLDERS = ['現地調査','施工前','施工中','施工後（完工）'];
 const LEGACY_PHOTO = {'着工前':'現地調査','解体':'解体工事/施工中','隠蔽部':'設備工事/施工中','設備':'設備工事/施工中','大工':'大工工事/施工中','外壁':'外装工事/施工中','内装':'内装工事/施工中','検査':'検査','完工':'完工'};
 const photoFolder = x => x.folder || LEGACY_PHOTO[x.label] || x.label || '未分類';
 const DOC_FOLDERS = ['設計課資料','契約・重要事項','施工図','見積・発注','完了書類'];
@@ -793,7 +801,7 @@ function seed(){
 }
 
 /* ============ 保存（localStorage + IndexedDB） ============ */
-let S;
+let S, loadIssue='';
 // 見本（世田谷 戸建A などの作り話）。前のお試し版で保存されていたデータから、見本だけを取り除く。試験は seed() で見本を入れて使う
 const Samples = {
   pids:['RWD-260929-01','RWD-260929-02','RWD-260929-03','RWD-260929-04','RWD-260929-05'], justCleared:false, cleanupBlocked:false,
@@ -813,17 +821,10 @@ const Samples = {
 };
 function load(){
   let d=null, raw=null;
-  try{ raw=localStorage.getItem(STORE_KEY); if(raw){ const j=JSON.parse(raw.replace(/令和さん/g,'元請').replace(/令和/g,'元請')); if(j&&j.version===2) d=j; } }catch(e){}
+  try{ raw=localStorage.getItem(STORE_KEY); if(raw){ const j=JSON.parse(raw); if(j&&j.version===2&&Array.isArray(j.projects)) d=j; else loadIssue='保存データの形式を確認できません。元データを保護するため保存を停止しました。'; } }
+  catch(e){ loadIssue='保存データを読み込めません。元データを保護するため保存を停止しました。'; }
   d=d||{...emptyState(), userId:'u_gr_admin'};
-  if(raw&&!d.samplesCleared&&!d.sampleKeep&&Samples.has(d)){
-    // 見本案件に利用者が追記した可能性がある。元の状態を残せない場合は自動削除しない。
-    try{
-      if(!localStorage.getItem(SAMPLE_ARCHIVE_KEY)) localStorage.setItem(SAMPLE_ARCHIVE_KEY, raw);
-      const cleaned=Samples.clear(JSON.parse(JSON.stringify(d)));
-      localStorage.setItem(STORE_KEY,JSON.stringify(cleaned));
-      d=cleaned; Samples.justCleared=true;
-    }catch(e){ Samples.cleanupBlocked=true; }
-  }
+  // 利用中の端末では、見本案件とその追記を自動削除しない。
   ['reports','notices','todos','internal','pipeline','meetings','templates','sales','dbxCases','dbxFiles','dezura','bank','petty','settings'].forEach(k=>d[k]=d[k]||[]);
   if(!d.plans) d.plans=[];
   return d;
@@ -847,11 +848,13 @@ const Big = {
   }
 };
 function save(){ if(MODE==='server'){ Sync.schedule(); return true; }
+  if(loadIssue){ toast(loadIssue); return false; }
   let data=S;
   if(Big.state!=='off'){ const {dbxFiles, ...rest}=S; data={...rest, dbxFiles:[]};
     if(dbxFiles!==Big.ref||(dbxFiles||[]).length!==Big.len) Big.dirty=true;   // 入れ替わった・数が変わった（サンプルに戻す・控えから戻す・試しの分を消す など）
     if(Big.state==='on'&&Big.dirty){ Big.dirty=false; Big.ref=dbxFiles; Big.len=(dbxFiles||[]).length; Big.put('dbxFiles', dbxFiles||[]).then(ok=>{ if(!ok){ Big.dirty=true; toast('Dropbox の資料の一覧を、この端末に保存できませんでした'); } }); } }
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); return true; }catch(e){ toast('この端末に保存できませんでした（入りきりません）。ページを開き直すと、今の変更は消えます'); return false; } }
+  try{ const old=localStorage.getItem(STORE_KEY); if(old&&!localStorage.getItem(STORE_KEY+'-backup')){ try{ localStorage.setItem(STORE_KEY+'-backup',old); }catch(e){} }
+    localStorage.setItem(STORE_KEY, JSON.stringify(data)); return true; }catch(e){ toast('この端末に保存できませんでした（入りきりません）。ページを開き直すと、今の変更は消えます'); return false; } }
 const FileStore = (() => {
   let dbp = null; const mem = new Map();
   function db(){ if(dbp) return dbp; dbp = new Promise((res)=>{ try{ const r=indexedDB.open(TRIAL?'rateru-pad-trial-files':'reiwa-gr-hub-files',1); r.onupgradeneeded=()=>r.result.createObjectStore('files'); r.onsuccess=()=>res(r.result); r.onerror=()=>res(null); }catch(e){ res(null); } }); return dbp; }
@@ -1053,7 +1056,7 @@ const DELIVERABLES = [
   {stage:'check',   name:'完了検査',                 ok:p=>{ const x=S.inspections[p.id]?.final; return !!x && x.items.every(i=>i.result==='ok'); }},
   {stage:'check',   name:'是正の完了',               ok:p=>!S.corrections.some(c=>c.pid===p.id&&c.state!=='done')},
   {stage:'build',   name:'施工中の日報',             ok:p=>S.reports.some(r=>r.pid===p.id)},
-  {stage:'done',    name:'完工写真（施工後）',       ok:p=>S.photos.some(x=>x.pid===p.id&&(photoFolder(x)==='完工'||photoFolder(x).endsWith('/施工後')))}
+  {stage:'done',    name:'完工写真（施工後）',       ok:p=>S.photos.some(x=>x.pid===p.id&&(['完工','施工後（完工）'].includes(photoFolder(x))||photoFolder(x).endsWith('/施工後')))}
 ];
 function pInternal(){
   const rows=S.projects.map(p=>{ const si=STATUS_ORDER.indexOf(p.status); const req=DELIVERABLES.filter(d=>STATUS_ORDER.indexOf(d.stage)<=si); return {p,req,miss:req.filter(d=>!d.ok(p))}; })
@@ -1409,6 +1412,10 @@ function change(pid, text){ S.changes.unshift({id:uid('h'),at:nowISO(),pid,text,
 function nextProjectId(){
   const d=new Date(), base=`RWD-${String(d.getFullYear()).slice(2)}${pad(d.getMonth()+1)}${pad(d.getDate())}-`;
   let n=1; while(S.projects.some(p=>p.id===base+pad(n))) n++; return base+pad(n);
+}
+function nextProjectNumbers(id){
+  const suffix=id.replace(/^RWD-/,'');
+  return {contractNo:`RPD-C-${suffix}`,mgmtId:`RPD-${suffix}`};
 }
 
 /* ============ 要対応の自動抽出 ============ */
@@ -2722,7 +2729,7 @@ function photoTile(x, can){
 function photoBlock(pid){
   const ph=S.photos.filter(x=>x.pid===pid), can=canPhoto(), mode=view.photoMode;
   const sel=ph.filter(x=>view.photoSel.has(x.id));
-  const fOpts=f=>PHOTO_FOLDERS.map(x=>`<option ${x===f?'selected':''}>${esc(x)}</option>`).join('');
+  const fOpts=f=>[...PHOTO_FOLDERS,...new Set(ph.map(photoFolder).filter(x=>!PHOTO_FOLDERS.includes(x)))].map(x=>`<option ${x===f?'selected':''}>${esc(x)}</option>`).join('');
   let body='';
   if(mode==='folder'){
     const folders=[...PHOTO_FOLDERS, ...new Set(ph.map(photoFolder).filter(f=>!PHOTO_FOLDERS.includes(f)))];
@@ -2736,7 +2743,7 @@ function photoBlock(pid){
     const groups={}; ph.slice().sort((a,b)=>key(b).localeCompare(key(a))).forEach(x=>(groups[key(x)]=groups[key(x)]||[]).push(x));
     body=Object.entries(groups).map(([d,xs])=>`<h4 style="margin:14px 0 8px">${d.replace(/-/g,'/')}（${xs.length}枚）</h4><div class="photo-grid">${xs.map(x=>photoTile(x,can)).join('')}</div>`).join('')||'<div class="empty">写真はまだありません</div>';
   }
-  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">写真（${ph.length}枚）</h3>
+  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><h3 style="margin:0">${esc(pname(pid))}の写真（${ph.length}枚）</h3>
       ${can?`<div class="row"><select id="ph_label" aria-label="追加先フォルダ">${fOpts('現地調査')}</select><label class="btn sm primary">＋ 写真を追加<input type="file" accept="image/*" multiple hidden data-act="addPhoto" data-pid="${pid}"></label></div>`:''}</div>
     ${can?`<div class="row board-opt"><label class="row" style="font-size:13px"><input type="checkbox" data-act="boardOn" ${view.board?'checked':''}> 📋 電子小黒板を入れる</label>${view.board?`<input id="ph_note" class="input-sm" placeholder="備考（任意）例：2F 洗面所" value="${esc(view.boardNote)}" aria-label="小黒板の備考"><small class="muted">工事名・案件番号・工種・撮影日・施工者が写真の左下に入ります</small>`:''}</div>`:''}
     <div class="toolbar"><span class="muted" style="font-size:12px;align-self:center">表示方法</span>${[['folder','フォルダ'],['list','追加日'],['date','撮影日']].map(([k,l])=>`<button class="btn sm ${mode===k?'primary':''}" data-act="photoMode" data-m="${k}">${l}</button>`).join('')}
@@ -2937,7 +2944,7 @@ function pCalendar(){
   ${chips}
   <div class="card section"><h3>${y}年${m}月${who?`　<span class="who-title" style="--pc:${staffColor(who)}">${esc(who)}</span>`:''}</h3><div class="cal-wrap"><div class="cal">${['日','月','火','水','木','金','土'].map(w=>`<div class="hd">${w}</div>`).join('')}
     ${cells.map(d=>{ const iso=isoOf(d), es=ev[iso]||[];
-      return `<div class="d ${d.getMonth()!==m-1?'other':''} ${iso===today?'today':''}">${gr?`<button class="dn" data-act="newPlan" data-date="${iso}" data-w="${esc(who)}" aria-label="${d.getMonth()+1}月${d.getDate()}日に予定を追加">${d.getDate()}</button>`:`<div>${d.getDate()}</div>`}${es.slice(0,4).map(evBtn).join('')}${es.length>4?`<small>ほか${es.length-4}件</small>`:''}</div>`; }).join('')}
+      return `<div class="d ${d.getMonth()!==m-1?'other':''} ${iso===today?'today':''}" ${gr?`data-act="newPlan" data-date="${iso}" data-w="${esc(who)}"`:''}>${gr?`<button class="dn" data-act="newPlan" data-date="${iso}" data-w="${esc(who)}" aria-label="${d.getMonth()+1}月${d.getDate()}日に予定を追加">${d.getDate()}</button>`:`<div>${d.getDate()}</div>`}${es.slice(0,4).map(evBtn).join('')}${es.length>4?`<small>ほか${es.length-4}件</small>`:''}</div>`; }).join('')}
   </div></div><div class="row perm-note">${who?`<span class="pill" style="background:color-mix(in srgb,${staffColor(who)} 14%,#fff);color:${staffColor(who)}">${esc(staffShort(who))}の予定</span><span class="pill" style="background:var(--band-ink);color:#fff">全員の予定</span>`:`${gr?PIPE_STAFF.map(n=>`<span class="pill" style="background:color-mix(in srgb,${staffColor(n)} 14%,#fff);color:${staffColor(n)}">${esc(staffShort(n))}</span>`).join(''):''}<span class="pill info">工程</span><span class="pill" style="background:var(--violet-bg);color:var(--violet)">検査</span><span class="pill ok">日報</span><span class="pill ng">完工予定</span>`}${gr?'<span class="pill" style="background:var(--rp-fix-bg);color:var(--rp-fix)">案件進捗の工事</span><span>日付を押すと予定を追加できます。</span>':''}</div></div>
   ${gr?`<div class="card section mt"><h3>${y}年${m}月のスケジュール表${who?'（'+esc(staffShort(who))+'）':''}</h3><p class="perm-note">予定を押すと内容を編集できます。非公開の予定は公開範囲に従って表示します。</p><div class="tablewrap"><table><thead><tr><th>日付</th><th>時間</th><th>担当</th><th>予定・工事</th><th>場所</th><th></th></tr></thead><tbody>${calendarRows(view.calMonth,who).map(r=>`<tr><td>${esc(r.date)}${r.end?'〜'+esc(r.end):''}</td><td>${esc(r.time)}</td><td>${esc(r.who)}</td><td>${esc(r.title)}${r.kind==='工事'?'（工事）':''}</td><td>${esc(r.place)}</td><td>${r.act?`<button class="btn sm" data-act="${r.act}" data-id="${r.id}">開く</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">この月の予定はありません</td></tr>'}</tbody></table></div></div>`:''}
   ${agenda}
@@ -2997,12 +3004,14 @@ function pSettings(){
   <div class="card section"><div class="tablewrap"><table><thead><tr><th>ロール</th>${PERM_ROWS.map(r=>`<th>${r[0]}</th>`).join('')}</tr></thead><tbody>
   ${roles.map(r=>`<tr ${me().role===r?'style="background:var(--accent-soft)"':''}><td><b>${roleLabel(r)}</b></td>${PERM_ROWS.map(x=>`<td>${x[1][r]}</td>`).join('')}</tr>`).join('')}
   </tbody></table></div></div>
+  <div class="card section mt"><h3>通知設定</h3><label class="row"><input type="checkbox" data-act="noticePref" data-key="changes" ${NoticePrefs.get().changes?'checked':''}> 案件・予定の変更を通知</label><label class="row mt"><input type="checkbox" data-act="noticePref" data-key="app" ${NoticePrefs.get().app?'checked':''}> アプリの更新を通知</label><p class="perm-note">公開お試し版では、この端末の別タブで変更された内容と、この端末でアプリを更新して開いた時に通知します。アプリを閉じている間や、他の人の端末での変更は通知できません。</p></div>
   <div class="card section mt"><h3>データ管理</h3>
     <p class="muted" style="margin-top:0">${MODE==='server'?'データはサーバーに保存され、ログインした全員に自動で反映されます。会社ごとに見える範囲はサーバー側で制限されています。':'このアプリのデータは今使っているブラウザの中に保存されています（お試し版）。別の端末や他の人とは共有されません。'}</p>
     ${canMove()?`<div class="row"><button class="btn primary" data-act="export">引っ越しデータを書き出す</button>
       <label class="btn">引っ越しデータを読み込む<input type="file" accept="application/json,.json" hidden data-act="import"></label>
       ${MODE==='demo'?'<button class="btn danger" data-act="reset">すべてのデータを消す</button>':''}</div>`:''}
     ${MODE==='demo'&&Samples.archived()?'<div class="row"><button class="btn" data-act="exportSampleArchive">見本を消す前の控えを書き出す</button></div>':''}
+    ${MODE==='demo'&&(()=>{ try{ return !!localStorage.getItem(STORE_KEY+'-backup'); }catch(e){ return false; } })()?'<div class="row"><button class="btn" data-act="exportDataBackup">更新前の控えを書き出す</button><small>写真・図面ファイルは含みません</small></div>':''}
     ${MODE==='demo'&&Samples.cleanupBlocked?'<p class="alert ng">この端末に控えを保存できなかったため、以前の見本は自動で消していません。先に引っ越しデータを書き出してください。</p>':''}
     ${canMove()?'<p class="perm-note">引っ越しデータには、案件・記録・原価・社内フォルダ・写真・図面ファイルがすべて1つのファイルに入ります。今のデータを控えるために使えます。読み込むと取り込み先のデータは置き換わるため、複数人の控えを続けて読み込まないでください。</p>':''}
     <div id="moveStatus" class="perm-note"></div></div>
@@ -3037,7 +3046,7 @@ function projectTab(p){
     const acts=S.activity.filter(a=>a.pid===pid).slice(0,8);
     const ns=S.notices.filter(n=>n.pid===pid).slice(0,5), canNotice=perm().createProject;
     const si=STATUS_ORDER.indexOf(p.status);
-    const kv=[['システムID',p.id],['元請',p.client||'元請'],['契約番号',p.contractNo||'—'],['案件管理ID',p.mgmtId||'—'],['案件名',p.name],['住所',p.address||'—'],['区分',p.type],['工期',`${p.start?p.start.replace(/-/g,'/'):'—'} 〜 ${p.due?p.due.replace(/-/g,'/'):'—'}`]];
+    const kv=[['システムID',p.id],['元請',p.client||'元請'],['元請担当',p.reiwaRep||'—'],['元請の電話',p.clientPhone?`${p.clientPhoneType==='office'?'会社電話':'携帯'}：${p.clientPhone}`:'—'],['顧客名',p.customerName||'—'],['顧客担当名',p.customerContact||'—'],['顧客電話番号',p.customerPhone||'—'],['契約番号',p.contractNo||'—'],['案件管理ID',p.mgmtId||'—'],['案件名',p.name],['住所',p.address||'—'],['区分',p.type],['工期',`${p.start?p.start.replace(/-/g,'/'):'—'} 〜 ${p.due?p.due.replace(/-/g,'/'):'—'}`]];
     return `<div class="grid2"><div>
       <h3>お知らせ</h3>
       ${ns.map(n=>`<div class="alert" style="cursor:default"><b>${esc(n.text)}</b><br><small>${mdhm(n.at)} ・ ${esc(n.by)}</small></div>`).join('')||'<p class="muted">未だ、お知らせはありません。</p>'}
@@ -3118,11 +3127,19 @@ const area = (label,name,val='',ph='') => `<div class="field"><label for="fm_${n
 
 function projectForm(p){
   const isNew=!p; p=p||{name:'',address:'',area:'関東',type:'戸建',reiwaRep:'',grRep:me().role==='gr_admin'?me().name:'',partners:[],due:'',next:'',note:''};
+  const numbers=nextProjectNumbers(isNew?nextProjectId():p.id);
+  const clients=[...new Set([...S.projects.map(x=>x.client),p.client].map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));
+  const choice=clients.includes(p.client)?p.client:'';
   openDrawer(`${drawerHead(isNew?'新規案件登録':'案件を編集')}<form data-form="project" data-pid="${isNew?'':p.id}">
     ${fld('物件名','name',p.name,'text','required placeholder="例：世田谷 戸建A"')}
     ${fld('住所','address',p.address,'text','placeholder="都道府県・市区町村"')}
-    <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('元請','client',p.client||'元請')}${fld('契約番号','contractNo',p.contractNo||'')}</div>
-    <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('案件管理ID','mgmtId',p.mgmtId||'')}${fld('着工日','start',p.start||'','date')}</div>
+    ${sel('元請一覧から選択','clientChoice',[['','新しい元請を入力'],...clients.map(x=>[x,x])],choice)}
+    <div id="newClientField" ${choice?'hidden':''}>${fld('新しい元請名','clientNew',choice?'':p.client||'')}</div>
+    <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('契約番号（自動）','contractNo',p.contractNo||numbers.contractNo,'text','readonly')}${fld('案件管理ID（自動）','mgmtId',p.mgmtId||numbers.mgmtId,'text','readonly')}</div>
+    ${fld('顧客名','customerName',p.customerName||'')}
+    <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('顧客担当名','customerContact',p.customerContact||'')}${fld('顧客電話番号','customerPhone',p.customerPhone||'','tel')}</div>
+    <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${sel('元請の電話種別','clientPhoneType',[['mobile','携帯'],['office','会社電話']],p.clientPhoneType||'mobile')}${fld('元請の電話番号','clientPhone',p.clientPhone||'','tel')}</div>
+    ${fld('着工日','start',p.start||'','date')}
     <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${sel('エリア','area',['関東','関西','中部','その他'],p.area)}${sel('区分','type',['戸建','マンション','ビル'],p.type)}</div>
     ${fld('元請担当','reiwaRep',p.reiwaRep,'text','placeholder="担当者名"')}
     ${fld('Rateru担当（必須）','grRep',p.grRep,'text','required placeholder="担当者を記入"')}
@@ -3293,6 +3310,8 @@ document.addEventListener('click', async e=>{
       try{ const old=JSON.parse(localStorage.getItem(SAMPLE_ARCHIVE_KEY)); const {pack,miss}=await Move.pack(old); const u=URL.createObjectURL(new Blob([JSON.stringify(pack)],{type:'application/json'})); const aEl=document.createElement('a'); aEl.href=u; aEl.download=`rateru-before-sample-cleanup-${todayISO()}.json`; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); if(st) st.textContent=`控えを書き出しました${miss?`（見つからないファイル${miss}件）`:''}`; }
       catch(err){ if(st) st.textContent='控えを書き出せませんでした。端末の保存領域を確認してください。'; }
       break; }
+  case 'exportDataBackup': { if(MODE!=='demo') break; const raw=localStorage.getItem(STORE_KEY+'-backup'); if(!raw){ toast('控えが見つかりません'); break; }
+      const u=URL.createObjectURL(new Blob([raw],{type:'application/json'})), aEl=document.createElement('a'); aEl.href=u; aEl.download=`rateru-pad-before-update-${todayISO()}.json`; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); toast('更新前の控えを書き出しました'); break; }
   case 'reset': confirmBox('この端末に入れたデータをすべて消して、空に戻します。元に戻せません（先に「控え」を書き出しておくと安心です）。','すべて消す',async()=>{ await FileStore.clear(); urlCache.clear(); S={...emptyState(), userId:S.userId||'u_gr_admin', samplesCleared:true}; save(); toast('すべてのデータを消しました'); go('dashboard'); }); break;
   case 'closeDrawer': closeDrawer(); break;
   case 'lineApprove': await LineCfg.update(d.id,{approved:true}); $('#lineBox').innerHTML=LineCfg.html(); toast('LINE通知先を承認しました'); break;
@@ -3303,9 +3322,12 @@ document.addEventListener('click', async e=>{
 });
 document.addEventListener('change', async e=>{
   const el=e.target, d=el.dataset;
+  if(d.act==='noticePref'){ NoticePrefs.set(d.key,el.checked); if(el.checked) await NoticePrefs.request(); toast('通知設定を保存しました'); return; }
   if(el.id==='roleSel'){ S.userId=el.value; save(); toast(`${me().roleLabel}（${me().name}）として表示中`); if(view.page==='project'&&!visibleIds().has(view.pid)) view.page='projects'; render(); return; }
   if(d.filter){ if(d.filter==='status'&&el.value.startsWith('pipe:')&&me().role==='gr_admin'){ Pipe.f.status=el.value.slice(5); go('pipeline'); return; } view.filters[d.filter]=el.value; render(); return; }
   if(d.act==='pick'){ view[d.key]=el.value; render(); return; }
+  if(el.name==='clientChoice'&&el.closest('form[data-form="project"]')){ const form=el.closest('form'), field=form.querySelector('#newClientField'); field.hidden=!!el.value;
+    const existing=S.projects.find(x=>x.client===el.value&&x.clientPhone); if(existing){ form.querySelector('#fm_clientPhone').value=existing.clientPhone; form.querySelector('#fm_clientPhoneType').value=existing.clientPhoneType||'mobile'; } return; }
   if(el.name==='vis'&&el.closest('form[data-form="plan"]')){ const fm=el.closest('form'); fm.querySelector('.plan-share').hidden=el.value!=='limited'; fm.querySelector('.plan-busy').hidden=el.value==='work'; return; }
   if(d.act==='custBilling'){ const nk=v=>String(v||'').replace(/[\s　]/g,''), k=nk(d.k); let n=0; (S.pipeline||[]).forEach(x=>{ if(nk(x.customer||x.requester||'（顧客名なし）')===k){ x.billing=el.value; n++; } }); save(); render(); toast(`${d.k}の請求書の送り方を「${el.value||'未設定'}」にしました（${n}件）`); return; }
   if(d.act==='pipeFilter'){ Pipe.f[d.key]=el.type==='checkbox'?el.checked:el.value; render(); return; }
@@ -3428,10 +3450,15 @@ document.addEventListener('submit', async e=>{
     closeDrawer(); Members.load(); return;
   }
   if(k==='project'){
-    const data={name:v.name.trim(),address:v.address.trim(),client:(v.client||'').trim(),contractNo:(v.contractNo||'').trim(),mgmtId:(v.mgmtId||'').trim(),start:v.start||'',area:v.area,type:v.type,reiwaRep:v.reiwaRep.trim(),grRep:v.grRep.trim(),partners:v.partners.split(/[,、，]/).map(s=>s.trim()).filter(Boolean),due:v.due,next:v.next.trim(),note:v.note};
+    const client=(v.clientChoice||v.clientNew||'').trim();
+    if(!client){ toast('元請を選ぶか、新しい元請名を入れてください'); return; }
+    const id=f.dataset.pid||nextProjectId(), numbers=nextProjectNumbers(id);
+    const data={name:v.name.trim(),address:v.address.trim(),client,contractNo:(f.dataset.pid&&proj(id).contractNo)||numbers.contractNo,mgmtId:(f.dataset.pid&&proj(id).mgmtId)||numbers.mgmtId,
+      customerName:(v.customerName||'').trim(),customerContact:(v.customerContact||'').trim(),customerPhone:(v.customerPhone||'').trim(),clientPhoneType:v.clientPhoneType==='office'?'office':'mobile',clientPhone:(v.clientPhone||'').trim(),
+      start:v.start||'',area:v.area,type:v.type,reiwaRep:v.reiwaRep.trim(),grRep:v.grRep.trim(),partners:v.partners.split(/[,、，]/).map(s=>s.trim()).filter(Boolean),due:v.due,next:v.next.trim(),note:v.note};
     if(!data.grRep){ toast('Rateru担当を記入してください'); return; }
     if(f.dataset.pid){ const p=proj(f.dataset.pid); Object.assign(p,data); change(p.id,'案件情報を更新'); save(); closeDrawer(); render(); toast('保存しました'); }
-    else { const id=nextProjectId(); S.projects.unshift({id,...data,status:'survey',progress:0,created:nowISO()}); log(id,'物件登録 / '+(me().company)+'より案件登録'); change(id,'案件登録'); save(); closeDrawer(); toast(`${data.name} を登録しました`); go('project',id); }
+    else { S.projects.unshift({id,...data,status:'survey',progress:0,created:nowISO()}); log(id,'物件登録 / '+(me().company)+'より案件登録'); change(id,'案件登録'); save(); closeDrawer(); toast(`${data.name} を登録しました`); go('project',id); }
   }
   if(k==='task'){
     if(v.end<v.start){ toast('終了日は開始日以降にしてください'); return; }
@@ -3472,7 +3499,14 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDrawer(); cl
 
 $('#logoutBtn').addEventListener('click',async()=>{ await SB.auth.signOut(); location.reload(); });
 async function boot(){
-  if(!CFG().supabaseUrl){ MODE='demo'; S=load(); S.internal=S.internal||[]; render(); openFromHash(); Big.init().then(()=>Start.run()); return; }
+  if(!CFG().supabaseUrl){ MODE='demo'; S=load();
+    if(loadIssue){ $('#app').hidden=true; $('#modalRoot').innerHTML=`<div class="modal"><div class="box"><h2>保存データを保護しました</h2><p>${esc(loadIssue)}</p><p>この画面では新しい内容を保存しません。元のデータを控えてから確認してください。</p><button class="btn primary" id="rawDataExport">元データを書き出す</button></div></div>`;
+      $('#rawDataExport').onclick=()=>{ const raw=localStorage.getItem(STORE_KEY); if(raw) saveFile(new Blob([raw],{type:'application/json'}),`rateru-pad-original-${todayISO()}.json`); }; return; }
+    S.internal=S.internal||[]; render(); openFromHash(); Big.init().then(()=>Start.run());
+    try{ const prior=localStorage.getItem(RELEASE_KEY);
+      if(prior!==APP_RELEASE){ const raw=localStorage.getItem(STORE_KEY); if(raw){ try{ localStorage.setItem(STORE_KEY+'-backup',raw); }catch(e){ toast('更新前の控えを保存できませんでした。設定から引っ越しデータを書き出してください'); } } }
+      localStorage.setItem(RELEASE_KEY,APP_RELEASE); if(prior&&prior!==APP_RELEASE&&NoticePrefs.get().app) NoticePrefs.show('RateruPADを更新しました','入力済みデータはこの端末に残ります'); }catch(e){}
+    return; }
   MODE='server'; S=emptyState(); $('#app').hidden=true;
   try{ if(!window.supabase) await loadScript('supabase.js').catch(()=>loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js')); }
   catch(e){ document.body.insertAdjacentHTML('beforeend','<div class="modal"><div class="box">サーバーに接続するための部品を読み込めませんでした。通信状況を確認して再読み込みしてください。</div></div>'); return; }
@@ -3480,6 +3514,12 @@ async function boot(){
   const {data}=await SB.auth.getSession();
   if(data.session) await afterLogin(data.session.user); else showLogin();
 }
+window.addEventListener('storage',e=>{ if(MODE!=='demo'||e.key!==STORE_KEY||!e.newValue||loadIssue) return;
+  const oldCases=JSON.stringify(S.projects||[]), oldPlans=JSON.stringify(S.plans||[]);
+  const next=load(); if(loadIssue) return; S=next; render();
+  const changed=oldCases!==JSON.stringify(S.projects||[])||oldPlans!==JSON.stringify(S.plans||[]);
+  if(changed&&NoticePrefs.get().changes) NoticePrefs.show('RateruPADの内容が更新されました','案件または予定の変更を反映しました');
+});
 boot();
 </script>
 </body></html>
