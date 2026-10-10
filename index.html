@@ -269,7 +269,15 @@ a.btn{display:inline-flex;align-items:center;gap:4px}
 .muted{color:var(--muted)}
 .mt{margin-top:16px}
 .hide-cost .cost{display:none}
-.field[hidden]{display:none}   /* 「新しい顧客名」などは、選んだときだけ出す */
+.field[hidden]{display:none}
+@media (max-width:640px){
+  table.mcards thead{display:none} table.mcards,table.mcards tbody,table.mcards tr,table.mcards td{display:block;width:100%} table.mcards{min-width:0!important}
+  table.mcards tr{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 10px;background:var(--panel)}
+  table.mcards td{border:0!important;padding:4px 0!important;display:flex;gap:8px;align-items:center;text-align:left!important}
+  table.mcards td[data-l]::before{content:attr(data-l);flex:0 0 5.5em;font-size:12px;color:var(--muted,#6b7280)}
+  table.mcards td input,table.mcards td select{flex:1;min-width:0;width:auto} table.mcards td:empty{display:none}
+  .q-grid1{grid-template-columns:1fr!important} .kpis.money{grid-template-columns:1fr 1fr!important} .kpis.money .num{font-size:20px} .kpis.money .card{padding:10px}
+}   /* 「新しい顧客名」などは、選んだときだけ出す */
 .q-items{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px} .q-cats{flex-wrap:wrap} .q-lines input,.q-lines select{width:100%;min-width:70px} .q-lines td{vertical-align:middle}
 .q-tot{min-width:280px} .q-tot th{text-align:left;font-weight:600;padding:4px 10px} .q-tot td{text-align:right;padding:4px 10px} .q-tot .q-sum{font-size:17px;font-weight:800;border-top:2px solid var(--line)}
 .folder{border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
@@ -691,7 +699,7 @@ const PAGES = [
 // 試運転版（資料_非公開\RateruPAD_試運転.html。server/tools/make_trial.mjs が作る）は、本物のデータを最初から持っている（window.RATERU_START）。見本の入ったお試し版とは保存場所を分ける
 const TRIAL = typeof window!=='undefined' && window.RATERU_START || null;
 const STORE_KEY = TRIAL ? 'rateru-pad-trial-v1' : 'reiwa-gr-hub-v2';
-const APP_RELEASE='2026-10-10-4', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-10-5', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -2315,8 +2323,8 @@ function arBlock(){
   return `<div class="card section mt"><h3 style="margin-top:0">売掛金（入金の予定と確認）</h3>
     <div class="kpis money">${pkpi('入金待ち',yen(sum(wait)),`${wait.length}件`)}${pkpi('入金予定日を過ぎた',yen(sum(late)),`${late.length}件`)}${pkpi('入金予定日が未設定',nodue.length+'件','送付・作成中のうち')}</div>
     <div class="who-chips">${chip('wait','入金待ち',wait)}${chip('late','予定日を過ぎた',late)}${chip('nodue','予定日が未設定',nodue)}${chip('draft','作成中（未送付）',draft)}${chip('done','入金確認済み',done)}</div>
-    <div class="tablewrap"><table><thead><tr><th>請求先</th><th>件名</th><th style="text-align:right">金額</th><th>請求日</th><th>入金予定日</th><th>状態</th><th>責任者</th><th></th></tr></thead><tbody>
-    ${list.slice().sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(x=>`<tr><td class="clickable" data-act="editSale" data-id="${x.id}"><b>${esc(x.party||'（未入力）')}</b></td><td>${esc(x.title||'')}</td><td class="num" style="text-align:right">${yen(x.amount)}</td><td>${x.date?md(x.date):'—'}</td><td>${x.due?`${md(x.due)}${x.due<t&&x.status!=='入金済み'?' <span class="pill ng">過ぎています</span>':''}`:'<span class="pill wait">未設定</span>'}</td><td><span class="pill ${SALE_PILL[x.status]||'todo'}">${esc(x.status)}</span>${x.paidBy?`<br><small class="muted">${esc(x.paidBy)} ${mdhm(x.paidAt)}</small>`:''}</td><td>${esc(saleOwner(x)||'未設定')}</td>
+    <div class="tablewrap"><table class="mcards"><thead><tr><th>請求先</th><th>件名</th><th style="text-align:right">金額</th><th>請求日</th><th>入金予定日</th><th>状態</th><th>責任者</th><th></th></tr></thead><tbody>
+    ${list.slice().sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')).map(x=>`<tr><td class="clickable" data-l="請求先" data-act="editSale" data-id="${x.id}"><b>${esc(x.party||'（未入力）')}</b></td><td data-l="件名">${esc(x.title||'')}</td><td class="num" data-l="金額" style="text-align:right">${yen(x.amount)}</td><td data-l="請求日">${x.date?md(x.date):'—'}</td><td data-l="入金予定日">${x.due?`${md(x.due)}${x.due<t&&x.status!=='入金済み'?' <span class="pill ng">過ぎています</span>':''}`:'<span class="pill wait">未設定</span>'}</td><td data-l="状態"><span class="pill ${SALE_PILL[x.status]||'todo'}">${esc(x.status)}</span>${x.paidBy?`<br><small class="muted">${esc(x.paidBy)} ${mdhm(x.paidAt)}</small>`:''}</td><td data-l="責任者">${esc(saleOwner(x)||'未設定')}</td>
       <td>${canFinance()&&x.status==='送付済み'?`<button class="btn sm primary" data-act="arPaid" data-id="${x.id}">入金確認済みにする</button>`:canFinance()&&x.status==='入金済み'?`<button class="btn sm" data-act="arUnpaid" data-id="${x.id}">入金確認を戻す</button>`:''}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">ありません</td></tr>'}</tbody></table></div>
     <p class="perm-note">銀行の入金を見て「入金確認済みにする」を押します（だれがいつ押したか残ります）。銀行の明細ファイルを読み込んで、自動でつなぐこともできます（下の「入金の突き合わせ」）。</p></div>`;
 }
@@ -2333,8 +2341,8 @@ function payBlock(){
     ${zero?`<div class="alert" style="cursor:default">金額が入っていない請求書が ${zero}件 あります。確認の前に金額を入れてください。</div>`:''}
     ${changed?'<div class="alert ng" style="cursor:default"><b>川端さんが確認したあとに、請求書の件数か金額が変わりました。</b>もう一度確認が必要です（前の確認は使いません）。</div>':''}
     ${(()=>{ const unset=(S.sales||[]).filter(x=>x.type==='buy'&&!x.payMonth&&x.status!=='支払済み'); return unset.length?`<div class="alert ng" style="cursor:default"><b>支払月が決まっていない請求書が ${unset.length}件 あります</b>（どの月の支払にも入りません）<br>${unset.slice(0,12).map(x=>`<button class="btn sm" data-act="editSale" data-id="${x.id}">${esc(x.party||'（業者未入力）')} ${x.amount?yen(x.amount):'金額未入力'}</button>`).join(' ')}</div>`:''; })()}
-    <div class="tablewrap"><table><thead><tr><th>業者さん</th><th>件名</th><th style="text-align:right">金額</th><th>支払予定日</th><th>段階</th><th>状態</th><th>案件</th></tr></thead><tbody>
-    ${xs.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')||String(a.party).localeCompare(String(b.party),'ja')).map(x=>`<tr class="clickable" data-act="editSale" data-id="${x.id}"><td><b>${esc(x.party||'（未入力）')}</b></td><td>${esc(x.title)}</td><td class="num" style="text-align:right">${x.amount?yen(x.amount):'<span class="pill wait">金額を入れる</span>'}</td><td>${x.due?md(x.due):'—'}</td><td>${(()=>{ const [l,c]=payStage(x,fresh); return `<span class="pill ${c}">${l}</span>`; })()}</td><td><span class="pill ${SALE_PILL[x.status]||'todo'}">${esc(x.status)}</span></td><td>${x.pipeId?'<span class="pill ok">あり</span>':'<span class="pill wait">なし</span>'}</td></tr>`).join('')||`<tr><td colspan="7" class="empty">${monthLabel(m)}の業者さんの請求書はまだありません</td></tr>`}</tbody></table></div>
+    <div class="tablewrap"><table class="mcards"><thead><tr><th>業者さん</th><th>件名</th><th style="text-align:right">金額</th><th>支払予定日</th><th>段階</th><th>状態</th><th>案件</th></tr></thead><tbody>
+    ${xs.sort((a,b)=>(a.due||'9').localeCompare(b.due||'9')||String(a.party).localeCompare(String(b.party),'ja')).map(x=>`<tr class="clickable" data-act="editSale" data-id="${x.id}"><td data-l="業者さん"><b>${esc(x.party||'（未入力）')}</b></td><td data-l="件名">${esc(x.title)}</td><td class="num" data-l="金額" style="text-align:right">${x.amount?yen(x.amount):'<span class="pill wait">金額を入れる</span>'}</td><td data-l="支払予定日">${x.due?md(x.due):'—'}</td><td data-l="段階">${(()=>{ const [l,c]=payStage(x,fresh); return `<span class="pill ${c}">${l}</span>`; })()}</td><td data-l="状態"><span class="pill ${SALE_PILL[x.status]||'todo'}">${esc(x.status)}</span></td><td data-l="案件">${x.pipeId?'<span class="pill ok">あり</span>':'<span class="pill wait">なし</span>'}</td></tr>`).join('')||`<tr><td colspan="7" class="empty">${monthLabel(m)}の業者さんの請求書はまだありません</td></tr>`}</tbody></table></div>
     <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">
       ${head&&open.length&&!fresh?`<button class="btn primary" data-act="payApprove" ${zero?'disabled':''}>この内容で支払ってよい（川端さんの確認）</button>`:''}
       ${fresh?'<button class="btn primary" data-act="payDone">支払済みにする（記録だけ）</button>':''}</div>
@@ -3201,7 +3209,7 @@ const Q = {
     return `<div class="hero"><div><h2>${d.id?'見積書を直す':'見積書を作る'}</h2><p>品目は下の種類のタブから押して足します。数量と単価を入れると金額と合計が自動で出ます。</p></div>
       <div class="acts"><button class="btn" data-act="q_back">一覧へ戻る</button><button class="btn primary" data-act="q_save">保存</button></div></div>
       <div class="card section"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">1. 案件を選ぶ（選ぶと顧客・工事名・工事場所・責任者が自動で入ります）</h3><button class="btn primary" data-act="q_newCase">＋ 新しい案件を作る</button></div>
-        <div class="formgrid" style="grid-template-columns:minmax(200px,1fr) minmax(240px,2fr);gap:10px">
+        <div class="formgrid q-grid1" style="grid-template-columns:minmax(200px,1fr) minmax(240px,2fr);gap:10px">
         <div class="field"><label for="q_pipeSearch">案件をさがす（物件名・顧客名の一部）</label><input id="q_pipeSearch" placeholder="例：ブルーシャトー" autocomplete="off"></div>
         <div class="field"><label for="qf_pipeId">案件（${pipes.length}件）</label><select id="qf_pipeId" data-qf="pipeId"><option value="">（案件につなげない）</option>${pipes.map(p=>`<option value="${esc(p.id)}" ${p.id===d.pipeId?'selected':''}>${esc(p.name)}｜${esc(p.customer||'顧客未設定')}（責任者：${esc(salesOwner(p)||'未設定')}）</option>`).join('')}</select></div></div>
         <h3>2. 見積の内容</h3><div class="formgrid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
@@ -3216,12 +3224,12 @@ const Q = {
         <div class="q-items">${items.map(x=>`<button class="btn sm" data-act="q_addItem" data-id="${esc(x.id)}">＋ ${esc(x.name)}${x.spec?`（${esc(x.spec)}）`:''}${x.price!==''&&x.price!=null?` ${yen(x.price)}/${esc(x.unit)}`:''}</button>`).join('')||'<span class="muted">この種類の品目はまだありません</span>'}
           <button class="btn sm" data-act="q_addLine">＋ 自由に1行足す</button></div>
         <p class="perm-note">品目の名前・単位・単価は「品目の一覧」タブで直せます。</p></div>
-      <div class="card section mt"><h3 style="margin-top:0">4. 明細（${d.lines.length}行）　数量と単価を入れる</h3><div class="tablewrap"><table class="q-lines"><thead><tr><th>工事項目</th><th>品名</th><th>仕様・内容</th><th>数量</th><th>単位</th><th>単価</th><th style="text-align:right">金額</th><th></th></tr></thead><tbody>
-        ${d.lines.map((l,i)=>`<tr><td><select data-ql="${i}" data-f="cat" aria-label="工事項目" style="min-width:120px">${[...Q_CATS,...(l.cat&&!Q_CATS.includes(l.cat)?[l.cat]:[])].map(c=>`<option ${c===(l.cat||'雑工事・その他')?'selected':''}>${esc(c)}</option>`).join('')}</select></td><td><input data-ql="${i}" data-f="name" value="${esc(l.name)}" aria-label="品名"></td><td><input data-ql="${i}" data-f="spec" value="${esc(l.spec)}" aria-label="仕様"></td>
-          <td><input data-ql="${i}" data-f="qty" type="number" step="any" min="0" value="${esc(l.qty)}" style="width:80px" aria-label="数量"></td>
-          <td><select data-ql="${i}" data-f="unit" aria-label="単位">${[...new Set([...Q_UNITS,l.unit].filter(Boolean))].map(u=>`<option ${u===l.unit?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
-          <td><input data-ql="${i}" data-f="price" type="number" step="1" min="0" value="${esc(l.price)}" style="width:110px" aria-label="単価"></td>
-          <td class="money" id="ql_amt_${i}">${yen(Math.round((Number(l.qty)||0)*(Number(l.price)||0)))}</td><td><button class="btn sm danger" data-act="q_delLine" data-i="${i}" aria-label="この行を消す">×</button></td></tr>`).join('')||'<tr><td colspan="8" class="muted">上の品目を押すと、ここに行が増えます</td></tr>'}
+      <div class="card section mt"><h3 style="margin-top:0">4. 明細（${d.lines.length}行）　数量と単価を入れる</h3><div class="tablewrap"><table class="q-lines mcards"><thead><tr><th>工事項目</th><th>品名</th><th>仕様・内容</th><th>数量</th><th>単位</th><th>単価</th><th style="text-align:right">金額</th><th></th></tr></thead><tbody>
+        ${d.lines.map((l,i)=>`<tr><td data-l="工事項目"><select data-ql="${i}" data-f="cat" aria-label="工事項目" style="min-width:120px">${[...Q_CATS,...(l.cat&&!Q_CATS.includes(l.cat)?[l.cat]:[])].map(c=>`<option ${c===(l.cat||'雑工事・その他')?'selected':''}>${esc(c)}</option>`).join('')}</select></td><td data-l="品名"><input data-ql="${i}" data-f="name" value="${esc(l.name)}" aria-label="品名"></td><td data-l="仕様"><input data-ql="${i}" data-f="spec" value="${esc(l.spec)}" aria-label="仕様"></td>
+          <td data-l="数量"><input data-ql="${i}" data-f="qty" type="number" step="any" min="0" value="${esc(l.qty)}" style="width:80px" aria-label="数量"></td>
+          <td data-l="単位"><select data-ql="${i}" data-f="unit" aria-label="単位">${[...new Set([...Q_UNITS,l.unit].filter(Boolean))].map(u=>`<option ${u===l.unit?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
+          <td data-l="単価"><input data-ql="${i}" data-f="price" type="number" step="1" min="0" value="${esc(l.price)}" style="width:110px" aria-label="単価"></td>
+          <td class="money" data-l="金額" id="ql_amt_${i}">${yen(Math.round((Number(l.qty)||0)*(Number(l.price)||0)))}</td><td><button class="btn sm danger" data-act="q_delLine" data-i="${i}" aria-label="この行を消す">×</button></td></tr>`).join('')||'<tr><td colspan="8" class="muted">上の品目を押すと、ここに行が増えます</td></tr>'}
         </tbody></table></div>
         <div class="row" style="justify-content:flex-end;gap:16px;flex-wrap:wrap;margin-top:10px"><div class="field" style="max-width:180px"><label for="qf_discount">値引き（円）</label><input id="qf_discount" data-qf="discount" type="number" min="0" step="1" value="${esc(d.discount||0)}"></div><div id="qTotals">${this.totalsHtml(d)}</div></div></div>
       <div class="card section mt"><h3 style="margin-top:0">この見積から作る</h3><div class="row" style="flex-wrap:wrap;gap:8px">
