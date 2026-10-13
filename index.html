@@ -717,7 +717,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-13-4', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-13-5', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -2766,7 +2766,7 @@ function pipeRelated(x){
     ${meets.map(v=>li(`会議資料：${esc(v.title)}`,`${monthLabel(v.month)}${v.fileName?' ・ 📎 '+esc(v.fileName):''}`,'editMeeting',v.id)).join('')}
     ${(S.quotes||[]).filter(q=>q.pipeId===x.id&&Q.canView(q)).map(q=>li(`見積：${esc(q.no)} ${esc(q.title||'')}`,`${esc(q.status||'')} ・ ${yen(Q.calc(q).total)}${(q.invoices||[]).length?` ・ 請求書 ${q.invoices.length}件`:''}`,'q_open',q.id)).join('')}
     ${!sales.length&&!meets.length&&!(S.quotes||[]).some(q=>q.pipeId===x.id&&Q.canView(q))?'<div class="muted" style="font-size:13px">まだありません。売上や会議資料を登録するときに、この案件を選ぶとここに並びます。</div>':''}
-    <div class="row" style="margin-top:8px">${(salesAll()||salesOwner(x)===mySalesOwner()&&canSeeSalesPage())?`<button class="btn sm" type="button" data-act="newSale" data-t="sale" data-pipe="${x.id}">＋ 売上</button>`:''}${salesAll()?`<button class="btn sm" type="button" data-act="newSale" data-t="buy" data-pipe="${x.id}">＋ 仕入</button>`:''}<button class="btn sm" type="button" data-act="newMeeting" data-pipe="${x.id}">＋ 会議資料</button>${(salesAll()||salesOwner(x)===mySalesOwner())?`<button class="btn sm" type="button" data-act="q_newFor" data-pipe="${x.id}">＋ 見積書</button>`:''}</div></div>`;
+    <div class="row" style="margin-top:8px">${(salesAll()||salesOwner(x)===mySalesOwner()&&canSeeSalesPage())?`<button class="btn sm" type="button" data-act="newSale" data-t="sale" data-pipe="${x.id}">＋ 売上</button>`:''}${salesAll()?`<button class="btn sm" type="button" data-act="newSale" data-t="buy" data-pipe="${x.id}">＋ 仕入</button>`:''}<button class="btn sm" type="button" data-act="newMeeting" data-pipe="${x.id}">＋ 会議資料</button>${me().role==='rateru_admin'?`<button class="btn sm" type="button" data-act="docsForPipe" data-pipe="${x.id}">📐 図面・資料</button>`:''}${(salesAll()||salesOwner(x)===mySalesOwner())?`<button class="btn sm" type="button" data-act="q_newFor" data-pipe="${x.id}">＋ 見積書</button>`:''}</div></div>`;
 }
 
  
@@ -2902,10 +2902,26 @@ async function printDoc(doc){
   w.document.write(`<!doctype html><html lang="ja"><meta charset="utf-8"><title>${esc(doc.name)}</title><style>@page{margin:10mm}body{font-family:sans-serif;text-align:center}.actions{margin:12px}img{max-width:100%;max-height:90vh;object-fit:contain}@media print{.actions{display:none}img{max-height:95vh}}</style><div class="actions"><button onclick="window.print()">印刷・PDF保存</button></div><h1>${esc(doc.name)}</h1><img src="${u}" alt="${esc(doc.name)}"></html>`);
   w.document.close();
 }
+
+function projectForPipe(pipeId){
+  const x=(S.pipeline||[]).find(v=>v.id===pipeId); if(!x||me().role!=='rateru_admin') return null;
+  const has=x.pid&&S.projects.find(p=>p.id===x.pid); if(has) return has;
+  const id=nextProjectId(), numbers=nextProjectNumbers(id), rep=staffShort(x.responsible||x.tanto1||'')||me().name;
+  const p={id, name:x.name||'（名前なし）', address:x.address||'', client:x.customer||'（元請なし）', contractNo:numbers.contractNo, mgmtId:numbers.mgmtId,
+    customerName:x.customer||'', customerContact:x.requester||'', customerPhone:x.phone||'', clientPhoneType:'mobile', clientPhone:'', start:x.start||'', area:'関東', type:'戸建',
+    motoukeRep:'', rateruRep:rep, partners:[], due:x.end||'', next:'', note:'', status:'survey', progress:0, created:nowISO(), fromPipe:x.id};
+  S.projects.unshift(p); x.pid=id; log(id,'案件進捗から図面・資料の置き場を作成'); change(id,'案件登録（案件進捗から）'); save();
+  return p;
+}
+const pipeDocsPicker = () => me().role!=='rateru_admin' ? '' : `<div class="card section"><h3 style="margin-top:0">案件進捗の案件に図面・資料を入れる</h3>
+  <div class="row" style="flex-wrap:wrap;gap:8px;align-items:flex-end"><div class="field" style="flex:1;min-width:220px;margin:0"><label for="dc_pipe">案件進捗の案件</label><select id="dc_pipe">${(S.pipeline||[]).filter(x=>!PIPE_CLOSED.has(x.status)).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja')).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}${x.customer?'（'+esc(x.customer)+'）':''}${x.pid?' ・ 置き場あり':''}</option>`).join('')}</select></div>
+  <button class="btn primary" data-act="docsForPipe">この案件の図面・資料を開く</button></div>
+  <p class="perm-note">置き場がまだない案件は、押したときに自動で作ります（案件名・住所・お客さんを案件進捗から写します）。</p></div>`;
 function pDocs(){
-  const ps=visibleProjects(); if(!ps.length) return emptyScope();
+  const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>図面・資料</h2><p>案件ごとに図面・資料をまとめます。</p></div></div>${pipeDocsPicker()}` : emptyScope();
   if(!view.docsPid || !ps.some(p=>p.id===view.docsPid)) view.docsPid=ps[0].id;
   return `<div class="hero"><div><h2>図面・資料</h2><p>最新版を一か所に集約し、古い図面の使用を防止。新しい版を登録すると旧版は自動で使用停止になります。Rateru社内のみの資料は元請・協力会社には表示されません。</p></div></div>
+  ${pipeDocsPicker()}
   <div class="card section"><div class="field" style="max-width:360px"><label for="dc_pid">案件</label><select id="dc_pid" data-act="pick" data-key="docsPid">${projectOptions(view.docsPid)}</select></div>${docsBlock(view.docsPid)}</div>`;
 }
 
@@ -3714,6 +3730,7 @@ document.addEventListener('click', async e=>{
       if(x.items.every(i=>i.result==='ok')) log(d.pid,`${d.phase==='mid'?'中間':'完了'}検査 合格 / 全${x.items.length}項目OK`);
       save(); render(); break; }
   case 'editRec': editRecForm(d.t, d.id); break;
+  case 'docsForPipe': { const pipe=d.pipe||$('#dc_pipe')?.value; const pr=projectForPipe(pipe); if(!pr){ toast('置き場を作れませんでした'); break; } closeDrawer(); view.docsPid=pr.id; view.docFolder=''; go('project',pr.id,'draw'); toast(`「${pr.name}」の図面・資料です。「＋ 資料を追加」から入れられます`); break; }
   case 'newCorrection': openDrawer(`${drawerHead('是正を追加')}<form data-form="correction" data-pid="${d.pid}">${fld('項目','item','','text','required')}${fld('場所','place')}${fld('担当','owner')}${fld('期限','due',addDays(todayISO(),2),'date')}<button class="btn primary" style="width:100%" type="submit">追加</button></form>`); break;
   case 'corrCycle': { const c=S.corrections.find(x=>x.id===d.id); const o=['todo','doing','done']; c.state=o[(o.indexOf(c.state)+1)%3]; if(c.state==='done') log(c.pid,`是正完了 / ${c.item}`); if(c.state==='todo') delete c.reported; save(); render(); break; }
   case 'corrReport': { const c=S.corrections.find(x=>x.id===d.id); c.reported={at:nowISO(),by:myLabel()}; log(c.pid,`是正 完了報告 / ${c.item}`); change(c.pid,`是正の完了報告：${c.item}`); save(); render(); toast('Rateruに完了を知らせました'); break; }
