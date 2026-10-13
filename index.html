@@ -717,7 +717,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-13-3', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-13-4', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1150,7 +1150,7 @@ function pInternal(){
   <div class="card section mt"><h3>社内メモ・ファイル（${items.length}件）</h3>
     ${items.map(x=>`<div class="approval"><div class="head"><b>${x.kind==='file'?'📎 ':''}${esc(x.title)}</b><small>${x.pid?esc(pname(x.pid))+' ・ ':''}${mdhm(x.at)} ・ ${esc(x.by)}</small></div>
       ${x.text?`<div class="body" style="white-space:pre-wrap">${esc(x.text)}</div>`:''}
-      <div class="actions">${x.fileKey?`<button class="btn sm" data-act="openInternal" data-id="${x.id}">開く</button>`:''}<button class="btn sm danger" data-act="delInternal" data-id="${x.id}">削除</button></div></div>`).join('')||'<div class="empty">まだ何もありません。打ち合わせメモや社内資料をここに入れてください。</div>'}
+      <div class="actions">${x.fileKey?`<button class="btn sm" data-act="openInternal" data-id="${x.id}">開く</button>`:''}${x.kind==='note'?editBtn('note',x):''}<button class="btn sm danger" data-act="delInternal" data-id="${x.id}">削除</button></div></div>`).join('')||'<div class="empty">まだ何もありません。打ち合わせメモや社内資料をここに入れてください。</div>'}
   </div>`;
 }
 async function openBlob(key, name){
@@ -2846,7 +2846,7 @@ function correctionTable(cs, showProject){
   if(!cs.length) return '<div class="empty">是正項目はありません</div>';
   return `<div class="tablewrap"><table><thead><tr>${showProject?'<th>案件</th>':''}<th>項目</th><th>場所</th><th>担当</th><th>期限</th><th>状況</th></tr></thead><tbody>
   ${cs.map(c=>`<tr>${showProject?`<td><a href="#" data-act="open" data-pid="${c.pid}" data-tab="check">${esc(pname(c.pid))}</a></td>`:''}<td>${esc(c.item)}</td><td>${esc(c.place)}</td><td>${esc(c.owner)}</td><td ${c.state!=='done'&&c.due<todayISO()?'style="color:var(--ng);font-weight:700"':''}>${md(c.due)}</td>
-    <td><button class="pill ${lbl[c.state][1]}" data-act="corrCycle" data-id="${c.id}" ${can?'':'disabled'}>${lbl[c.state][0]}</button>${c.reported&&c.state!=='done'?`<br><small class="muted">完了報告あり（${esc(c.reported.by)} ${md(c.reported.at.slice(0,10))}）</small>`:''}</td></tr>`).join('')}</tbody></table></div>`;
+    <td><button class="pill ${lbl[c.state][1]}" data-act="corrCycle" data-id="${c.id}" ${can?'':'disabled'}>${lbl[c.state][0]}</button>${c.reported&&c.state!=='done'?`<br><small class="muted">完了報告あり（${esc(c.reported.by)} ${md(c.reported.at.slice(0,10))}）</small>`:''} ${editBtn('correction',c)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function pInspection(){
   const ids=visibleIds();
@@ -2890,7 +2890,7 @@ function docsBlock(pid){
       <td>${isRateru?`<select data-act="docVis" data-id="${d.id}" aria-label="公開範囲"><option value="all" ${d.visibility!=='rateru'?'selected':''}>全員</option><option value="rateru" ${d.visibility==='rateru'?'selected':''}>Rateru社内のみ</option></select>`:'<span class="pill ok">公開</span>'}</td>
       <td>${mdhm(d.updated)}</td>
       <td><div class="row">${d.fileKey?`<button class="btn sm ${isViewable(d)?'primary':''}" data-act="openFile" data-id="${d.id}">${isViewable(d)?'開く・書き込み':'開く'}</button>${isViewable(d)?`<button class="btn sm" data-act="printDoc" data-id="${d.id}">印刷・PDF保存</button>`:''}`:''}
-        ${can?`<label class="btn sm">新しい版<input type="file" hidden data-act="docVersion" data-id="${d.id}"></label><button class="btn sm danger" data-act="delDoc" data-id="${d.id}">削除</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="5" class="empty">このフォルダには資料がありません</td></tr>'}
+        ${can?`${editBtn('doc',d,'名前を直す')}<label class="btn sm">新しい版<input type="file" hidden data-act="docVersion" data-id="${d.id}"></label><button class="btn sm danger" data-act="delDoc" data-id="${d.id}">削除</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="5" class="empty">このフォルダには資料がありません</td></tr>'}
   </tbody></table></div>`;
 }
 async function printDoc(doc){
@@ -2943,13 +2943,65 @@ function photoBlock(pid){
 
  
 const canReport = () => ['rateru_admin','partner'].includes(me().role);
+ 
+const EDIT_COLL = {report:'reports', notice:'notices', todo:'todos', correction:'corrections', estimate:'estimates', approval:'approvals', note:'internal', doc:'docs', message:'messages'};
+const recOf = (t,id) => (S[EDIT_COLL[t]]||[]).find(x=>x.id===id);
+function canEditRec(t, x){
+  if(!x) return false; const u=me(), mine=x.by===myLabel(), rt=u.role==='rateru_admin';
+  switch(t){
+    case 'report': return canReport() && (rt || mine);
+    case 'notice': return perm().createProject || mine;
+    case 'todo': return perm().scope!=='none';
+    case 'correction': return rt || perm().inspection==='edit';
+    case 'estimate': return perm().estimate==='edit';
+    case 'approval': return ['motouke_wait','rateru_check','need_answer'].includes(x.state) && (rt || (x.history&&x.history[0]&&x.history[0].by===myLabel()));
+    case 'note': return rt;
+    case 'doc': return perm().docs==='edit';
+    case 'message': return x.company===u.company && x.name===u.name;
+  } return false;
+}
+const editBtn = (t,x,label='直す') => canEditRec(t,x) ? `<button class="btn sm" type="button" data-act="editRec" data-t="${t}" data-id="${esc(x.id)}">${label}</button>` : '';
+function editRecForm(t, id){
+  const x=recOf(t,id); if(!canEditRec(t,x)){ toast('直す権限がありません'); return; }
+  const F={
+    report:()=>`<div class="formgrid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">${sel('種類','type',REPORT_TYPES,x.type||'日報')}${fld('日付','date',x.date,'date','required')}${sel('天気','weather',WEATHER,x.weather||'晴れ')}</div>${fld('作業人数','workers',x.workers||'')}${area('本日の作業','work',x.work||'')}${area('明日の予定','tomorrow',x.tomorrow||'')}${area('気づき・問題点（あれば）','issues',x.issues||'')}`,
+    notice:()=>area('お知らせ','text',x.text||''),
+    todo:()=>`${fld('やること','title',x.title,'text','required')}${fld('担当','assignee',x.assignee||'')}${fld('期限','due',x.due||'','date')}`,
+    correction:()=>`${fld('項目','item',x.item,'text','required')}${fld('場所','place',x.place||'')}${fld('担当','owner',x.owner||'')}${fld('期限','due',x.due||'','date')}`,
+    estimate:()=>`${fld('版','ver',x.ver,'text','required')}${fld('金額（税込・円）','amount',x.amount,'number','required min="0" step="1"')}${canFinance()?fld('原価（円）','cost',x.cost||0,'number','min="0" step="1"'):''}`,
+    approval:()=>`${sel('種別','kind',APPROVAL_KIND,x.kind)}${fld('件名','title',x.title,'text','required')}${fld('金額（円・任意）','amount',x.amount||'','number','min="0" step="1"')}${area('内容','body',x.body||'')}<p class="perm-note">直したことは、この申請の履歴に残ります。</p>`,
+    note:()=>`${fld('件名','title',x.title,'text','required')}${area('内容','text',x.text||'')}`,
+    doc:()=>fld('資料の名前','name',x.name,'text','required'),
+    message:()=>area('メッセージ','text',x.text||''),
+  };
+  const T={report:'日報を直す',notice:'お知らせを直す',todo:'タスクを直す',correction:'是正を直す',estimate:'見積を直す',approval:'申請・依頼を直す',note:'社内メモを直す',doc:'資料の名前を直す',message:'メッセージを直す'};
+  openDrawer(`${drawerHead(T[t])}<form data-form="editRec" data-t="${t}" data-id="${esc(id)}">${F[t]()}<button class="btn primary" style="width:100%;margin-top:10px" type="submit">直す</button></form>`);
+}
+function saveRec(t, id, v){
+  const x=recOf(t,id); if(!canEditRec(t,x)){ toast('直す権限がありません'); return; }
+  const tx=k=>String(v[k]||'').trim();
+  switch(t){
+    case 'report': if(!tx('work')){ toast('本日の作業を入れてください'); return; } Object.assign(x,{type:v.type||x.type, date:v.date||x.date, weather:v.weather||x.weather, workers:tx('workers'), work:tx('work'), tomorrow:tx('tomorrow'), issues:tx('issues')}); break;
+    case 'notice': if(!tx('text')){ toast('お知らせを入れてください'); return; } x.text=tx('text'); break;
+    case 'todo': if(!tx('title')){ toast('やることを入れてください'); return; } Object.assign(x,{title:tx('title'), assignee:tx('assignee'), due:v.due||''}); break;
+    case 'correction': if(!tx('item')){ toast('項目を入れてください'); return; } Object.assign(x,{item:tx('item'), place:tx('place'), owner:tx('owner'), due:v.due||x.due}); break;
+    case 'estimate': Object.assign(x,{ver:tx('ver')||x.ver, amount:+v.amount||0}); if(canFinance()&&v.cost!=null) x.cost=+v.cost||0; break;
+    case 'approval': if(!tx('title')){ toast('件名を入れてください'); return; } Object.assign(x,{kind:v.kind||x.kind, title:tx('title'), amount:+v.amount||0, body:tx('body')}); (x.history=x.history||[]).push({at:nowISO(),by:myLabel(),action:'内容を直した',comment:''}); break;
+    case 'note': if(!tx('title')){ toast('件名を入れてください'); return; } Object.assign(x,{title:tx('title'), text:String(v.text||'')}); break;
+    case 'doc': if(!tx('name')){ toast('名前を入れてください'); return; } x.name=tx('name'); break;
+    case 'message': if(!tx('text')){ toast('メッセージを入れてください'); return; } x.text=tx('text'); x.edited=nowISO(); break;
+  }
+  x.upd=nowISO(); x.updBy=myLabel();
+  if(x.pid&&['report','correction','estimate','approval','doc'].includes(t)) log(x.pid, `${({report:'日報',correction:'是正',estimate:'見積',approval:'申請・依頼',doc:'資料'})[t]}を直した`);
+  save(); closeDrawer(); render(); toast('直しました');
+}
 function reportCards(rs, showProject){
   if(!rs.length) return '<div class="empty">日報はまだありません</div>';
   return rs.map(r=>`<div class="approval report"><div class="head"><b><span class="pill info">${esc(r.type||'日報')}</span> ${r.date.replace(/-/g,'/')}（${esc(r.weather)}）${showProject?' ・ '+esc(pname(r.pid)):''}</b><small>${esc(r.by)}</small></div>
     <div class="meta2">${r.workers?`<span>作業人数：${esc(r.workers)}</span>`:''}</div>
     <div class="txt">${esc(r.work)}</div>
     ${r.tomorrow?`<div class="meta2"><span>明日の予定：${esc(r.tomorrow)}</span></div>`:''}
-    ${r.issues?`<div class="alert ng" style="cursor:default;margin:6px 0 0">⚠ ${esc(r.issues)}</div>`:''}<div class="actions">${lineBtn(reportLineText(r),'報告・日報をLINEで送る')}</div></div>`).join('');
+    ${r.issues?`<div class="alert ng" style="cursor:default;margin:6px 0 0">⚠ ${esc(r.issues)}</div>`:''}<div class="actions">${lineBtn(reportLineText(r),'報告・日報をLINEで送る')}${editBtn('report',r)}</div></div>`).join('');
 }
 function reportForm(pid){
   const ps=visibleProjects();
@@ -3153,7 +3205,7 @@ function approvalCard(a, showProject=true){
     if(a.state==='rateru_check' && u.role==='rateru_admin') acts+=`<button class="btn primary sm" data-act="apprDecide" data-id="${a.id}" data-d="motouke_wait">確認済み・元請へ回す</button><button class="btn sm" data-act="apprDecide" data-id="${a.id}" data-d="rejected">差戻し</button>`;
     if(a.state==='need_answer' && (u.role==='motouke_admin'||u.role==='rateru_admin')) acts+=`<button class="btn primary sm" data-act="apprDecide" data-id="${a.id}" data-d="answered">回答する</button>`;
   }
-  acts+=`<button class="btn sm" data-act="open" data-pid="${a.pid}" data-tab="change">案件を開く</button>${lineBtn(approvalLineText(a), open?'LINEで依頼':'LINEで送る')}`;
+  acts+=`<button class="btn sm" data-act="open" data-pid="${a.pid}" data-tab="change">案件を開く</button>${lineBtn(approvalLineText(a), open?'LINEで依頼':'LINEで送る')}${editBtn('approval',a,'内容を直す')}`;
   return `<div class="approval"><div class="head"><b>${esc(a.kind)}：${esc(a.title)}</b><span class="pill ${st.pill}">${st.label}</span></div>
     <div class="body">${showProject?esc(pname(a.pid))+' / ':''}${a.amount?'金額 '+yen(a.amount)+' / ':''}${esc(a.body)}</div>
     <div class="actions">${acts}</div>
@@ -3172,7 +3224,7 @@ function pApprovals(){
  
 function chatBlock(pid){
   const ms=S.messages.filter(m=>m.pid===pid); const u=me();
-  return `<div class="messages" id="messages">${ms.map(m=>`<div class="msg ${m.company===u.company&&m.name===u.name?'me':''}"><small>${esc(m.company)} / ${esc(m.name)}　${mdhm(m.at)}</small>${esc(m.text)}</div>`).join('')||'<div class="empty">まだメッセージはありません</div>'}</div>
+  return `<div class="messages" id="messages">${ms.map(m=>`<div class="msg ${m.company===u.company&&m.name===u.name?'me':''}"><small>${esc(m.company)} / ${esc(m.name)}　${mdhm(m.at)}${m.edited?'（直した）':''}</small>${esc(m.text)}${canEditRec('message',m)?` <button class="linkbtn" style="font-size:11px" data-act="editRec" data-t="message" data-id="${esc(m.id)}">直す</button>`:''}</div>`).join('')||'<div class="empty">まだメッセージはありません</div>'}</div>
   <form class="compose" data-act="send" data-pid="${pid}"><input id="chatInput" placeholder="${esc(pname(pid))} へメッセージ" autocomplete="off"><button class="btn primary" type="submit">送信</button></form>`;
 }
 function pChat(){
@@ -3497,7 +3549,7 @@ function pProject(){
     <div><small>${esc(p.client||'元請')} ・ ${p.id}</small><h2 style="margin:4px 0 0">${esc(p.name)} <button class="star" data-act="fav" data-pid="${p.id}" aria-label="お気に入り" title="お気に入り">${Favs.get().has(p.id)?'★':'☆'}</button></h2></div>
     <div class="row">${statusBadge(p.status)}${lineBtn(projectLineText(p))}${canEdit?`<button class="btn sm" data-act="editProject" data-pid="${p.id}">編集</button>`:''}</div></div>
     <div class="meta"><span>${esc(p.address)}</span><span>${esc(p.type)}</span><span>元請担当：${esc(p.motoukeRep||'—')}</span><span>Rateru担当：${esc(p.rateruRep)}</span>${(p.partners||[]).length?`<span>協力：${esc(p.partners.join('・'))}</span>`:''}<span>完工予定：${esc(p.due||'—')}</span></div>
-    ${canEdit?`<div class="row mt"><span class="muted" style="font-size:12px">ステータス</span>${STATUS_ORDER.map(s=>`<button class="btn sm ${p.status===s?'primary':''}" data-act="setStatus" data-pid="${p.id}" data-s="${s}">${STATUS[s].label}</button>`).join('')}</div>`:''}
+    ${canEdit?`<div class="row mt" style="flex-wrap:wrap"><span class="muted" style="font-size:12px">ステータス</span>${STATUS_ORDER.map(s=>`<button class="btn sm ${p.status===s?'primary':''}" data-act="setStatus" data-pid="${p.id}" data-s="${s}">${STATUS[s].label}</button>`).join('')}</div>`:''}
   </div>
   <div class="card"><div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" class="${view.tab===k?'active':''}" data-act="tab" data-tab="${k}">${l}</button>`).join('')}</div>
   <div class="tabcontent">${projectTab(p)}</div></div>`;
@@ -3513,7 +3565,7 @@ function projectTab(p){
     const kv=[['システムID',p.id],['元請',p.client||'元請'],['元請担当',p.motoukeRep||'—'],['元請の電話',p.clientPhone?`${p.clientPhoneType==='office'?'会社電話':'携帯'}：${p.clientPhone}`:'—'],['顧客名',p.customerName||'—'],['顧客担当名',p.customerContact||'—'],['顧客電話番号',p.customerPhone||'—'],['契約番号',p.contractNo||'—'],['案件管理ID',p.mgmtId||'—'],['案件名',p.name],['住所',p.address||'—'],['区分',p.type],['工期',`${p.start?p.start.replace(/-/g,'/'):'—'} 〜 ${p.due?p.due.replace(/-/g,'/'):'—'}`]];
     return `<div class="grid2"><div>
       <h3>お知らせ</h3>
-      ${ns.map(n=>`<div class="alert" style="cursor:default"><b>${esc(n.text)}</b><br><small>${mdhm(n.at)} ・ ${esc(n.by)}</small></div>`).join('')||'<p class="muted">未だ、お知らせはありません。</p>'}
+      ${ns.map(n=>`<div class="alert" style="cursor:default"><b>${esc(n.text)}</b><br><small>${mdhm(n.at)} ・ ${esc(n.by)}</small> ${editBtn('notice',n)}</div>`).join('')||'<p class="muted">未だ、お知らせはありません。</p>'}
       ${canNotice?`<form class="compose" data-form="notice" data-pid="${pid}" style="margin:0 0 16px"><input id="noticeInput" name="text" placeholder="案件メンバーへのお知らせ" autocomplete="off" required><button class="btn" type="submit">掲示</button></form>`:''}
       <h3>現在地</h3>
       <div class="alert" style="cursor:default"><b>${STATUS[p.status].label} ${p.progress}%</b><br>次の重要イベント：${esc(p.next||'—')}</div>
@@ -3530,7 +3582,7 @@ function projectTab(p){
     const today=todayISO();
     return `<div class="row" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">タスク（未完了 ${ts.filter(t=>!t.done).length}件）</h3></div>
       <form class="compose" data-form="todo" data-pid="${pid}" style="margin:0 0 12px;flex-wrap:wrap"><input id="todoTitle" name="title" placeholder="やること（例：建具の納期確認）" required autocomplete="off" style="flex:2;min-width:180px"><input name="assignee" placeholder="担当" aria-label="担当" style="flex:1;min-width:90px"><input name="due" type="date" aria-label="期限" style="flex:0 0 auto"><button class="btn primary" type="submit">追加</button></form>
-      ${ts.map(t=>`<div class="todo ${t.done?'done':''}"><input type="checkbox" data-act="todoDone" data-id="${t.id}" ${t.done?'checked':''} aria-label="完了"><div class="t"><b>${esc(t.title)}</b><br><small>${esc(t.assignee||'担当未定')} ・ 期限 <span ${!t.done&&t.due&&t.due<today?'style="color:var(--ng);font-weight:700"':''}>${t.due?md(t.due):'—'}</span> ・ ${esc(t.by)}</small></div><button class="btn sm" data-act="delTodo" data-id="${t.id}" aria-label="削除">×</button></div>`).join('')||'<div class="empty">タスクはありません</div>'}`;
+      ${ts.map(t=>`<div class="todo ${t.done?'done':''}"><input type="checkbox" data-act="todoDone" data-id="${t.id}" ${t.done?'checked':''} aria-label="完了"><div class="t"><b>${esc(t.title)}</b><br><small>${esc(t.assignee||'担当未定')} ・ 期限 <span ${!t.done&&t.due&&t.due<today?'style="color:var(--ng);font-weight:700"':''}>${t.due?md(t.due):'—'}</span> ・ ${esc(t.by)}</small></div>${editBtn('todo',t)}<button class="btn sm" data-act="delTodo" data-id="${t.id}" aria-label="削除">×</button></div>`).join('')||'<div class="empty">タスクはありません</div>'}`;
   }
   case 'report': return `<div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 style="margin:0">報告・日報</h3>${canReport()?`<button class="btn sm primary" data-act="newReport" data-pid="${pid}">＋ 日報を書く</button>`:''}</div>${reportCards(S.reports.filter(r=>r.pid===pid).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at)),false)}`;
   case 'member': {
@@ -3547,7 +3599,7 @@ function projectTab(p){
     return `<div class="row" style="justify-content:space-between"><h3 style="margin:0">見積・予算</h3>${can?`<button class="btn sm" data-act="newEstimate" data-pid="${pid}">＋ 見積を追加</button>`:''}</div>
       <div class="tablewrap mt"><table><thead><tr><th>版</th><th>日付</th><th>金額</th><th class="cost">原価</th><th class="cost">粗利率</th><th>状態</th></tr></thead><tbody>
       ${es.map(e=>`<tr><td>${esc(e.ver)}</td><td>${md(e.date)}</td><td class="money">${yen(e.amount)}</td><td class="money cost">${yen(e.cost)}</td><td class="cost">${e.amount?Math.round((1-e.cost/e.amount)*100)+'%':'—'}</td>
-        <td>${can?`<select data-act="estState" data-id="${e.id}" aria-label="状態">${Object.entries(lbl).map(([k,v])=>`<option value="${k}" ${e.state===k?'selected':''}>${v[0]}</option>`).join('')}</select>`:`<span class="pill ${lbl[e.state][1]}">${lbl[e.state][0]}</span>`}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">見積はまだありません</td></tr>'}
+        <td>${can?`<select data-act="estState" data-id="${e.id}" aria-label="状態">${Object.entries(lbl).map(([k,v])=>`<option value="${k}" ${e.state===k?'selected':''}>${v[0]}</option>`).join('')}</select>`:`<span class="pill ${lbl[e.state][1]}">${lbl[e.state][0]}</span>`} ${editBtn('estimate',e)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">見積はまだありません</td></tr>'}
       </tbody><tfoot><tr><th colspan="2">承認済み合計</th><th class="money">${yen(approved)}</th><th class="money cost">${yen(cost)}</th><th class="cost">${approved?Math.round((1-cost/approved)*100)+'%':'—'}</th><th></th></tr></tfoot></table></div>
       ${perm().cost&&canFinance()?'':'<div class="perm-note">原価・粗利は川端さん・舟田さんだけが見られます。</div>'}`;
   }
@@ -3661,6 +3713,7 @@ document.addEventListener('click', async e=>{
         S.corrections.push({id:uid('c'),pid:d.pid,item:it.name,place:'',owner:'',due:addDays(todayISO(),2),state:'todo'}); log(d.pid,`検査NG / ${it.name}（是正を登録）`); toast('NGのため是正項目を追加しました'); }
       if(x.items.every(i=>i.result==='ok')) log(d.pid,`${d.phase==='mid'?'中間':'完了'}検査 合格 / 全${x.items.length}項目OK`);
       save(); render(); break; }
+  case 'editRec': editRecForm(d.t, d.id); break;
   case 'newCorrection': openDrawer(`${drawerHead('是正を追加')}<form data-form="correction" data-pid="${d.pid}">${fld('項目','item','','text','required')}${fld('場所','place')}${fld('担当','owner')}${fld('期限','due',addDays(todayISO(),2),'date')}<button class="btn primary" style="width:100%" type="submit">追加</button></form>`); break;
   case 'corrCycle': { const c=S.corrections.find(x=>x.id===d.id); const o=['todo','doing','done']; c.state=o[(o.indexOf(c.state)+1)%3]; if(c.state==='done') log(c.pid,`是正完了 / ${c.item}`); if(c.state==='todo') delete c.reported; save(); render(); break; }
   case 'corrReport': { const c=S.corrections.find(x=>x.id===d.id); c.reported={at:nowISO(),by:myLabel()}; log(c.pid,`是正 完了報告 / ${c.item}`); change(c.pid,`是正の完了報告：${c.item}`); save(); render(); toast('Rateruに完了を知らせました'); break; }
@@ -3902,6 +3955,7 @@ document.addEventListener('submit', async e=>{
     if(error){ showLogin('ログインIDかパスワードが違います。'); return; }
     await afterLogin(data.user); return;
   }
+  if(k==='editRec'){ saveRec(f.dataset.t, f.dataset.id, v); return; }
   if(k==='todo'){ const pid=f.dataset.pid; S.todos.push({id:uid('td'),pid,title:v.title.trim(),assignee:v.assignee.trim(),due:v.due||'',done:false,by:myLabel(),at:nowISO()}); save(); render(); const n=$('#todoTitle'); if(n) n.focus(); toast('タスクを追加しました'); return; }
   if(k==='report'){
     const r={id:uid('r'),pid:v.pid,type:v.type||'日報',date:v.date,weather:v.weather,workers:v.workers.trim(),work:v.work.trim(),tomorrow:v.tomorrow.trim(),issues:v.issues.trim(),by:myLabel(),at:nowISO()};
