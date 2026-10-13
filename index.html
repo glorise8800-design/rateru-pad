@@ -717,7 +717,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-13-2', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-13-3', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -2764,7 +2764,8 @@ function pipeRelated(x){
     ${canSeeSalesPage()?`<div class="muted" style="font-size:13px;margin:6px 0 2px">売上 ${yen(s)}${salesAll()?` ・ 仕入 ${yen(b)}${canFinance()?` ・ 粗利 ${yen(s-b)}`:''}`:''}</div>`:''}
     ${sales.map(v=>li(`${v.type==='sale'?'売上':'仕入'}：${esc(v.party)} ${yen(v.amount)}`,`${monthLabel(v.month)} ・ ${esc(v.status)}${v.fileName?' ・ 📎 '+esc(v.fileName):''}`,'editSale',v.id)).join('')}
     ${meets.map(v=>li(`会議資料：${esc(v.title)}`,`${monthLabel(v.month)}${v.fileName?' ・ 📎 '+esc(v.fileName):''}`,'editMeeting',v.id)).join('')}
-    ${!sales.length&&!meets.length?'<div class="muted" style="font-size:13px">まだありません。売上や会議資料を登録するときに、この案件を選ぶとここに並びます。</div>':''}
+    ${(S.quotes||[]).filter(q=>q.pipeId===x.id&&Q.canView(q)).map(q=>li(`見積：${esc(q.no)} ${esc(q.title||'')}`,`${esc(q.status||'')} ・ ${yen(Q.calc(q).total)}${(q.invoices||[]).length?` ・ 請求書 ${q.invoices.length}件`:''}`,'q_open',q.id)).join('')}
+    ${!sales.length&&!meets.length&&!(S.quotes||[]).some(q=>q.pipeId===x.id&&Q.canView(q))?'<div class="muted" style="font-size:13px">まだありません。売上や会議資料を登録するときに、この案件を選ぶとここに並びます。</div>':''}
     <div class="row" style="margin-top:8px">${(salesAll()||salesOwner(x)===mySalesOwner()&&canSeeSalesPage())?`<button class="btn sm" type="button" data-act="newSale" data-t="sale" data-pipe="${x.id}">＋ 売上</button>`:''}${salesAll()?`<button class="btn sm" type="button" data-act="newSale" data-t="buy" data-pipe="${x.id}">＋ 仕入</button>`:''}<button class="btn sm" type="button" data-act="newMeeting" data-pipe="${x.id}">＋ 会議資料</button>${(salesAll()||salesOwner(x)===mySalesOwner())?`<button class="btn sm" type="button" data-act="q_newFor" data-pipe="${x.id}">＋ 見積書</button>`:''}</div></div>`;
 }
 
@@ -3284,8 +3285,8 @@ const Q = {
         <button class="btn" data-act="q_print" data-t="quote">🖨 見積書</button><button class="btn" data-act="q_print" data-t="contract">🖨 工事請負契約書</button>
         <button class="btn" data-act="q_invoice">🧾 請求書を作る</button>${canFinance()?'<button class="btn" data-act="q_order">📦 発注書を作る（業者へ）</button>':''}
         ${d.id?'<button class="btn danger" data-act="q_del">この見積を消す</button>':''}</div>
-        ${(d.invoices||[]).length?`<h4 class="perm-cat">作った請求書</h4>${d.invoices.map(v=>`<div class="rel"><button class="linkbtn" data-act="q_printInv" data-id="${esc(v.id)}">🧾 ${esc(v.no)}　${yen(v.amount)}</button><small>${md(v.date)} 発行・支払期限 ${md(v.due)}${v.saleId?' ・ 売上管理に登録済み':''}</small></div>`).join('')}`:''}
-        ${canFinance()&&d.id?(()=>{ const os=(S.orders||[]).filter(o=>o.quoteId===d.id); return os.length?`<h4 class="perm-cat">作った発注書（川端・舟田だけに見えます）</h4>${os.map(o=>`<div class="rel"><button class="linkbtn" data-act="q_printOrder" data-id="${esc(o.id)}">📦 ${esc(o.no)}　${esc(o.vendor)}　${yen(this.calc(o).total)}</button><small>${md(o.date)}</small></div>`).join('')}`:''; })():''}
+        ${(d.invoices||[]).length?`<h4 class="perm-cat">作った請求書</h4>${d.invoices.map(v=>`<div class="rel"><button class="linkbtn" data-act="q_printInv" data-id="${esc(v.id)}">🧾 ${esc(v.no)}　${yen(v.amount)}</button><button class="btn sm" data-act="q_invEdit" data-id="${esc(v.id)}">直す</button><small>${md(v.date)} 発行・支払期限 ${md(v.due)}${v.saleId?' ・ 売上管理に登録済み':''}</small></div>`).join('')}`:''}
+        ${canFinance()&&d.id?(()=>{ const os=(S.orders||[]).filter(o=>o.quoteId===d.id); return os.length?`<h4 class="perm-cat">作った発注書（川端・舟田だけに見えます）</h4>${os.map(o=>`<div class="rel"><button class="linkbtn" data-act="q_printOrder" data-id="${esc(o.id)}">📦 ${esc(o.no)}　${esc(o.vendor)}　${yen(this.calc(o).total)}</button><button class="btn sm" data-act="q_orderEdit" data-id="${esc(o.id)}">直す</button><small>${md(o.date)}</small></div>`).join('')}`:''; })():''}
         <p class="perm-note">契約書の文面は、使う前に会社で内容を確かめてください。会社名・住所・振込先は「会社の情報」タブで入れます。</p></div>`; },
   page(){
     const tabs=`<div class="tabs-bar" role="tablist">${[['list','見積の一覧'],['cust','顧客の一覧'],['items','品目の一覧'],['company','会社の情報']].map(([k,l])=>`<button class="tb ${this.tab===k||(k==='list'&&this.tab==='edit')?'on':''}" data-act="q_tab" data-t="${k}">${l}</button>`).join('')}</div>`;
@@ -3321,6 +3322,13 @@ const Q = {
       ${fld('会社名','name',c.name||'')}${fld('代表者','rep',c.rep||'')}${fld('郵便番号','zip',c.zip||'')}${fld('住所','address',c.address||'')}${fld('電話','tel',c.tel||'')}${fld('FAX','fax',c.fax||'')}${fld('登録番号（インボイス）','regNo',c.regNo||'','text','placeholder="T から始まる13桁"')}</div>
       ${area('振込先（請求書に出ます）','bank',c.bank||'','例：〇〇銀行 〇〇支店 普通 1234567 カ）ラーテル')}
       <div class="row" style="justify-content:flex-end"><button class="btn primary" type="submit">保存</button></div></form></div>`; },
+  
+  invoiceEdit(id){ if(!this.save()) return; const d=this.draft, v=(d.invoices||[]).find(x=>x.id===id); if(!v) return; const sale=v.saleId?(S.sales||[]).find(x=>x.id===v.saleId):null;
+    openDrawer(`${drawerHead('請求書を直す')}<form data-form="q_invoiceEdit" data-id="${esc(id)}">
+      ${fld('請求番号','no',v.no)}${fld('請求日','date',v.date,'date')}${fld('お支払期限','due',v.due||'','date')}
+      ${fld('今回の請求額（税込・円）','amount',v.amount,'number','min="0" step="1" required')}${fld('件名（請求書に出ます）','subject',v.subject||'')}${area('備考','memo',v.memo||'')}
+      ${sale?`<p class="perm-note">売上管理の登録（${esc(sale.status)}）も、金額・日付・件名を一緒に直します。</p>`:''}
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" type="submit">直す</button></div></form>`); },
   invoiceForm(){ if(!this.save()) return; const d=this.draft, c=this.calc(d), done=(d.invoices||[]).reduce((s,v)=>s+(Number(v.amount)||0),0);
     const due=(()=>{ const t=new Date(); const e=new Date(t.getFullYear(), t.getMonth()+2, 0); return `${e.getFullYear()}-${pad(e.getMonth()+1)}-${pad(e.getDate())}`; })();
     openDrawer(`${drawerHead('請求書を作る')}<form data-form="q_invoice"><p class="muted" style="margin-top:0">見積の合計（税込）${yen(c.total)}・これまでの請求 ${yen(done)}</p>
@@ -3328,12 +3336,13 @@ const Q = {
       ${fld('今回の請求額（税込・円）','amount',Math.max(0,c.total-done),'number','min="0" step="1" required')}${fld('件名（請求書に出ます）','subject',d.title)}${area('備考','memo','')}
       <label class="row" style="gap:6px;margin:6px 0"><input type="checkbox" name="toSales" checked> 売上管理にも登録する（案件進捗とつないでいるとき）</label>
       <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" type="submit">作って印刷する</button></div></form>`); },
-  orderForm(){ if(!canFinance()) return; if(!this.save()) return; const d=this.draft;
-    this.orderDraft={id:'', quoteId:d.id, no:this.nextNo('PO',S.orders||[]), date:todayISO(), vendor:'', title:d.title, site:d.site, term:d.term, pay:'月末締め翌月末払い', lines:d.lines.map(l=>({name:l.name,spec:l.spec,qty:l.qty,unit:l.unit,price:''})), discount:0, tax:Q_TAX, note:''};
-    openDrawer(`${drawerHead('発注書を作る（業者へ）')}<form data-form="q_order"><p class="perm-note" style="margin-top:0">発注の金額（原価）は川端さん・舟田さんだけに見えます。見積の行を写しているので、頼む行の単価を入れてください（単価が空の行は発注書に出ません）。</p>
-      ${fld('発注番号','no',this.orderDraft.no)}${fld('発注日','date',this.orderDraft.date,'date')}${this.custPick('発注先（業者）','vendor','')}${fld('支払条件','pay',this.orderDraft.pay)}
-      <div class="tablewrap"><table class="q-lines"><thead><tr><th>品名</th><th>数量</th><th>単位</th><th>発注単価</th></tr></thead><tbody>${this.orderDraft.lines.map((l,i)=>`<tr><td>${esc(l.name)}${l.spec?`<br><small>${esc(l.spec)}</small>`:''}</td><td><input name="qty_${i}" type="number" step="any" min="0" value="${esc(l.qty)}" style="width:80px"></td><td>${esc(l.unit)}</td><td><input name="price_${i}" type="number" step="1" min="0" value="" style="width:110px"></td></tr>`).join('')}</tbody></table></div>
-      ${area('備考','note','')}<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" type="submit">作って印刷する</button></div></form>`); },
+  orderForm(editId){ if(!canFinance()) return; if(!this.save()) return; const d=this.draft, old=editId?(S.orders||[]).find(x=>x.id===editId):null;
+    this.orderDraft=old?JSON.parse(JSON.stringify(old)):{id:'', quoteId:d.id, no:this.nextNo('PO',S.orders||[]), date:todayISO(), vendor:'', title:d.title, site:d.site, term:d.term, pay:'月末締め翌月末払い', lines:d.lines.map(l=>({name:l.name,spec:l.spec,qty:l.qty,unit:l.unit,price:''})), discount:0, tax:Q_TAX, note:''};
+    const o=this.orderDraft;
+    openDrawer(`${drawerHead(old?'発注書を直す':'発注書を作る（業者へ）')}<form data-form="q_order"><p class="perm-note" style="margin-top:0">発注の金額（原価）は川端さん・舟田さんだけに見えます。見積の行を写しているので、頼む行の単価を入れてください（単価が空の行は発注書に出ません）。</p>
+      ${fld('発注番号','no',o.no)}${fld('発注日','date',o.date,'date')}${this.custPick('発注先（業者）','vendor',o.vendor||'')}${fld('支払条件','pay',o.pay)}
+      <div class="tablewrap"><table class="q-lines"><thead><tr><th>品名</th><th>数量</th><th>単位</th><th>発注単価</th></tr></thead><tbody>${this.orderDraft.lines.map((l,i)=>`<tr><td>${esc(l.name)}${l.spec?`<br><small>${esc(l.spec)}</small>`:''}</td><td><input name="qty_${i}" type="number" step="any" min="0" value="${esc(l.qty)}" style="width:80px"></td><td>${esc(l.unit)}</td><td><input name="price_${i}" type="number" step="1" min="0" value="${esc(l.price??'')}" style="width:110px"></td></tr>`).join('')}</tbody></table></div>
+      ${area('備考','note',o.note||'')}<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" type="submit">${old?'直して印刷する':'作って印刷する'}</button></div></form>`); },
   
   doc(type, q, x={}){
     const co=this.company(), cu=this.cust(type==='order'?x.vendor:q.customer)||{}, c=this.calc(type==='order'?x:q), lines=(type==='order'?x.lines:q.lines).filter(l=>type!=='order'||(l.price!==''&&l.price!=null));
@@ -3390,7 +3399,7 @@ const Q = {
     if(a==='q_tab'){ if(this.tab==='edit'&&d.t==='list'){ this.draft=null; } this.tab=d.t; render(); return; }
     if(a==='q_new'){ this.newQuote(''); return; }
     if(a==='q_newFor'){ closeDrawer(); this.newQuote(d.pipe); return; }
-    if(a==='q_open'){ this.open(d.id); return; }
+    if(a==='q_open'){ closeDrawer(); this.open(d.id); return; }
     if(a==='q_newCase'){ this.caseForm(); return; }
     if(a==='q_copy'){ const q=(S.quotes||[]).find(x=>x.id===d.id); if(!this.canView(q)) return; this.draft={...JSON.parse(JSON.stringify(q)), id:'', no:this.nextNo('Q',S.quotes||[]), date:todayISO(), status:'作成中', invoices:[]}; this.tab='edit'; go('quotes'); toast('前の見積を写しました。案件や数量を直して保存してください'); return; }
     if(a==='q_back'){ this.draft=null; this.tab='list'; render(); return; }
@@ -3401,6 +3410,8 @@ const Q = {
     if(a==='q_delLine'){ this.readForm(); this.draft.lines.splice(+d.i,1); render(); return; }
     if(a==='q_print'){ this.readForm(); this.print(d.t, this.draft); return; }
     if(a==='q_invoice'){ this.invoiceForm(); return; }
+    if(a==='q_invEdit'){ this.invoiceEdit(d.id); return; }
+    if(a==='q_orderEdit'){ this.orderForm(d.id); return; }
     if(a==='q_order'){ this.orderForm(); return; }
     if(a==='q_printInv'){ const v=(this.draft?.invoices||[]).find(x=>x.id===d.id); if(v) this.print('invoice', this.draft, v); return; }
     if(a==='q_printOrder'){ if(!canFinance()) return; const o=(S.orders||[]).find(x=>x.id===d.id); if(o) this.print('order', this.draft, o); return; }
@@ -3437,7 +3448,14 @@ const Q = {
     if(k==='q_order'){ if(!canFinance()) return; const o=this.orderDraft; if(!o) return; o.vendor=this.custValue(v,'vendor'); if(!o.vendor){ toast('発注先（業者）を選んでください'); return; }
       o.no=String(v.no||o.no).trim(); o.date=v.date||o.date; o.pay=v.pay||''; o.note=v.note||''; o.lines=o.lines.map((l,i)=>({...l, qty:v['qty_'+i]??l.qty, price:v['price_'+i]===''?'':Math.round(+v['price_'+i]||0)}));
       if(!o.lines.some(l=>l.price!=='')){ toast('頼む行の発注単価を入れてください'); return; }
+      if(o.id){ const i=(S.orders||[]).findIndex(x=>x.id===o.id); o.upd=nowISO(); o.updBy=myLabel(); if(i>=0) S.orders[i]=o; save(); closeDrawer(); render(); toast('発注書を直しました'); this.print('order', this.draft, o); return; }
       o.id=uid('po'); o.at=nowISO(); o.by=myLabel(); (S.orders=S.orders||[]).unshift(o); save(); closeDrawer(); render(); toast('発注書を作りました'); this.print('order', this.draft, o); return; }
+    if(k==='q_invoiceEdit'){ const d=this.draft, q=(S.quotes||[]).find(x=>x.id===d.id); if(!q) return; const v0=(q.invoices||[]).find(x=>x.id===f.dataset.id); if(!v0) return;
+      const amt=Math.round(+v.amount||0); if(!amt){ toast('請求額を入れてください'); return; }
+      Object.assign(v0,{no:String(v.no||v0.no).trim(), date:v.date||v0.date, due:v.due||'', amount:amt, subject:v.subject||q.title, memo:v.memo||'', upd:nowISO(), updBy:myLabel()});
+      const sale=v0.saleId?(S.sales||[]).find(x=>x.id===v0.saleId):null;
+      if(sale&&canEditSale(sale)) Object.assign(sale,{amount:amt, date:v0.date, month:(v0.date||todayISO()).slice(0,7), due:v0.due, title:v0.subject, text:`請求番号 ${v0.no}（見積 ${q.no}）`});
+      this.draft=JSON.parse(JSON.stringify(q)); save(); closeDrawer(); render(); toast(sale?'請求書を直し、売上管理の登録も直しました':'請求書を直しました'); return; }
   }
 };
 function pQuotes(){ return Q.page(); }
