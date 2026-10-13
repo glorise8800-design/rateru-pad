@@ -167,6 +167,8 @@ button.pill{cursor:pointer}
 .tpl{padding:16px;text-align:left;display:flex;flex-direction:column;gap:6px;cursor:pointer;min-height:88px}
 .tpl:hover{border-color:var(--accent-line)} .tpl b{font-size:16px}
 .rel{display:flex;flex-direction:column;padding:6px 0;border-top:1px dashed var(--line)} .rel .linkbtn{font-size:14px;text-align:left;font-weight:700}
+.rel>.btn.sm{align-self:flex-start;margin:4px 0 2px}
+.nav a.nav-help{display:flex;align-items:center;padding:11px 12px;border-radius:10px;color:var(--side-text);text-decoration:none;font-size:15px}.nav a.nav-help:hover{background:rgba(0,0,0,.05)}    
 .linkbtn{text-decoration:underline;text-underline-offset:2px}
 .ybar{height:7px;background:var(--grey-bg);border-radius:99px;overflow:hidden;margin:2px 0}
 .ybar span{display:block;height:100%} .ybar .s{background:var(--band)} .ybar .b{background:var(--grey)}
@@ -717,7 +719,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-13-5', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-13-6', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1557,7 +1559,7 @@ function renderNav(){
   $('#nav').innerHTML=NAV_GROUPS.map(([h,ids])=>{ const vis=ids.filter(id=>P[id]&&canSeePage(id)); if(!vis.length) return '';
     return (h?`<div class="nav-h">${h}</div>`:'')+vis.map(id=>{ const [,ic,l]=P[id];
     const b = id==='dashboard'&&active ? `<span class="badge">${active}</span>` : id==='approvals'&&pend ? `<span class="badge">${pend}</span>` : '';
-    return `<button data-act="nav" data-page="${id}" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('');
+    return `<button data-act="nav" data-page="${id}" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('') + ((TRIAL||me().role!=='rateru_admin')?'':`<div class="nav-h">ヘルプ</div><a class="nav-help" href="manual.html" target="_blank" rel="noopener"><span>📖　使い方</span></a>`);   
   const favs=Favs.get(), act=visibleProjects().filter(p=>p.status!=='done').sort((a,b)=>(favs.has(b.id)-favs.has(a.id)));
   $('#sideProjects').innerHTML=`<h4>進行中案件</h4>${act.slice(0,12).map(p=>`<button data-act="open" data-pid="${p.id}" title="${esc(p.name)}">${favs.has(p.id)?'★ ':''}${esc(p.name)}</button>`).join('')||'<small style="padding:0 12px">ありません</small>'}`;
   $('#sideFoot').textContent = MODE==='server' ? (CFG().localServer?`社内サーバー版 ${APP_RELEASE}`:'v0.3 サーバー版') : (TRIAL?'v0.3 試運転版（この端末に保存）':`お試し版 ${APP_RELEASE}（この端末に保存）`);
