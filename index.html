@@ -263,7 +263,7 @@ label.photo{cursor:pointer;border-style:dashed}
 .board-opt{margin:-2px 0 10px;gap:10px}.input-sm{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--panel);color:var(--text);min-width:200px}
 a.btn{display:inline-flex;align-items:center;gap:4px}
 .line-share{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 4px}
-.btn.line{background:#06C755;border-color:#06C755;color:#fff;text-decoration:none}.btn.line:hover{filter:brightness(.95)}
+.btn.line{background:#05873b;border-color:#05873b;color:#fff;text-decoration:none;font-weight:700}.btn.line:hover{filter:brightness(.95)}
 .line-preview{white-space:pre-wrap;background:#8cabd9;color:#111;border-radius:12px;padding:10px 12px;font-family:inherit;font-size:13px;line-height:1.55;margin:4px 0 0;max-height:260px;overflow:auto}
 .perm-note{font-size:12px;color:var(--muted);margin-top:6px}
 .money{font-variant-numeric:tabular-nums}
@@ -271,7 +271,17 @@ a.btn{display:inline-flex;align-items:center;gap:4px}
 .mt{margin-top:16px}
 .hide-cost .cost{display:none}
 .field[hidden]{display:none}
+.db-short{display:none}
 @media (max-width:640px){
+   
+  .btn.sm{min-height:38px;padding:8px 12px;font-size:13px}
+  .star{font-size:26px;min-width:42px;min-height:42px;padding:4px 8px}
+  .pill{font-size:12px} button.pill{min-height:34px;padding:6px 12px}
+  .btn[aria-label="前の月"],.btn[aria-label="次の月"],.btn[aria-label="前の年"],.btn[aria-label="次の年"]{min-width:44px}
+  .line{font-size:14px}
+  .cal .ev{font-size:10px!important;max-height:none!important}
+  .linkbtn{padding:8px 2px;min-height:34px} #content small{font-size:12px}
+  .db-long{display:none} .db-short{display:inline}
   table.mcards thead{display:none} table.mcards,table.mcards tbody,table.mcards tr,table.mcards td{display:block;width:100%} table.mcards{min-width:0!important}
   table.mcards tr{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 10px;background:var(--panel)}
   table.mcards td{border:0!important;padding:4px 0!important;display:flex;gap:8px;align-items:center;text-align:left!important}
@@ -698,7 +708,7 @@ const NAV_GROUPS = [
 const NAV_ALIAS = {customers:'quotes', pipeline:'projects', chat:'projects', project:'projects', schedule:'calendar', dezura:'office', petty:'office', finance:'office'};
 const PAGES = [
   ['dashboard','▦','ダッシュボード'],['quotes','✍','見積・契約・請求'],['customers','☰','顧客の一覧'],['projects','▤','案件・進捗'],['pipeline','▥','案件進捗'],['survey','⌖','現調・採寸'],['schedule','◷','工程・スケジュール'],
-  ['inspection','✓','品質・検査'],['docs','▣','図面・資料'],['approvals','◎','承認・変更管理'],['chat','◌','案件チャット'],['reports','✎','報告・日報'],['calendar','▦','スケジュール'],['office','🔒','事務・財務'],['client','◇','元請専用'],['partners','△','協力業者向け'],['internal','◆','Rateru社内フォルダ'],['dezura','☷','出面'],['petty','¤','小口現金・立替'],['finance','¥','財務（川端・舟田）'],['dropbox','☁','Dropbox 資料'],['perms','⚿','権限'],['guest','◇','共有された予定'],['meetings','▤','会議資料'],['templates','▧','書類ひな形'],['sales','¥','売上管理'],['settings','⚙','設定・権限']
+  ['inspection','✓','品質・検査'],['docs','▣','図面・資料'],['approvals','◎','承認・変更管理'],['chat','◌','案件チャット'],['reports','✎','報告・日報'],['calendar','▦','スケジュール'],['office','🔒','事務・財務'],['client','◇','元請専用'],['partners','△','協力業者向け'],['internal','◆','Rateru社内フォルダ'],['dezura','☷','出面'],['petty','¤','小口現金・立替'],['finance','¥','財務'],['dropbox','☁','Dropbox 資料'],['perms','⚿','権限'],['guest','◇','共有された予定'],['meetings','▤','会議資料'],['templates','▧','書類ひな形'],['sales','¥','売上管理'],['settings','⚙','設定・権限']
 ];
 
 const TRIAL = typeof window!=='undefined' && window.RATERU_START || null;
@@ -719,7 +729,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-13-6', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-13-9', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1559,7 +1569,7 @@ function renderNav(){
   $('#nav').innerHTML=NAV_GROUPS.map(([h,ids])=>{ const vis=ids.filter(id=>P[id]&&canSeePage(id)); if(!vis.length) return '';
     return (h?`<div class="nav-h">${h}</div>`:'')+vis.map(id=>{ const [,ic,l]=P[id];
     const b = id==='dashboard'&&active ? `<span class="badge">${active}</span>` : id==='approvals'&&pend ? `<span class="badge">${pend}</span>` : '';
-    return `<button data-act="nav" data-page="${id}" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('') + ((TRIAL||me().role!=='rateru_admin')?'':`<div class="nav-h">ヘルプ</div><a class="nav-help" href="manual.html" target="_blank" rel="noopener"><span>📖　使い方</span></a>`);   
+    return `<button data-act="nav" data-page="${id}" data-menu="1" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('') + ((TRIAL||me().role!=='rateru_admin')?'':`<div class="nav-h">ヘルプ</div><a class="nav-help" href="manual.html" target="_blank" rel="noopener"><span>📖　使い方</span></a>`);   
   const favs=Favs.get(), act=visibleProjects().filter(p=>p.status!=='done').sort((a,b)=>(favs.has(b.id)-favs.has(a.id)));
   $('#sideProjects').innerHTML=`<h4>進行中案件</h4>${act.slice(0,12).map(p=>`<button data-act="open" data-pid="${p.id}" title="${esc(p.name)}">${favs.has(p.id)?'★ ':''}${esc(p.name)}</button>`).join('')||'<small style="padding:0 12px">ありません</small>'}`;
   $('#sideFoot').textContent = MODE==='server' ? (CFG().localServer?`社内サーバー版 ${APP_RELEASE}`:'v0.3 サーバー版') : (TRIAL?'v0.3 試運転版（この端末に保存）':`お試し版 ${APP_RELEASE}（この端末に保存）`);
@@ -1571,7 +1581,7 @@ const Favs = {
 function renderTop(){
   const srv=MODE==='server'; $('#roleSel').hidden=srv; $('#userChip').hidden=!srv; $('#logoutBtn').hidden=!srv;
   $('#demoBanner').hidden=srv;
-  if(!srv) $('#demoBanner').textContent=`お試し版・本番ではありません｜利用者：${me().name}（${me().roleLabel}）｜名前の選択は本人確認ではありません`;
+  if(!srv) $('#demoBanner').innerHTML=`<span class="db-long">お試し版・本番ではありません｜利用者：${esc(me().name)}（${esc(me().roleLabel)}）｜名前の選択は本人確認ではありません</span><span class="db-short">お試し版（本番ではありません）｜${esc(me().name)}</span>`;   
   if(srv) $('#userChip').textContent=`${me().roleLabel}（${me().name}）`;
   $('#roleSel').innerHTML=pickUsers().map(u=>`<option value="${u.id}" ${u.id===S.userId?'selected':''}>${u.roleLabel}（${u.name}）</option>`).join('');
   $('#newProjectBtn').hidden=!perm().createProject;
@@ -1601,12 +1611,15 @@ function filterBar(full){
 
 
 const TRIAL_DATA_UNTIL = '2026-10-31';
+const NOTICE_FOLD_KEY='rateru-pad-trial-notice-folded';
+const noticeFolded = () => { try{ return localStorage.getItem(NOTICE_FOLD_KEY)===TRIAL_DATA_UNTIL; }catch(e){ return false; } };
 function trialNotice(){
   if(MODE!=='demo'||me().role!=='rateru_admin') return '';
   const over = todayISO() > TRIAL_DATA_UNTIL, d=TRIAL_DATA_UNTIL.split('-');
+  if(!over&&noticeFolded()) return `<div class="row" style="justify-content:space-between;gap:8px;margin:0 0 12px;padding:8px 12px;border:1px solid var(--warn,#d9a400);border-radius:10px;background:var(--panel)"><small>⚠ お試し版で本物のデータを使えるのは <b>${+d[1]}月${+d[2]}日まで</b>。入れた内容はこの端末に保存されます</small><button class="btn sm" data-act="noticeOpen">くわしく</button></div>`;
   return `<div class="card section" style="border-color:${over?'var(--danger,#c0392b)':'var(--warn,#d9a400)'};margin-bottom:14px"><b>${over?'お試し版で本物のデータを使う期限を過ぎています':'お試し版で本物のデータを使うときの注意'}</b>
     <p style="margin:6px 0 0">入れた内容は、この端末のブラウザの中に保存されます。ほかの人がこの端末を使ったり、端末をなくしたりすると、<b>お客さんの名前・電話番号・金額などが漏れるおそれ</b>があります。共有の端末では、自分の画面に暗証番号をつけてください。</p>
-    <p class="muted" style="margin:6px 0 0">お試し版で本物のデータを使えるのは <b>${+d[0]}年${+d[1]}月${+d[2]}日まで</b>です。それまでに本番に移します${over?'。本番に移すまでのあいだは、入れた内容は消えずに残っています':''}。</p></div>`;
+    <p class="muted" style="margin:6px 0 0">お試し版で本物のデータを使えるのは <b>${+d[0]}年${+d[1]}月${+d[2]}日まで</b>です。それまでに本番に移します${over?'。本番に移すまでのあいだは、入れた内容は消えずに残っています':''}。</p>${over?'':'<div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn sm" data-act="noticeFold">わかりました（小さくする）</button></div>'}</div>`;
 }
 function demoEntryCard(){
   if(MODE!=='demo'||TRIAL) return '';
@@ -1617,7 +1630,17 @@ function demoEntryCard(){
       <button class="btn primary" data-act="enterDemo">この名前で入る</button></div>
     <p class="perm-note">この選択は本人確認ではありません。ほかの端末との共有や、実際の社員ごとのアクセス制限には使えません。</p></div>`;
 }
+
+function pipeSummary(){
+  if(me().role!=='rateru_admin'||!(S.pipeline||[]).length) return '';
+  const all=S.pipeline, open=all.filter(x=>!PIPE_CLOSED.has(x.status)), today=todayISO();
+  const in14=pipeWorks().filter(x=>!PIPE_CLOSED.has(x.status)&&x.end>=today&&x.start<=addDays(today,14)).length;
+  const k=(label,num,sub,st='')=>`<button class="card kpi" style="text-align:left;cursor:pointer" data-act="nav" data-page="pipeline"${st?` data-st="${st}"`:''}><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`;
+  return `<div class="row" style="justify-content:space-between;align-items:baseline;margin:0 0 6px"><h3 style="margin:0">案件進捗</h3><button class="linkbtn" data-act="nav" data-page="pipeline">すべて見る ›</button></div>
+  <div class="kpis" style="margin-bottom:16px">${k('進行中',open.length,`全${all.length}件`)}${k('お客様判断待ち',open.filter(x=>x.status==='お客様見積判断待ち').length,'見積の返事待ち')}${k('見積書 未作成',open.filter(x=>x.estimate!=='完'&&['見積作成中','社内見積判断待ち'].includes(x.status)).length,'見積作成中・社内判断待ち')}${k('2週間以内の工事',in14,'工程表に載っている工事')}</div>`;
+}
 function pDashboard(){
+  const noProj = me().role==='rateru_admin' && !visibleProjects().length;   
   const ps=visibleProjects(), ids=visibleIds();
   const cnt=s=>ps.filter(p=>p.status===s).length;
   const month=todayISO().slice(0,7);
@@ -1630,20 +1653,20 @@ function pDashboard(){
   const acts=S.activity.filter(a=>!a.pid||ids.has(a.pid)).slice(0,8);
   const kpi=(label,num,sub,act)=>`<button class="card kpi" data-act="kpi" data-status="${act}"><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`;
   const rows=filteredProjects().filter(p=>p.status!=='done');
-  return `${demoEntryCard()}${trialNotice()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
+  return `${demoEntryCard()}${trialNotice()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
     <div class="acts"><button class="btn primary" data-act="nav" data-page="projects">案件を見る</button></div></div>
-  <div class="kpis">
+  ${noProj?`<div class="card section"><p style="margin:0">施工管理の案件（元請・協力業者と一緒に使う案件）は、まだありません。<br>図面・資料、現調・採寸、工程、チャット、日報は、それぞれの画面で<b>案件進捗の案件を選んで</b>始められます。</p></div>`:`<div class="kpis">
     ${kpi('進行中案件',ps.filter(p=>p.status!=='done').length,`全${ps.length}件`,'')}
     ${kpi('現調待ち',surveyWait.length,`未確定項目あり ${surveyWait.filter(p=>(S.surveys[p.id]?.items||[]).some(i=>i.state!=='ok')).length}件`,'survey')}
     ${kpi('承認待ち',pendA.length,kinds,'approve')}
     ${kpi('施工中',cnt('build'),`工程遅れ ${lateTasks.length}件`,'build')}
     ${kpi('今月完工予定',dueMonth.length,`完工済 ${dueMonth.filter(p=>p.status==='done').length}件`,'')}
-  </div>
+  </div>`}
   <div class="grid2">
-    <div class="card section"><h3>案件一覧・進捗</h3>${filterBar(false)}
+    ${noProj?'':`<div class="card section"><h3>案件一覧・進捗</h3>${filterBar(false)}
       <div class="tablewrap"><table><thead><tr><th>案件</th><th>区分</th><th>状況</th><th>進捗</th><th>次アクション</th></tr></thead><tbody>
       ${rows.map(p=>`<tr class="clickable" data-act="open" data-pid="${p.id}"><td><b>${esc(p.name)}</b><br><small>${p.id}</small></td><td>${esc(p.type)}</td><td>${statusBadge(p.status)}</td><td>${progressBar(p.progress)}</td><td>${esc(p.next||'—')}</td></tr>`).join('')||`<tr><td colspan="5" class="empty">条件に合う案件はありません</td></tr>`}
-      </tbody></table></div></div>
+      </tbody></table></div></div>`}
     <div class="card section"><h3>要確認（${att.length}件）</h3>
       ${att.slice(0,8).map(a=>`<button class="alert ${a.level==='ng'?'ng':''}" data-act="goto" data-go='${esc(JSON.stringify(a.go))}'><b>⚠ ${esc(a.title||pname(a.pid))}</b><br>${esc(a.text)}</button>`).join('')||'<div class="empty">要確認の項目はありません</div>'}
       <h3 class="mt">最近の動き</h3>
@@ -1692,9 +1715,9 @@ function surveyBlock(pid){
   ${can?'<div class="perm-note">状態ボタンを押すと「未着手 → 確認中 → 完了 → 要是正」の順に切り替わります。</div>':'<div class="perm-note">閲覧のみの権限です。</div>'}`;
 }
 function pSurvey(){
-  const ps=visibleProjects(); if(!ps.length) return emptyScope();
+  const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>現調・採寸</h2><p>案件ごとに、現地調査の項目と写真をまとめます。</p></div></div>${pipeDocsPicker('survey')}` : emptyScope();
   if(!view.surveyPid || !ps.some(p=>p.id===view.surveyPid)) view.surveyPid=(ps.find(p=>p.status==='survey')||ps[0]).id;
-  return `<div class="hero"><div><h2>現調・採寸</h2><p>現場ごとの「取り漏れ」をなくすため、チェック項目を標準化。</p></div></div>
+  return `<div class="hero"><div><h2>現調・採寸</h2><p>現場ごとの「取り漏れ」をなくすため、チェック項目を標準化。</p></div></div>${pipeDocsPicker('survey')}
   <div class="card section"><div class="field" style="max-width:360px"><label for="sv_pid">案件</label><select id="sv_pid" data-act="pick" data-key="surveyPid">${projectOptions(view.surveyPid)}</select></div>
   ${surveyBlock(view.surveyPid)}</div>`;
 }
@@ -2322,7 +2345,7 @@ function pPerms(){
   const cell=v=>`<span class="pill ${permPill(v)}">${esc(v)}</span>`;
   const myList=mine?cats.map(c=>`<h4 class="perm-cat">${esc(c)}</h4>${PERM36.filter(r=>r[1]===c).map(r=>`<div class="check"><div style="min-width:0"><div class="title">${esc(r[2])}</div><div class="desc">${esc(r[4])}</div></div>${cell(r[3][POS_ORDER.indexOf(pos)])}</div>`).join('')}`).join(''):'';
   return `<div class="hero"><div><h2>権限</h2><p>売上は案件の責任者ごとに分けます。川端さんは全員分、井上さんは全体合計と自分の明細を確認できます。</p></div></div>
-  <div class="alert" style="cursor:default"><b>試作・検証中</b>：この画面の権限は表示の確認用です。サーバー側の制御はまだ検証していません。本番には反映していません。</div>
+  <div class="alert" style="cursor:default">この表のとおりに、画面で見せるもの・隠すものを分けています。サーバー版では、サーバーの側でも同じように止めています。</div>
   ${mine?`<div class="card section"><h3>自分の権限（${esc(me().name)}・${esc(POS_ROLE[pos])}）</h3><div class="row perm-note" style="flex-wrap:wrap;gap:6px">${cell('できる')}${cell('閲覧のみ')}${cell('申請')}${cell('不可・停止')}${cell('未確定・模擬')}</div><div class="perm-list">${myList}</div></div>`:''}
   <details class="card section mt perm-all" ${mine?'':'open'}><summary><h3 style="display:inline">権限一覧（全員）</h3> <small class="muted">押すと開きます</small></summary><p class="perm-note" style="margin-top:0">「全社」はRateruだけ。「担当内」は自分が担当の案件だけ。「本人・指定者」は予定の本人と、本人が個別に指定した相手だけ（全員ではありません）。「停止」「模擬のみ」は川端さんを含む全員です。</p>
     <div class="tablewrap"><table class="perm-table"><thead><tr><th>番号</th><th>機能・操作</th>${POS_ORDER.map(p=>`<th${p===pos?' class="me"':''}>${POS_NAME[p]}</th>`).join('')}</tr></thead><tbody>
@@ -2479,9 +2502,9 @@ function pFinance(){
   const rate=(a,b)=>a?Math.round((a-b)/a*100)+'%':'—', ys=sum(inY.filter(x=>x.type==='sale')), yb=sum(inY.filter(x=>x.type==='buy'));
   const kpi=(l,n,sub)=>`<div class="card kpi money"><div class="label">${l}</div><div class="num">${n}</div><div class="sub">${sub}</div></div>`;
   const pay=payBlock();
-  return `${officeTabs()}<div class="hero"><div><h2>財務</h2><p>粗利（案件別・担当別・月別）を見る、川端さん・舟田さんだけの画面です。ほかの人には表示されません。</p></div>
+  return `${officeTabs()}<div class="hero"><div><h2>財務</h2><p>粗利（案件別・担当別・月別）を見る、川端さん・舟田さん・向さんだけの画面です。ほかの人には表示されません。</p></div>
     <div class="acts"><button class="btn" data-act="finYear" data-d="-1" aria-label="前の年">‹</button><button class="btn" data-act="finYear" data-d="0">${y}年</button><button class="btn" data-act="finYear" data-d="1" aria-label="次の年">›</button></div></div>
-  <div class="alert" style="cursor:default"><b>試作・検証中</b>：見え方は画面で分けています。サーバー側の制御はまだ検証していません。</div>
+
   ${pay}
   ${arBlock()}
   ${Bank.block()}
@@ -2645,7 +2668,7 @@ function pPetty(){
 const tabsBar = (items, extra='') => `<div class="tabs-bar" role="tablist">${items.filter(Boolean).map(([id,l])=>`<button class="tb ${view.page===id?'on':''}" role="tab" aria-selected="${view.page===id}" data-act="nav" data-page="${id}">${l}</button>`).join('')}${extra}</div>`;
 const caseTabs = () => tabsBar([['projects','案件一覧'], canSeePage('pipeline')&&['pipeline','案件進捗（社内）'], ['chat','案件チャット']]);
 const schedTabs = () => tabsBar([['calendar','カレンダー'],['schedule','工程表']]);
-const officeTabs = () => tabsBar([['dezura','出面'],['petty','小口現金・立替'], canSeePage('finance')&&['finance','財務（川端・舟田）']],
+const officeTabs = () => tabsBar([['dezura','出面'],['petty','小口現金・立替'], canSeePage('finance')&&['finance','財務']],
   `<span class="sp"></span>${canFinance()?'<button class="btn sm" data-act="pinChange">暗証番号を変える</button>':''}<button class="btn sm" data-act="lockClose">🔒 閉じる</button>`);
 
 const officePin = () => ((S.settings||[]).find(x=>x.id==='office_pin')||{}).pin || '1111';
@@ -2793,13 +2816,13 @@ function gantt(tasks, showProject, opt={}){
 }
 const ganttLegend = `<div class="row perm-note"><span class="pill info">進行中</span><span class="pill ok">完了</span><span class="pill ng">予定超過</span><span>バーを押すと編集できます。</span></div>`;
 function pSchedule(){
-  const ps=visibleProjects(); if(!ps.length) return emptyScope();
+  const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>工程・スケジュール</h2><p>案件ごとに工程を組みます。案件進捗の工事日は「スケジュール」のカレンダーにも出ます。</p></div></div>${pipeDocsPicker('schedule')}` : emptyScope();
   if(view.schedulePid===null) view.schedulePid=(ps.find(p=>p.status==='build')||ps[0]).id;
   const pid=view.schedulePid, ids=visibleIds();
   const tasks=S.tasks.filter(t=>pid?t.pid===pid:ids.has(t.pid));
   const can=perm().schedule==='edit';
   return `${schedTabs()}<div class="hero"><div><h2>工程表</h2><p>工種を横断し、現場を止めない工程管理。案件ごと・全案件で見られます。</p></div>
-    <div class="acts"><button class="btn" data-act="printSchedule" data-pid="${pid||''}">工程表を印刷・PDF保存</button>${can?`<button class="btn primary" data-act="newTask" data-pid="${pid||''}">＋ 工程を追加</button>`:''}</div></div>
+    <div class="acts"><button class="btn" data-act="printSchedule" data-pid="${pid||''}">工程表を印刷・PDF保存</button>${can?`<button class="btn primary" data-act="newTask" data-pid="${pid||''}">＋ 工程を追加</button>`:''}</div></div>${pipeDocsPicker('schedule')}
   <div class="card section"><div class="field" style="max-width:360px"><label for="sc_pid">案件</label><select id="sc_pid" data-act="pick" data-key="schedulePid">${projectOptions(pid,true)}</select></div>
     <div class="gantt-wrap">${gantt(tasks,!pid)}</div>${ganttLegend}</div>${pipelineScheduleCard()}`;
 }
@@ -2915,10 +2938,12 @@ function projectForPipe(pipeId){
   S.projects.unshift(p); x.pid=id; log(id,'案件進捗から図面・資料の置き場を作成'); change(id,'案件登録（案件進捗から）'); save();
   return p;
 }
-const pipeDocsPicker = () => me().role!=='rateru_admin' ? '' : `<div class="card section"><h3 style="margin-top:0">案件進捗の案件に図面・資料を入れる</h3>
-  <div class="row" style="flex-wrap:wrap;gap:8px;align-items:flex-end"><div class="field" style="flex:1;min-width:220px;margin:0"><label for="dc_pipe">案件進捗の案件</label><select id="dc_pipe">${(S.pipeline||[]).filter(x=>!PIPE_CLOSED.has(x.status)).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja')).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}${x.customer?'（'+esc(x.customer)+'）':''}${x.pid?' ・ 置き場あり':''}</option>`).join('')}</select></div>
-  <button class="btn primary" data-act="docsForPipe">この案件の図面・資料を開く</button></div>
-  <p class="perm-note">置き場がまだない案件は、押したときに自動で作ります（案件名・住所・お客さんを案件進捗から写します）。</p></div>`;
+
+const PIPE_START = {draw:['案件進捗の案件に図面・資料を入れる','この案件の図面・資料を開く','dc_pipe'], survey:['案件進捗の案件の現調・採寸を始める','この案件の現調を開く','pp_survey'], schedule:['案件進捗の案件の工程を組む','この案件の工程を開く','pp_schedule'], chat:['案件進捗の案件でチャットする','この案件のチャットを開く','pp_chat'], report:['案件進捗の案件の日報を書く','この案件の日報を開く','pp_report']};
+const pipeDocsPicker = (tab='draw') => { if(me().role!=='rateru_admin') return ''; const [title,btn,id]=PIPE_START[tab]; return `<div class="card section"><h3 style="margin-top:0">${title}</h3>
+  <div class="row" style="flex-wrap:wrap;gap:8px;align-items:flex-end"><div class="field" style="flex:1;min-width:220px;margin:0"><label for="${id}">案件進捗の案件</label><select id="${id}">${(S.pipeline||[]).filter(x=>!PIPE_CLOSED.has(x.status)).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja')).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}${x.customer?'（'+esc(x.customer)+'）':''}${x.pid?' ・ 始めている':''}</option>`).join('')}</select></div>
+  <button class="btn primary" data-act="docsForPipe" data-tab="${tab}" data-sel="${id}">${btn}</button></div>
+  <p class="perm-note">まだ始めていない案件は、押したときに自動で用意します（案件名・住所・お客さんを案件進捗から写します）。</p></div>`; };
 function pDocs(){
   const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>図面・資料</h2><p>案件ごとに図面・資料をまとめます。</p></div></div>${pipeDocsPicker()}` : emptyScope();
   if(!view.docsPid || !ps.some(p=>p.id===view.docsPid)) view.docsPid=ps[0].id;
@@ -3034,7 +3059,7 @@ function pReports(){
   const ids=visibleIds(), pid=view.reportsPid;
   const rs=S.reports.filter(r=>pid?r.pid===pid:ids.has(r.pid)).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at));
   return `<div class="hero"><div><h2>報告・日報</h2><p>現場の一日を記録して、元請・Rateru・協力会社で同じ情報を見る。</p></div>
-    ${canReport()?`<div class="acts"><button class="btn primary" data-act="newReport" data-pid="${pid}">＋ 日報を書く</button></div>`:''}</div>
+    ${canReport()&&visibleProjects().length?`<div class="acts"><button class="btn primary" data-act="newReport" data-pid="${pid}">＋ 日報を書く</button></div>`:''}</div>${pipeDocsPicker('report')}
   <div class="card section"><div class="field" style="max-width:360px"><label for="rp_pid">案件</label><select id="rp_pid" data-act="pick" data-key="reportsPid">${projectOptions(pid,true)}</select></div>${reportCards(rs,!pid)}</div>`;
 }
 
@@ -3199,7 +3224,7 @@ function pCalendar(){
     ${inMonth.map(d=>{ const es=ev[d].filter(e=>e.cls==='plan'||e.cls==='pipe'||(who&&(e.cls===''||e.cls==='ins'))); if(!es.length) return ''; const w='日月火水木金土'[new Date(d).getDay()];
       return `<div class="agenda ${d===today?'today':''}"><div class="ad">${Number(d.slice(8))}<small>${w}</small></div><div class="al">${es.map(evBtn).join('')}</div></div>`; }).join('')||'<div class="empty">この月の予定はありません</div>'}</div>`:'';
   return `${schedTabs()}<div class="hero"><div><h2>スケジュール・カレンダー</h2><p>${isRateru?'名前を押すとその人の予定だけになります。「総合」で全員分と工程をまとめて見られます。':'全案件の工程・検査・日報・完工予定を月で見る。'}</p></div>
-    <div class="acts">${isRateru?`<button class="btn primary" data-act="newPlan" data-date="${view.calMonth===today.slice(0,7)?today:view.calMonth+'-01'}" data-w="${esc(who)}">＋ 予定</button><button class="btn" data-act="printCalendar">予定表を印刷・PDF保存</button>`:''}<button class="btn" data-act="calNav" data-d="-1" aria-label="前の月">‹</button><button class="btn" data-act="calNav" data-d="0">今月</button><button class="btn" data-act="calNav" data-d="1" aria-label="次の月">›</button></div></div>
+    <div class="acts">${isRateru?`<button class="btn primary" data-act="newPlan" data-date="${view.calMonth===today.slice(0,7)?today:view.calMonth+'-01'}" data-w="${esc(who)}">＋ 予定</button><button class="btn" data-act="printCalendar">予定表を印刷・PDF保存</button>`:''}<span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn" data-act="calNav" data-d="-1" aria-label="前の月">‹</button><button class="btn" data-act="calNav" data-d="0">今月</button><button class="btn" data-act="calNav" data-d="1" aria-label="次の月">›</button></span></div></div>
   ${chips}
   <div class="card section"><h3>${y}年${m}月${who?`　<span class="who-title" style="--pc:${staffColor(who)}">${esc(who)}</span>`:''}</h3><div class="cal-wrap"><div class="cal">${['日','月','火','水','木','金','土'].map(w=>`<div class="hd">${w}</div>`).join('')}
     ${cells.map(d=>{ const iso=isoOf(d), es=ev[iso]||[];
@@ -3246,11 +3271,11 @@ function chatBlock(pid){
   <form class="compose" data-act="send" data-pid="${pid}"><input id="chatInput" placeholder="${esc(pname(pid))} へメッセージ" autocomplete="off"><button class="btn primary" type="submit">送信</button></form>`;
 }
 function pChat(){
-  const ps=visibleProjects(); if(!ps.length) return emptyScope();
+  const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>案件チャット</h2><p>案件ごとに、元請・協力業者・Rateru でやりとりします。</p></div></div>${pipeDocsPicker('chat')}` : emptyScope();
   if(!view.chatPid || !ps.some(p=>p.id===view.chatPid)) view.chatPid=(ps.find(p=>S.messages.some(m=>m.pid===p.id))||ps[0]).id;
   const p=proj(view.chatPid);
   const members=[`元請 / ${p.motoukeRep}`,...p.rateruRep.split('/').map(s=>'Rateru / '+s.trim()),...(p.partners||[])];
-  return `${caseTabs()}<div class="hero"><div><h2>案件チャット</h2><p>案件ごとにやり取りを残し、LINE・電話依存を減らす。</p></div></div>
+  return `${caseTabs()}<div class="hero"><div><h2>案件チャット</h2><p>案件ごとにやり取りを残し、LINE・電話依存を減らす。</p></div></div>${pipeDocsPicker('chat')}
   <div class="chat"><div><div class="field" style="max-width:360px"><label for="ch_pid">案件</label><select id="ch_pid" data-act="pick" data-key="chatPid">${projectOptions(view.chatPid)}</select></div>${chatBlock(view.chatPid)}</div>
     <div class="card section"><h3>案件メンバー</h3>${members.map(m=>`<div>${esc(m)}</div>`).join('')}
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0"><h3>通知ルール</h3><small>承認依頼・工程変更・検査NGのみ重要通知。通常会話は案件内に保存。</small></div></div>`;
@@ -3365,7 +3390,7 @@ const Q = {
     if(this.tab==='items') return tabs+this.itemsPage();
     if(this.tab==='company') return tabs+this.companyPage();
     const L=this.list();
-    return tabs+`<div class="hero"><div><h2>見積・契約・請求</h2><p>見積書を作って、同じ内容から契約書・請求書${canFinance()?'・発注書':''}を作ります。見られるのは自分が売上責任者の見積だけです（川端さん・舟田さんは全部）。</p></div><div class="acts"><button class="btn primary" data-act="q_new">＋ 見積書を作る</button></div></div>
+    return tabs+`<div class="hero"><div><h2>見積・契約・請求</h2><p>見積書を作って、同じ内容から契約書・請求書${canFinance()?'・発注書':''}を作ります。見られるのは自分が売上責任者の見積だけです（川端さん・舟田さん・向さんは全部）。</p></div><div class="acts"><button class="btn primary" data-act="q_new">＋ 見積書を作る</button></div></div>
       <div class="card section">${L.length?`<div class="tablewrap"><table><thead><tr><th>見積番号</th><th>日付</th><th>顧客</th><th>工事名</th><th>責任者</th><th>状態</th><th style="text-align:right">合計（税込）</th><th></th></tr></thead><tbody>${L.map(q=>`<tr class="clickable" data-act="q_open" data-id="${esc(q.id)}"><td>${esc(q.no)}</td><td>${md(q.date)}</td><td>${esc(q.customer)}</td><td>${esc(q.title)}</td><td>${esc(q.owner||'')}</td><td>${esc(q.status)}</td><td class="money">${yen(this.calc(q).total)}</td><td><button class="btn sm" data-act="q_copy" data-id="${esc(q.id)}">写して作る</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">まだ見積書はありません。「＋ 見積書を作る」から始めます。</div>'}</div>`; },
   custPage(){ const names=this.custNames(), P=S.pipeline||[];
     return `<div class="hero"><div><h2>顧客の一覧</h2><p>案件進捗や見積で選ぶ顧客です。住所・電話・担当者・請求書の送り方を入れておくと、見積書や請求書の宛先に使えます。</p></div><div class="acts"><button class="btn primary" data-act="q_custEdit" data-name="">＋ 顧客を追加</button></div></div>
@@ -3708,7 +3733,7 @@ document.addEventListener('click', async e=>{
   if(el.tagName==='A') e.preventDefault();
   switch(a){
   case 'back': goBack(); break;
-  case 'nav': if(d.page==='docs') view.docsPid=''; go(d.page); break;
+  case 'nav': if(d.page==='docs') view.docsPid=''; go(d.menu&&d.page==='projects'&&canSeePage('pipeline') ? 'pipeline' : d.page); closeSidebar&&closeSidebar(); break;   
   case 'open': closeDrawer(); go('project', d.pid, d.tab); break;
   case 'tab': if(view.tab!==d.tab) navTrail.push(routeNow()); view.tab=d.tab; render(); break;
   case 'goto': { const g=JSON.parse(d.go); go(g[0],g[1],g[2]); break; }
@@ -3732,7 +3757,9 @@ document.addEventListener('click', async e=>{
       if(x.items.every(i=>i.result==='ok')) log(d.pid,`${d.phase==='mid'?'中間':'完了'}検査 合格 / 全${x.items.length}項目OK`);
       save(); render(); break; }
   case 'editRec': editRecForm(d.t, d.id); break;
-  case 'docsForPipe': { const pipe=d.pipe||$('#dc_pipe')?.value; const pr=projectForPipe(pipe); if(!pr){ toast('置き場を作れませんでした'); break; } closeDrawer(); view.docsPid=pr.id; view.docFolder=''; go('project',pr.id,'draw'); toast(`「${pr.name}」の図面・資料です。「＋ 資料を追加」から入れられます`); break; }
+  case 'noticeFold': try{ localStorage.setItem(NOTICE_FOLD_KEY,TRIAL_DATA_UNTIL); }catch(e){} render(); break;
+  case 'noticeOpen': try{ localStorage.removeItem(NOTICE_FOLD_KEY); }catch(e){} render(); break;
+  case 'docsForPipe': { const tab=d.tab||'draw', pipe=d.pipe||$('#'+(d.sel||'dc_pipe'))?.value; const pr=projectForPipe(pipe); if(!pr){ toast('用意できませんでした'); break; } closeDrawer(); if(tab==='draw'){ view.docsPid=pr.id; view.docFolder=''; } go('project',pr.id,tab); toast(tab==='draw'?`「${pr.name}」の図面・資料です。「＋ 資料を追加」から入れられます`:`「${pr.name}」を開きました`); break; }
   case 'newCorrection': openDrawer(`${drawerHead('是正を追加')}<form data-form="correction" data-pid="${d.pid}">${fld('項目','item','','text','required')}${fld('場所','place')}${fld('担当','owner')}${fld('期限','due',addDays(todayISO(),2),'date')}<button class="btn primary" style="width:100%" type="submit">追加</button></form>`); break;
   case 'corrCycle': { const c=S.corrections.find(x=>x.id===d.id); const o=['todo','doing','done']; c.state=o[(o.indexOf(c.state)+1)%3]; if(c.state==='done') log(c.pid,`是正完了 / ${c.item}`); if(c.state==='todo') delete c.reported; save(); render(); break; }
   case 'corrReport': { const c=S.corrections.find(x=>x.id===d.id); c.reported={at:nowISO(),by:myLabel()}; log(c.pid,`是正 完了報告 / ${c.item}`); change(c.pid,`是正の完了報告：${c.item}`); save(); render(); toast('Rateruに完了を知らせました'); break; }
