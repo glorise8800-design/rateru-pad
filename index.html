@@ -272,6 +272,9 @@ a.btn{display:inline-flex;align-items:center;gap:4px}
 .hide-cost .cost{display:none}
 .field[hidden]{display:none}
 .db-short{display:none}
+ 
+@media (min-width:641px){ .sheet-box{max-height:calc(100vh - 150px);overflow:auto;border:1px solid var(--line);border-radius:10px} .sheet-box thead th{position:sticky;top:0;z-index:3;background:var(--panel);box-shadow:0 1px 0 var(--line)} }
+td.money,th.money{text-align:right}
 .more{margin:12px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.more>summary{cursor:pointer;font-weight:700;color:var(--muted);padding:4px 0}
 .req{display:inline-block;margin-left:6px;padding:0 6px;border-radius:6px;background:var(--ng-bg,#fde8e8);color:var(--ng,#b91c1c);font-size:11px;font-weight:700;vertical-align:1px}
 @media (max-width:640px){
@@ -732,7 +735,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-13-11', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-13-13', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1586,7 +1589,7 @@ function renderTop(){
   $('#demoBanner').hidden=srv;
   if(!srv) $('#demoBanner').innerHTML=`<span class="db-long">お試し版・本番ではありません｜利用者：${esc(me().name)}（${esc(me().roleLabel)}）｜名前の選択は本人確認ではありません</span><span class="db-short">お試し版（本番ではありません）｜${esc(me().name)}</span>`;   
   if(srv) $('#userChip').textContent=`${me().roleLabel}（${me().name}）`;
-  $('#roleSel').innerHTML=pickUsers().map(u=>`<option value="${u.id}" ${u.id===S.userId?'selected':''}>${u.roleLabel}（${u.name}）</option>`).join('');
+  $('#roleSel').innerHTML=(pickUsers().some(u=>u.id===S.userId)?pickUsers():[...pickUsers(),me()]).map(u=>`<option value="${u.id}" ${u.id===S.userId?'selected':''}>${u.roleLabel}（${u.name}）</option>`).join('');
   $('#newProjectBtn').hidden=!perm().createProject;
   const n=attentionItems().length, b=$('#bellCount'); b.hidden=!n; b.textContent=n;
 }
@@ -1689,7 +1692,7 @@ function pProjects(){
   const rows=filteredProjects(), board=view.projView==='board', all=visibleProjects(), f=view.filters.status;
   const stage=`<div class="stage-row" role="tablist" aria-label="段階で絞り込む"><button class="stage ${!f?'on':''}" data-act="stageFilter" data-s=""><b>${all.length}</b><small>すべて</small></button>${STATUS_ORDER.map(st=>`<button class="stage ${f===st?'on':''} ${STATUS[st].cls}" data-act="stageFilter" data-s="${st}"><b>${all.filter(p=>p.status===st).length}</b><small>${STATUS[st].label}</small></button>`).join('')}</div>`;
   const cards=`<div class="pcards-m" ${board?'hidden':''}>${rows.map(p=>{ const t=nextTask(p.id); return `<button class="card pcard pc-m" data-act="open" data-pid="${p.id}"><div class="row" style="justify-content:space-between;align-items:flex-start"><span style="min-width:0;text-align:left"><b>${esc(p.name)}</b><small>${p.id} ・ ${esc(p.address||'')}</small></span>${statusBadge(p.status)}</div><div class="row">${progressBar(p.progress)}<small>完工予定 ${md(p.due)}</small></div><small style="text-align:left">担当：${esc(p.rateruRep||'—')}${t?` ・ 次：${esc(t.trade)}（${md(t.start)}〜）`:''}</small></button>`; }).join('')||'<div class="empty">条件に合う案件はありません</div>'}</div>`;
-  return `${caseTabs()}<div class="hero"><div><h2>案件一覧</h2><p>仕入れ後から完工まで、案件単位で一元管理。段階のカードを押すと絞り込めます。</p></div>
+  return `${caseTabs()}<div class="hero"><div><h2>案件一覧</h2><p>受注から完工まで、案件ごとにまとめて管理。段階のカードを押すと絞り込めます。</p></div>
     <div class="acts"><button class="btn ${!board?'primary':''}" data-act="projView" data-v="list">一覧</button><button class="btn ${board?'primary':''}" data-act="projView" data-v="board">案件ボード</button><button class="btn" data-act="csv">CSV出力</button>${perm().createProject?'<button class="btn primary" data-act="newProject">＋ 新規案件</button>':''}</div></div>
   ${stage}
   <div class="card section">${filterBar(true)}
@@ -2041,7 +2044,7 @@ function pipeSheet(){
     <td><small>${PIPE_ARRANGE.filter(([k])=>x[k]).map(([k,l])=>`${esc(l.replace('手配',''))}：${esc(x[k])}`).join('<br>')}</small></td></tr>`;
   const group=(title,arr)=>{ if(!arr.length) return ''; const m=new Map(); arr.slice().sort((a,b)=>(b.inputDate||'').localeCompare(a.inputDate||'')).forEach(x=>{ const k=x.customer||'（顧客名なし）'; if(!m.has(k)) m.set(k,[]); m.get(k).push(x); });
     return `<tr class="sec"><td colspan="13">${title}</td></tr>`+[...m].map(([k,v])=>`<tr class="grp"><td colspan="13">${esc(k)}（${v.length}件）</td></tr>`+v.map(row).join('')).join(''); };
-  return `<div class="tablewrap"><table class="rp-table"><thead><tr><th>案件確度</th><th>入力日</th><th>物件名・住所</th><th>依頼主・電話</th><th>担当①・②</th><th>依頼内容</th><th>状態</th><th>見積書</th><th>工程表</th><th>工事日</th><th>進捗状況</th><th>次回アクション</th><th>各種手配</th></tr></thead>
+  return `<div class="tablewrap sheet-box"><table class="rp-table"><thead><tr><th>案件確度</th><th>入力日</th><th>物件名・住所</th><th>依頼主・電話</th><th>担当①・②</th><th>依頼内容</th><th>状態</th><th>見積書</th><th>工程表</th><th>工事日</th><th>進捗状況</th><th>次回アクション</th><th>各種手配</th></tr></thead>
     <tbody>${group('進行中の案件',open)}${group('完工・失注',closed)}${list.length?'':'<tr><td colspan="13" class="empty">条件に合う案件はありません。「＋ 追加」から入れられます。</td></tr>'}</tbody></table></div>`;
 }
 
@@ -2362,6 +2365,9 @@ function pGuest(){
   return `<div class="hero"><div><h2>共有された予定</h2><p>あなたに共有された予定だけが表示されます。会社の案件・金額・書類・全体の予定は見られません。見るだけで、直したり、ほかの人に共有したりはできません。</p></div></div>
   <div class="card section">${ps.map(p=>`<div class="prow" style="cursor:default"><span class="pd">${md(p.date)}${p.end?`〜${md(p.end)}`:''}</span><span class="pm"><b>${esc(p.title)}</b><small>${[p.time,p.place,staffShort(p.who)+'さんの予定'].filter(Boolean).map(esc).join('・')}</small>${p.memo?`<small>${esc(p.memo)}</small>`:''}</span></div>`).join('')||'<div class="empty">共有された予定はまだありません。</div>'}</div>`;
 }
+let DBX_GROUPS={};
+const dbxGroupRows = g => (DBX_GROUPS[g]||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'ja')).map(x=>`<div class="prow" style="cursor:default"><span class="pm"><b>${esc(x.name)}</b><small>${x.dbx?.size?Math.max(1,Math.round(x.dbx.size/1024))+'KB・':''}${x.dbx?.modified?md(x.dbx.modified.slice(0,10)):''}</small></span>${dbxBtn(x,'dbxFiles')}</div>`).join('');
+document.addEventListener('toggle', e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||!d.open||!d.dataset.dbxG) return; const box=d.querySelector('.plist'); if(box&&!box.childElementCount) box.innerHTML=dbxGroupRows(d.dataset.dbxG); }, true);
 function pDropbox(){
   const cs=(S.dbxCases||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'ja')), fs=S.dbxFiles||[];
   const q=(view.dbxQ||'').trim().toLowerCase(), hit=t=>!q||String(t).toLowerCase().includes(q);
@@ -2377,7 +2383,9 @@ function pDropbox(){
         ${c.local&&!c.idx?'':`<div class="row" style="margin-top:6px">${dbxWeb(c.path,'この顧客のフォルダを開く')}</div>`}</details>`; }).join('')||'<div class="empty">まだ取り込んでいません。「設定・権限 → Dropbox の取り込み」から取り込めます。</div>'}
     <p class="perm-note">【完工 案件】【ボツ 案件】■失注 などのフォルダに入っている案件は、完工・失注の印を付けています（フォルダの名前で判断しているだけで、実際の状況は確かめていません）。</p></div>
   <div class="card section mt"><h3>その他の資料（${fs.length}件）</h3>
-    ${Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ja')).map(g=>`<details class="dbx-cust"><summary><b>📁 ${esc(g)}</b> <small class="muted">${groups[g].length}件</small></summary><div class="plist">${groups[g].sort((a,b)=>a.name.localeCompare(b.name,'ja')).map(x=>`<div class="prow" style="cursor:default"><span class="pm"><b>${esc(x.name)}</b><small>${x.dbx?.size?Math.max(1,Math.round(x.dbx.size/1024))+'KB・':''}${x.dbx?.modified?md(x.dbx.modified.slice(0,10)):''}</small></span>${dbxBtn(x,'dbxFiles')}</div>`).join('')}</div></details>`).join('')||'<div class="empty">まだありません</div>'}</div>`;
+    ${(()=>{ DBX_GROUPS=groups; const eager=!!q&&Object.values(groups).reduce((n,a)=>n+a.length,0)<=300;   
+      const keys=Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ja')), lim=view.dbxAll?keys.length:150;   
+      return (keys.slice(0,lim).map(g=>`<details class="dbx-cust" data-dbx-g="${esc(g)}" ${eager?'open':''}><summary><b>📁 ${esc(g)}</b> <small class="muted">${groups[g].length}件</small></summary><div class="plist">${eager?dbxGroupRows(g):''}</div></details>`).join('')||'<div class="empty">まだありません</div>')+(keys.length>lim?`<div class="row" style="margin-top:10px"><button class="btn" data-act="dbxAll">残りの ${keys.length-lim} フォルダも出す</button><small class="muted">名前で探すと、全部の中から探せます</small></div>`:''); })()}</div>`;
 }
 
 
@@ -2951,7 +2959,7 @@ const pipeDocsPicker = (tab='draw') => { if(me().role!=='rateru_admin') return '
 function pDocs(){
   const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>図面・資料</h2><p>案件ごとに図面・資料をまとめます。</p></div></div>${pipeDocsPicker()}` : emptyScope();
   if(!view.docsPid || !ps.some(p=>p.id===view.docsPid)) view.docsPid=ps[0].id;
-  return `<div class="hero"><div><h2>図面・資料</h2><p>最新版を一か所に集約し、古い図面の使用を防止。新しい版を登録すると旧版は自動で使用停止になります。Rateru社内のみの資料は元請・協力会社には表示されません。</p></div></div>
+  return `<div class="hero"><div><h2>図面・資料</h2><p>最新版を一か所に集約し、古い図面の使用を防止。新しい版を登録すると旧版は自動で使用停止になります。${me().role==='rateru_admin'?'Rateru社内のみの資料は元請・協力会社には表示されません。':''}</p></div></div>
   ${pipeDocsPicker()}
   <div class="card section"><div class="field" style="max-width:360px"><label for="dc_pid">案件</label><select id="dc_pid" data-act="pick" data-key="docsPid">${projectOptions(view.docsPid)}</select></div>${docsBlock(view.docsPid)}</div>`;
 }
@@ -3563,9 +3571,9 @@ function pCustomers(){ Q.tab='cust'; return Q.page(); }
 function pSettings(){
   const roles=['motouke_admin','motouke_sales','rateru_admin','partner'];
   return `<div class="hero"><div><h2>設定・権限</h2><p>会社・役割ごとに「見えるもの」「編集できるもの」を制御。${MODE==='demo'?'右上の切り替えで、役割ごとの見え方を試せます。':''}</p></div></div>
-  <div class="card section"><div class="tablewrap"><table><thead><tr><th>役割</th>${PERM_ROWS.map(r=>`<th>${r[0]}</th>`).join('')}</tr></thead><tbody>
+  ${me().role!=='rateru_admin'?'':`<div class="card section"><div class="tablewrap"><table><thead><tr><th>役割</th>${PERM_ROWS.map(r=>`<th>${r[0]}</th>`).join('')}</tr></thead><tbody>
   ${roles.map(r=>`<tr ${me().role===r?'style="background:var(--accent-soft)"':''}><td><b>${roleLabel(r)}</b></td>${PERM_ROWS.map(x=>`<td>${x[1][r]}</td>`).join('')}</tr>`).join('')}
-  </tbody></table></div></div>
+  </tbody></table></div></div>`}
   ${UserLock.card()}
   <div class="card section mt"><h3>通知設定</h3><label class="row"><input type="checkbox" data-act="noticePref" data-key="changes" ${NoticePrefs.get().changes?'checked':''}> 案件・予定の変更を通知</label><label class="row mt"><input type="checkbox" data-act="noticePref" data-key="app" ${NoticePrefs.get().app?'checked':''}> アプリの更新を通知</label><p class="perm-note">公開お試し版では、この端末の別タブで変更された内容と、この端末でアプリを更新して開いた時に通知します。アプリを閉じている間や、他の人の端末での変更は通知できません。</p>${MODE==='demo'&&!TRIAL?`<div class="row"><button class="btn" data-act="checkAppUpdate">更新を確認</button><small>画面の版：${APP_RELEASE}</small></div>`:''}</div>
   <div class="card section mt"><h3>データ管理</h3>
@@ -3648,7 +3656,7 @@ function projectTab(p){
       ${es.map(e=>`<tr><td>${esc(e.ver)}</td><td>${md(e.date)}</td><td class="money">${yen(e.amount)}</td><td class="money cost">${yen(e.cost)}</td><td class="cost">${e.amount?Math.round((1-e.cost/e.amount)*100)+'%':'—'}</td>
         <td>${can?`<select data-act="estState" data-id="${e.id}" aria-label="状態">${Object.entries(lbl).map(([k,v])=>`<option value="${k}" ${e.state===k?'selected':''}>${v[0]}</option>`).join('')}</select>`:`<span class="pill ${lbl[e.state][1]}">${lbl[e.state][0]}</span>`} ${editBtn('estimate',e)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">見積はまだありません</td></tr>'}
       </tbody><tfoot><tr><th colspan="2">承認済み合計</th><th class="money">${yen(approved)}</th><th class="money cost">${yen(cost)}</th><th class="cost">${approved?Math.round((1-cost/approved)*100)+'%':'—'}</th><th></th></tr></tfoot></table></div>
-      ${perm().cost&&canFinance()?'':'<div class="perm-note">原価・粗利は川端さん・舟田さんだけが見られます。</div>'}`;
+      ${perm().cost&&canFinance()||me().role!=='rateru_admin'?'':'<div class="perm-note">原価・粗利は川端さん・舟田さん・向さんだけが見られます。</div>'}`;
   }
   case 'draw': return docsBlock(pid);
   case 'schedule': {
@@ -3761,6 +3769,7 @@ document.addEventListener('click', async e=>{
       if(x.items.every(i=>i.result==='ok')) log(d.pid,`${d.phase==='mid'?'中間':'完了'}検査 合格 / 全${x.items.length}項目OK`);
       save(); render(); break; }
   case 'editRec': editRecForm(d.t, d.id); break;
+  case 'dbxAll': view.dbxAll=true; render(); break;
   case 'noticeFold': try{ localStorage.setItem(NOTICE_FOLD_KEY,TRIAL_DATA_UNTIL); }catch(e){} render(); break;
   case 'noticeOpen': try{ localStorage.removeItem(NOTICE_FOLD_KEY); }catch(e){} render(); break;
   case 'docsForPipe': { const tab=d.tab||'draw', pipe=d.pipe||$('#'+(d.sel||'dc_pipe'))?.value; const pr=projectForPipe(pipe); if(!pr){ toast('用意できませんでした'); break; } closeDrawer(); if(tab==='draw'){ view.docsPid=pr.id; view.docFolder=''; } go('project',pr.id,tab); toast(tab==='draw'?`「${pr.name}」の図面・資料です。「＋ 資料を追加」から入れられます`:`「${pr.name}」を開きました`); break; }
