@@ -294,6 +294,7 @@ td.money,th.money{text-align:right}
   .btn.sm{min-height:38px;padding:8px 12px;font-size:13px}
   .star{font-size:26px;min-width:42px;min-height:42px;padding:4px 8px}
   .pill{font-size:12px} button.pill{min-height:34px;padding:6px 12px}
+  input[type="range"]{min-height:40px}    
   .btn[aria-label="前の月"],.btn[aria-label="次の月"],.btn[aria-label="前の年"],.btn[aria-label="次の年"]{min-width:44px}
   .line{font-size:14px}
   .cal .ev{font-size:10px!important;max-height:none!important}
@@ -747,7 +748,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-14-1', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-15-1', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1577,6 +1578,8 @@ function render(){
   hydrateImages();
   if(V.id){ if(!vDoc()) closeViewer(); else { vMarks(); vBar(); vSide(); } }   
   const m=$('#messages'); if(m) m.scrollTop=m.scrollHeight;
+  
+  c.querySelectorAll('.month-list').forEach(l=>{ const on=l.querySelector('button.on'); if(on&&l.scrollWidth>l.clientWidth) l.scrollLeft=on.offsetLeft-l.offsetLeft-(l.clientWidth-on.offsetWidth)/2; });
 }
 function renderNav(){
   const ids=visibleIds();
@@ -1601,7 +1604,8 @@ function renderTop(){
   $('#demoBanner').hidden=srv;
   if(!srv) $('#demoBanner').innerHTML=`<span class="db-long">お試し版・本番ではありません｜利用者：${esc(me().name)}（${esc(me().roleLabel)}）｜名前の選択は本人確認ではありません</span><span class="db-short">お試し版（本番ではありません）｜${esc(me().name)}</span>`;   
   if(srv) $('#userChip').textContent=`${me().roleLabel}（${me().name}）`;
-  $('#roleSel').innerHTML=(pickUsers().some(u=>u.id===S.userId)?pickUsers():[...pickUsers(),me()]).map(u=>`<option value="${u.id}" ${u.id===S.userId?'selected':''}>${u.roleLabel}（${u.name}）</option>`).join('');
+  
+  $('#roleSel').innerHTML=(srv?[me()]:pickUsers().some(u=>u.id===S.userId)?pickUsers():[...pickUsers(),me()]).map(u=>`<option value="${u.id}" ${u.id===S.userId?'selected':''}>${u.roleLabel}（${u.name}）</option>`).join('');
   $('#newProjectBtn').hidden=!perm().createProject;
   const n=attentionItems().length, b=$('#bellCount'); b.hidden=!n; b.textContent=n;
 }
