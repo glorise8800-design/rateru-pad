@@ -151,6 +151,18 @@ button.pill{cursor:pointer}
 .rp-table tr.grp td{background:var(--rp-grp-bg);color:var(--rp-grp);font-weight:700;padding:6px 10px}
 .rp-yn{display:inline-block;min-width:26px;text-align:center;border-radius:4px;font-size:11px;font-weight:700;padding:1px 6px;border:1px solid var(--line);color:var(--muted)}
 .rp-yn.on{background:var(--rp-done-bg);color:var(--rp-done);border-color:transparent} .rp-yn.warn{color:var(--ng);border-color:var(--ng)}
+ 
+@media (max-width:640px){
+  .tablewrap table.rp-table{min-width:0;width:100%;display:block} .rp-table thead{display:none} .rp-table tbody,.rp-table tr.sec,.rp-table tr.grp,.rp-table tr.sec td,.rp-table tr.grp td,.rp-table td.empty{display:block}
+  .rp-table tr.clickable{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:12px 10px;border-bottom:1px solid var(--line)}
+  .rp-table tr.clickable td{display:block;border:0;padding:0;min-width:0;white-space:normal;font-size:14px}
+  .rp-table tr.clickable td.e{display:none}
+  .rp-table td[data-l]::before{content:attr(data-l) "：";color:var(--muted);font-size:12px;font-weight:400}
+  .rp-table td.c-name{order:-3;flex-basis:100%;font-size:16px} .rp-table td.c-st{order:-2} .rp-table td.c-k,.rp-table td.c-d,.rp-table td.c-wd{order:-1}
+  .rp-table td.c-next,.rp-table td.c-req,.rp-table td.c-prog,.rp-table td.c-arr{flex-basis:100%}
+  .rp-table td.c-req,.rp-table td.c-prog{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:13px}
+  .rp-table td.c-tan b::after{content:" ／ 担当 ";font-weight:400;color:var(--muted);font-size:12px} .rp-table td.c-tan br,.rp-table td.c-who br{display:none} .rp-table td.c-tan small,.rp-table td.c-who small{margin-left:6px}
+}
 .rp-board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(210px,1fr);gap:10px;overflow-x:auto;padding-bottom:6px}
 .rp-col{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .rp-col h4{margin:0;display:flex;justify-content:space-between;align-items:center;font-size:12px}
@@ -735,7 +747,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-13-13', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-14-1', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -2033,15 +2045,17 @@ function pPipeline(){
 function pipeSheet(){
   const list=Pipe.list(), open=list.filter(x=>!PIPE_CLOSED.has(x.status)), closed=list.filter(x=>PIPE_CLOSED.has(x.status));
   const yn=(v,on,warn)=>`<span class="rp-yn ${v===on?'on':warn?'warn':''}">${esc(v||(on==='完'?'未':'無'))}</span>`;
+  
+  const e=v=>v?'':' e';
   const row=x=>`<tr class="clickable" data-act="editPipe" data-id="${x.id}">
-    <td><b>${esc(x.kakudo)}</b></td><td><small>${esc(x.inputDate?md(x.inputDate):'')}</small></td>
+    <td class="c-k${e(x.kakudo)}" data-l="確度"><b>${esc(x.kakudo)}</b></td><td class="c-d${e(x.inputDate)}" data-l="入力"><small>${esc(x.inputDate?md(x.inputDate):'')}</small></td>
     <td class="c-name"><b>${esc(x.name)}</b>${x.folder?' '+extLink(x.folder,'📁','dbx'):''}${x.pid?`<br><small>Hub：${esc(x.pid)}</small>`:''}<br><small>${esc(x.address)}</small></td>
-    <td class="c-who">${esc(x.requester)}<br><small>${esc(x.phone)}</small></td><td class="c-who"><b>責任者：${esc(salesOwner(x)||'未設定')}</b><br>${esc(x.tanto1)}<br><small>${esc(x.tanto2)}</small></td>
-    <td class="c-req">${esc(x.request)}</td><td>${pipeBadge(x.status)}</td>
-    <td>${yn(x.estimate,'完')}</td><td>${yn(x.schedule,'有',['工事日調整済','着工中'].includes(x.status))}</td>
-    <td><small>${x.start?`${md(x.start)}〜${md(x.end||x.start)}`:''}</small></td>
-    <td class="c-prog">${esc(x.progress)}</td><td class="c-next">${esc(x.next)}</td>
-    <td><small>${PIPE_ARRANGE.filter(([k])=>x[k]).map(([k,l])=>`${esc(l.replace('手配',''))}：${esc(x[k])}`).join('<br>')}</small></td></tr>`;
+    <td class="c-who${e(x.requester||x.phone)}" data-l="依頼主">${esc(x.requester)}<br><small>${esc(x.phone)}</small></td><td class="c-who c-tan"><b>責任者：${esc(salesOwner(x)||'未設定')}</b><br>${esc(x.tanto1)}<br><small>${esc(x.tanto2)}</small></td>
+    <td class="c-req${e(x.request)}" data-l="依頼内容">${esc(x.request)}</td><td class="c-st">${pipeBadge(x.status)}</td>
+    <td class="c-yn" data-l="見積書">${yn(x.estimate,'完')}</td><td class="c-yn" data-l="工程表">${yn(x.schedule,'有',['工事日調整済','着工中'].includes(x.status))}</td>
+    <td class="c-wd${e(x.start)}" data-l="工事日"><small>${x.start?`${md(x.start)}〜${md(x.end||x.start)}`:''}</small></td>
+    <td class="c-prog${e(x.progress)}" data-l="進捗">${esc(x.progress)}</td><td class="c-next${e(x.next)}" data-l="次回">${esc(x.next)}</td>
+    <td class="c-arr${e(PIPE_ARRANGE.some(([k])=>x[k]))}" data-l="手配"><small>${PIPE_ARRANGE.filter(([k])=>x[k]).map(([k,l])=>`${esc(l.replace('手配',''))}：${esc(x[k])}`).join('<br>')}</small></td></tr>`;
   const group=(title,arr)=>{ if(!arr.length) return ''; const m=new Map(); arr.slice().sort((a,b)=>(b.inputDate||'').localeCompare(a.inputDate||'')).forEach(x=>{ const k=x.customer||'（顧客名なし）'; if(!m.has(k)) m.set(k,[]); m.get(k).push(x); });
     return `<tr class="sec"><td colspan="13">${title}</td></tr>`+[...m].map(([k,v])=>`<tr class="grp"><td colspan="13">${esc(k)}（${v.length}件）</td></tr>`+v.map(row).join('')).join(''); };
   return `<div class="tablewrap sheet-box"><table class="rp-table"><thead><tr><th>案件確度</th><th>入力日</th><th>物件名・住所</th><th>依頼主・電話</th><th>担当①・②</th><th>依頼内容</th><th>状態</th><th>見積書</th><th>工程表</th><th>工事日</th><th>進捗状況</th><th>次回アクション</th><th>各種手配</th></tr></thead>
@@ -2629,7 +2643,7 @@ const Petty = {
       <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('日付','date',todayISO(),'date','required')}${sel('種類','kind',[['use',PETTY_KIND.use],['adv',PETTY_KIND.adv]],PETTY_FLOAT[who||ppl[0]]?'use':'adv')}</div>
       ${fld('金額（円）','amount','','number','required min="1" step="1" inputmode="numeric"')}${fld('何に使ったか','desc','','text','required placeholder="例：ホームセンター 養生テープ"')}
       ${sel('案件（わかれば）','pid',[['','（なし）'],...(S.pipeline||[]).filter(p=>!PIPE_CLOSED.has(p.status)).map(p=>[p.id,p.name])],'')}
-      <div class="field"><label for="fm_file">レシートの写真</label><input id="fm_file" name="file" type="file" accept="image/*,application/pdf" capture="environment"></div>
+      <div class="field"><label for="fm_file">レシートの写真</label><input id="fm_file" name="file" type="file" accept="image/*,application/pdf"></div>
       <button class="btn primary" style="width:100%" type="submit">保存</button></form>`);
   },
   async save(v, file){
@@ -2952,7 +2966,10 @@ function projectForPipe(pipeId){
 }
 
 const PIPE_START = {draw:['案件進捗の案件に図面・資料を入れる','この案件の図面・資料を開く','dc_pipe'], survey:['案件進捗の案件の現調・採寸を始める','この案件の現調を開く','pp_survey'], schedule:['案件進捗の案件の工程を組む','この案件の工程を開く','pp_schedule'], chat:['案件進捗の案件でチャットする','この案件のチャットを開く','pp_chat'], report:['案件進捗の案件の日報を書く','この案件の日報を開く','pp_report']};
-const pipeDocsPicker = (tab='draw') => { if(me().role!=='rateru_admin') return ''; const [title,btn,id]=PIPE_START[tab]; return `<div class="card section"><h3 style="margin-top:0">${title}</h3>
+const pipeDocsPicker = (tab='draw') => { if(me().role!=='rateru_admin') return ''; const [title,btn,id]=PIPE_START[tab];
+  
+  if(!(S.pipeline||[]).some(x=>!PIPE_CLOSED.has(x.status))) return `<div class="card section"><h3 style="margin-top:0">${title}</h3><p class="muted" style="margin:0 0 10px">案件進捗に進行中の案件がまだありません。先に案件進捗へ案件を追加すると、ここで選べるようになります。</p>${canSeePage('pipeline')?'<button class="btn primary" data-act="newPipe">＋ 案件進捗に追加</button>':''}</div>`;
+  return `<div class="card section"><h3 style="margin-top:0">${title}</h3>
   <div class="row" style="flex-wrap:wrap;gap:8px;align-items:flex-end"><div class="field" style="flex:1;min-width:220px;margin:0"><label for="${id}">案件進捗の案件</label><select id="${id}">${(S.pipeline||[]).filter(x=>!PIPE_CLOSED.has(x.status)).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja')).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}${x.customer?'（'+esc(x.customer)+'）':''}${x.pid?' ・ 始めている':''}</option>`).join('')}</select></div>
   <button class="btn primary" data-act="docsForPipe" data-tab="${tab}" data-sel="${id}">${btn}</button></div>
   <p class="perm-note">まだ始めていない案件は、押したときに自動で用意します（案件名・住所・お客さんを案件進捗から写します）。</p></div>`; };
@@ -3456,13 +3473,15 @@ const Q = {
     const title={quote:'御見積書',contract:'工事請負契約書',invoice:'御請求書',order:'注文書'}[type];
     const to=type==='order'?x.vendor:q.customer, no=type==='invoice'?x.no:type==='order'?x.no:q.no, date=type==='invoice'?x.date:type==='order'?x.date:q.date;
     const coBox=`<div class="co"><b>${esc(co.name||'（会社名を「会社の情報」に入れてください）')}</b><br>${co.zip?'〒'+esc(co.zip)+' ':''}${esc(co.address||'')}<br>${co.tel?'TEL '+esc(co.tel):''}${co.fax?'　FAX '+esc(co.fax):''}${co.regNo?'<br>登録番号 '+esc(co.regNo):''}</div>`;
-    const tbl=`<table class="ln"><thead><tr><th>品名</th><th>仕様・内容</th><th>数量</th><th>単位</th><th>単価</th><th>金額</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.spec||'')}</td><td class="r">${esc(l.qty)}</td><td>${esc(l.unit)}</td><td class="r">${yen(l.price)}</td><td class="r">${yen(Math.round((Number(l.qty)||0)*(Number(l.price)||0)))}</td></tr>`).join('')}</tbody></table>
+    
+    const LNCOL='<colgroup><col style="width:28%"><col style="width:27%"><col style="width:8%"><col style="width:7%"><col style="width:14%"><col style="width:16%"></colgroup>';
+    const tbl=`<table class="ln">${LNCOL}<thead><tr><th>品名</th><th>仕様・内容</th><th>数量</th><th>単位</th><th>単価</th><th>金額</th></tr></thead><tbody>${lines.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.spec||'')}</td><td class="r">${esc(l.qty)}</td><td>${esc(l.unit)}</td><td class="r">${yen(l.price)}</td><td class="r">${yen(Math.round((Number(l.qty)||0)*(Number(l.price)||0)))}</td></tr>`).join('')}</tbody></table>
       <table class="tot"><tr><th>小計</th><td>${yen(c.sub)}</td></tr>${c.disc?`<tr><th>値引き</th><td>−${yen(c.disc)}</td></tr>`:''}<tr><th>消費税（${(type==='order'?x:q).tax??Q_TAX}%）</th><td>${yen(c.tax)}</td></tr><tr class="sum"><th>合計（税込）</th><td>${yen(c.total)}</td></tr></table>`;
     let body='';
     const groups=[]; (q.lines||[]).forEach(l=>{ const k=l.cat||'雑工事・その他'; let g=groups.find(x=>x.k===k); if(!g){ g={k,lines:[]}; groups.push(g); } g.lines.push(l); }); groups.sort((a,b)=>(Q_CATS.indexOf(a.k)+99)%999-(Q_CATS.indexOf(b.k)+99)%999);
     const num=i=>'①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮'[i]||String(i+1), gsum=g=>g.lines.reduce((t,l)=>t+Math.round((Number(l.qty)||0)*(Number(l.price)||0)),0);
-    const cover=`<table class="ln"><thead><tr><th>No</th><th>内容</th><th>数量</th><th>単位</th><th>単価</th><th>金額</th></tr></thead><tbody>${groups.map((g,i)=>`<tr><td>${num(i)}</td><td>${esc(g.k)}</td><td class="r">1</td><td>式</td><td class="r">${yen(gsum(g))}</td><td class="r">${yen(gsum(g))}</td></tr>`).join('')}</tbody></table>`;
-    const detail=groups.map((g,i)=>`<h3 class="sec">内訳${num(i)}　${esc(g.k)}</h3><table class="ln"><thead><tr><th>内容</th><th>仕様・内容</th><th>数量</th><th>単位</th><th>単価</th><th>金額</th></tr></thead><tbody>${g.lines.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.spec||'')}</td><td class="r">${esc(l.qty)}</td><td>${esc(l.unit)}</td><td class="r">${yen(l.price)}</td><td class="r">${yen(Math.round((Number(l.qty)||0)*(Number(l.price)||0)))}</td></tr>`).join('')}<tr><td colspan="5" class="r"><b>小計</b></td><td class="r"><b>${yen(gsum(g))}</b></td></tr></tbody></table>`).join('');
+    const cover=`<table class="ln"><colgroup><col style="width:8%"><col style="width:47%"><col style="width:8%"><col style="width:7%"><col style="width:14%"><col style="width:16%"></colgroup><thead><tr><th>No</th><th>内容</th><th>数量</th><th>単位</th><th>単価</th><th>金額</th></tr></thead><tbody>${groups.map((g,i)=>`<tr><td>${num(i)}</td><td>${esc(g.k)}</td><td class="r">1</td><td>式</td><td class="r">${yen(gsum(g))}</td><td class="r">${yen(gsum(g))}</td></tr>`).join('')}</tbody></table>`;
+    const detail=groups.map((g,i)=>`<h3 class="sec">内訳${num(i)}　${esc(g.k)}</h3><table class="ln">${LNCOL}<thead><tr><th>内容</th><th>仕様・内容</th><th>数量</th><th>単位</th><th>単価</th><th>金額</th></tr></thead><tbody>${g.lines.map(l=>`<tr><td>${esc(l.name)}</td><td>${esc(l.spec||'')}</td><td class="r">${esc(l.qty)}</td><td>${esc(l.unit)}</td><td class="r">${yen(l.price)}</td><td class="r">${yen(Math.round((Number(l.qty)||0)*(Number(l.price)||0)))}</td></tr>`).join('')}<tr class="stot"><td colspan="5" class="r"><b>小計</b></td><td class="r"><b>${yen(gsum(g))}</b></td></tr></tbody></table>`).join('');
     const totOnly=`<table class="tot"><tr><th>小計</th><td>${yen(c.sub)}</td></tr>${c.disc?`<tr><th>値引き</th><td>−${yen(c.disc)}</td></tr>`:''}<tr><th>消費税（${q.tax??Q_TAX}%）</th><td>${yen(c.tax)}</td></tr><tr class="sum"><th>合計（税込）</th><td>${yen(c.total)}</td></tr></table>`;
     if(type==='quote') body=`<p>下記の通り、御見積申し上げます。</p><p class="big">金額　${yen(c.total)}（消費税込）</p><table class="info"><tr><th>件名</th><td>${esc(q.title)}</td></tr><tr><th>工事場所</th><td>${esc(q.site||'')}</td></tr><tr><th>納期</th><td>${esc(q.term||'')}</td></tr><tr><th>お支払い条件</th><td>${esc(q.pay||'')}</td></tr><tr><th>有効期限</th><td>${esc(q.valid||'')}</td></tr></table>${q.layout==='simple'?tbl:cover+totOnly}${q.note?`<p class="note">備考：${esc(q.note).replace(/\n/g,'<br>')}</p>`:''}${q.layout==='simple'?'':`<div class="pb"></div>${detail}`}`;
     if(type==='invoice') body=`<p>下記のとおりご請求申し上げます。</p><p class="big">ご請求金額　${yen(x.amount)}（税込）</p><table class="info"><tr><th>件名</th><td>${esc(x.subject||q.title)}</td></tr><tr><th>工事場所</th><td>${esc(q.site||'')}</td></tr><tr><th>お支払期限</th><td>${esc(x.due||'')}</td></tr><tr><th>お振込先</th><td>${esc(co.bank||'（「会社の情報」に振込先を入れてください）').replace(/\n/g,'<br>')}</td></tr></table>
@@ -3479,7 +3498,7 @@ const Q = {
       .big{font-size:18px;font-weight:700;border-bottom:2px solid #111;display:inline-block;padding:4px 10px;margin:14px 0} table{border-collapse:collapse;width:100%} .info th{width:110px;text-align:left;background:#f2f2f2}
       .info th,.info td,.ln th,.ln td{border:1px solid #888;padding:5px 7px;vertical-align:top} .ln{margin-top:12px} .ln th{background:#f2f2f2} .r{text-align:right;white-space:nowrap}
       .tot{width:300px;margin:8px 0 0 auto} .tot th,.tot td{border:1px solid #888;padding:5px 7px} .tot th{background:#f2f2f2;text-align:left} .tot td{text-align:right} .sum{font-weight:700}
-      .note{margin-top:12px;white-space:normal} .sec{font-size:14px;margin:18px 0 4px} .pb{break-after:page;height:1px} .cl{line-height:1.8} .sign td{border:1px solid #888;padding:12px;width:50%;vertical-align:top;line-height:1.9} @media print{body{margin:10mm}}</style></head><body>
+      .note{margin-top:12px;white-space:normal} .sec{font-size:14px;margin:18px 0 4px} .pb{break-after:page;height:1px} .ln{table-layout:fixed} .ln td{overflow-wrap:anywhere} .ln tr{break-inside:avoid} .ln th{white-space:nowrap} .sec{break-after:avoid} .stot{break-before:avoid} .tot{break-inside:avoid;break-before:avoid} .cl{line-height:1.8} .sign td{border:1px solid #888;padding:12px;width:50%;vertical-align:top;line-height:1.9} @media print{body{margin:10mm}}</style></head><body>
       <h1>${title}</h1><div class="hd"><div><div class="to">${esc(to||'')} ${type==='order'?'御中':'様'}</div>${type!=='contract'&&cu.address?`<div style="margin-top:6px">${esc(cu.address)}</div>`:''}</div><div class="meta">${no?`No. ${esc(no)}<br>`:''}${esc(date||'')}${type!=='contract'?coBox:''}</div></div>${body}<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`; },
   print(type, q, x){ const w=window.open('', '_blank'); if(!w){ toast('印刷の画面を開けませんでした（ポップアップを許可してください）'); return; } w.document.open(); w.document.write(this.doc(type,q,x)); w.document.close(); },
   
@@ -3590,7 +3609,8 @@ function pSettings(){
   ${lineSettingsCard()}
   ${MODE==='server'&&me().role==='rateru_admin'?'<div class="card section mt" id="membersBox"><h3>メンバー管理</h3><div class="muted">読み込み中…</div></div>':''}`;
 }
-const emptyScope = () => `<div class="card section empty">表示できる案件がありません。担当案件が割り当てられると表示されます。</div>`;
+
+const emptyScope = () => `<div class="card section empty">まだ担当の案件がありません。Rateru が案件にあなたを入れると、ここに出ます。</div>`;
 
  
 function pProject(){
