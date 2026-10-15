@@ -764,7 +764,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-15-5', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-15-6', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -3336,6 +3336,12 @@ function pCalendar(){
 }
 
  
+
+function canDecide(a, to){ const u=me(), p=perm(); if(!a) return false;
+  if(a.state==='motouke_wait') return p.approval==='decide'&&['approved','rejected'].includes(to);
+  if(a.state==='rateru_check') return u.role==='rateru_admin'&&['motouke_wait','rejected'].includes(to);
+  if(a.state==='need_answer') return (u.role==='motouke_admin'||u.role==='rateru_admin')&&to==='answered';
+  return false; }
 function approvalCard(a, showProject=true){
   const st=APPROVAL_STATE[a.state]; const u=me(), p=perm();
   const open=['motouke_wait','rateru_check','need_answer'].includes(a.state);
@@ -3865,8 +3871,12 @@ document.addEventListener('click', async e=>{
   case 'noticeOpen': try{ localStorage.removeItem(NOTICE_FOLD_KEY); }catch(e){} render(); break;
   case 'docsForPipe': { const tab=d.tab||'draw', pipe=d.pipe||$('#'+(d.sel||'dc_pipe'))?.value; const pr=projectForPipe(pipe); if(!pr){ toast('用意できませんでした'); break; } closeDrawer(); if(tab==='draw'){ view.docsPid=pr.id; view.docFolder=''; } go('project',pr.id,tab); toast(tab==='draw'?`「${pr.name}」の図面・資料です。「＋ 資料を追加」から入れられます`:`「${pr.name}」を開きました`); break; }
   case 'newCorrection': openDrawer(`${drawerHead('是正を追加')}<form data-form="correction" data-pid="${d.pid}">${fld('項目','item','','text','required')}${fld('場所','place')}${fld('担当','owner')}${fld('期限','due',addDays(todayISO(),2),'date')}<button class="btn primary" style="width:100%" type="submit">追加</button></form>`); break;
-  case 'corrCycle': { const c=S.corrections.find(x=>x.id===d.id); const o=['todo','doing','done']; c.state=o[(o.indexOf(c.state)+1)%3]; if(c.state==='done') log(c.pid,`是正完了 / ${c.item}`); if(c.state==='todo') delete c.reported; save(); render(); break; }
-  case 'corrReport': { const c=S.corrections.find(x=>x.id===d.id); c.reported={at:nowISO(),by:myLabel()}; log(c.pid,`是正 完了報告 / ${c.item}`); change(c.pid,`是正の完了報告：${c.item}`); save(); render(); toast('Rateruに完了を知らせました'); break; }
+  case 'corrCycle': { const c=S.corrections.find(x=>x.id===d.id); if(!c||perm().inspection!=='edit') break;
+      
+      if(c.state==='done'){ confirmBox(`「${c.item}」の完了を取り消して「未対応」に戻します。協力業者からの完了報告も消えます。`,'未対応に戻す',()=>{ c.state='todo'; delete c.reported; log(c.pid,`是正 完了を取り消し / ${c.item}`); save(); render(); }); break; }
+      c.state=c.state==='todo'?'doing':'done'; if(c.state==='done') log(c.pid,`是正完了 / ${c.item}`); save(); render(); break; }
+  
+  case 'corrReport': { const c=S.corrections.find(x=>x.id===d.id); if(!c||me().role!=='partner'||c.state==='done') break; c.reported={at:nowISO(),by:myLabel()}; log(c.pid,`是正 完了報告 / ${c.item}`); change(c.pid,`是正の完了報告：${c.item}`); save(); render(); toast('Rateruに完了を知らせました'); break; }
   case 'newDoc': openDrawer(`${drawerHead('資料を追加')}<form data-form="doc">${sel('案件','pid',visibleProjects().map(p=>[p.id,p.name]),d.pid||view.pid||visibleProjects()[0]?.id)}${fld('資料名','name','','text','required placeholder="例：改修平面図"')}<div class="field"><label for="fm_file">ファイル（任意）</label><input id="fm_file" name="file" type="file"></div><button class="btn primary" style="width:100%" type="submit">登録</button></form>`); break;
   case 'openFile': { const doc=S.docs.find(x=>x.id===d.id); await openViewer(doc); break; }
   case 'printDoc': printDoc(S.docs.find(x=>x.id===d.id)); break;
@@ -3983,7 +3993,7 @@ document.addEventListener('click', async e=>{
   case 'newApproval': { const ps=visibleProjects(); openDrawer(`${drawerHead('申請・依頼を作成')}<form data-form="approval">${sel('案件','pid',ps.map(p=>[p.id,p.name]),view.pid||ps[0]?.id)}${sel('種別','kind',APPROVAL_KIND,'追加工事')}${fld('件名','title','','text','required placeholder="例：壁内部ブロック撤去"')}${fld('金額（円・任意）','amount','','number','min="0" step="1"')}${area('内容','body','','理由・範囲・根拠資料など')}<button class="btn primary" style="width:100%" type="submit">申請する</button></form>`); break; }
   case 'apprFilter': view.apprFilter=d.f; render(); break;
   case 'apprDecide': { const ap=S.approvals.find(x=>x.id===d.id); const L={approved:'承認',rejected:'差戻し',motouke_wait:'Rateru確認済み・元請へ',answered:'回答'};
-      openDrawer(`${drawerHead(L[d.d])}<p class="muted" style="margin-top:0">${esc(ap.kind)}：${esc(ap.title)}</p><form data-form="decide" data-id="${ap.id}" data-d="${d.d}">${area(d.d==='answered'?'回答内容':'コメント（任意）','comment','',d.d==='rejected'?'差戻しの理由':'')}<button class="btn primary" style="width:100%" type="submit">${L[d.d]}する</button></form>`); break; }
+      openDrawer(`${drawerHead(L[d.d])}<p class="muted" style="margin-top:0">${esc(ap.kind)}：${esc(ap.title)}</p><form data-form="decide" data-id="${ap.id}" data-d="${d.d}" data-from="${esc(ap.state)}">${area(d.d==='answered'?'回答内容':'コメント（任意）','comment','',d.d==='rejected'?'差戻しの理由':'')}<button class="btn primary" style="width:100%" type="submit">${L[d.d]}する</button></form>`); break; }
   case 'export': { if(!canMove()) break; const st=$('#moveStatus'); if(st) st.textContent='書き出し中…（写真が多いと時間がかかります）';
       const {pack,miss}=await Move.pack(); const json=JSON.stringify(pack);
       try{ const u=URL.createObjectURL(new Blob([json],{type:'application/json'})); const aEl=document.createElement('a'); aEl.href=u; aEl.download=`rateru-pad-backup-${todayISO()}.json`; document.body.appendChild(aEl); aEl.click(); aEl.remove(); }catch(err){}
@@ -4173,6 +4183,8 @@ async function onSubmit(e,f){
   }
   if(k==='task'){
     if(v.end<v.start){ toast('終了日は開始日以降にしてください'); return; }
+    
+    { const span=Math.round((new Date(v.end)-new Date(v.start))/864e5)+1; if(span>180&&!f.dataset.force){ confirmBox(`工程が ${span}日間（${jpDate(v.start)}〜${jpDate(v.end)}）になっています。日付に間違いはありませんか？`,'このまま保存する',()=>{ f.dataset.force='1'; f.requestSubmit(); }); return; } }
     const data={pid:v.pid,trade:v.trade.trim(),start:v.start,end:v.end,done:!!v.done};
     if(f.dataset.id){ const t=S.tasks.find(x=>x.id===f.dataset.id); const moved=t.start!==data.start||t.end!==data.end; Object.assign(t,data); if(moved) change(t.pid,`工程変更：${t.trade} ${md(t.start)}〜${md(t.end)}`); if(data.done) log(t.pid,`工程完了 / ${t.trade}`); }
     else { S.tasks.push({id:uid('t'),...data}); change(data.pid,`工程追加：${data.trade} ${md(data.start)}〜${md(data.end)}`); }
@@ -4195,6 +4207,9 @@ async function onSubmit(e,f){
   if(k==='decide'){
     const ap=S.approvals.find(x=>x.id===f.dataset.id), to=f.dataset.d;
     const L={approved:'承認',rejected:'差戻し',motouke_wait:'Rateru確認済み',answered:'回答'};
+    
+    if(!ap||(f.dataset.from&&ap.state!==f.dataset.from)){ closeDrawer(); render(); toast(`この申請は、ほかの人が先に「${APPROVAL_STATE[ap?.state]?.label||'変更'}」にしています。最新の状態を見てください`); return; }
+    if(!canDecide(ap,to)){ closeDrawer(); toast('この申請を、いまの段階で決めることはできません'); return; }
     if(to==='answered' && !v.comment.trim()){ toast('回答内容を入力してください'); return; }
     ap.state=to; ap.history.push({at:nowISO(),by:myLabel(),action:L[to],comment:v.comment.trim()});
     if(ap.kind==='追加工事' && (to==='approved'||to==='rejected')){ const est=S.estimates.find(x=>x.pid===ap.pid&&x.state==='wait'&&x.amount===ap.amount); if(est) est.state=to==='approved'?'ok':'rejected'; }
