@@ -151,6 +151,8 @@ button.pill{cursor:pointer}
 .rp-table tr.grp td{background:var(--rp-grp-bg);color:var(--rp-grp);font-weight:700;padding:6px 10px}
 #content h2,#content h3,#content .head b,#content small,#content .txt,#content dd,#drawer h2,#content .pcards-m b,#content .todo .t{overflow-wrap:anywhere}    
 tr.clickable:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}    
+#attSec{scroll-margin-top:90px}    
+.sync-wait{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:60;max-width:560px;margin:auto;padding:10px 14px;border-radius:12px;background:#fff7d6;color:#5a4300;border:2px solid #d9a400;font-size:14px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.18)}    
 .rphotos{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px} .rphotos img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--hover)}    
 .rp-yn{display:inline-block;min-width:26px;text-align:center;border-radius:4px;font-size:11px;font-weight:700;padding:1px 6px;border:1px solid var(--line);color:var(--muted)}
 .rp-yn.on{background:var(--rp-done-bg);color:var(--rp-done);border-color:transparent} .rp-yn.warn{color:var(--ng);border-color:var(--ng)}
@@ -369,6 +371,15 @@ td.money,th.money{text-align:right}
 .ledger img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
 .ledger textarea{width:100%;border:1px solid #ccc;font-size:12px;min-height:40px;margin-top:4px;color:#111;background:#fff}
 @media print{ body *{visibility:hidden} .ledger,.ledger *{visibility:visible} .ledger{position:absolute;left:0;top:0;width:100%;padding:0} .ledger .noprint{display:none} .ledger textarea{border:0;resize:none} }
+ 
+@media print{
+  body:has(#modalRoot .ledger){background:#fff !important}
+  body:has(#modalRoot .ledger) > *:not(#modalRoot){display:none !important}
+  body:has(#modalRoot .ledger) #modalRoot .modal{position:static !important;display:block !important;background:none !important;padding:0 !important;overflow:visible !important}
+  body:has(#modalRoot .ledger) #modalRoot .box{max-height:none !important;overflow:visible !important;box-shadow:none !important;border:0 !important;padding:0 !important;max-width:none !important;width:auto !important;margin:0 !important}
+  #modalRoot .ledger{position:static !important}
+  .ledger tr{break-inside:avoid}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 @media(max-width:1000px){
  .app{grid-template-columns:minmax(0,1fr)}
@@ -463,7 +474,7 @@ body.noscroll{overflow:hidden}
         <select class="rolesel" id="roleSel" aria-label="利用者（名前）を選ぶ"></select>
         <span class="rolesel" id="userChip" hidden></span>
         <button class="btn sm" id="logoutBtn" hidden>ログアウト</button>
-        <button class="btn bell" id="bellBtn" aria-label="要対応">🔔<span class="dotn" id="bellCount" hidden></span></button>
+        <button class="btn bell" id="bellBtn" aria-label="要確認">🔔<span class="dotn" id="bellCount" hidden></span></button>
       </div>
     </div>
     <div class="demo-banner" id="demoBanner" hidden></div>
@@ -751,7 +762,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-15-2', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-15-3', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -803,6 +814,9 @@ const hm = iso => { const d=new Date(iso); return `${pad(d.getHours())}:${pad(d.
 
 const toNum = v => { const n=Number(String(v??'').replace(/[０-９．－]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/[,，\s]/g,'')); return Number.isFinite(n)?n:0; };
 const yen = n => '¥' + toNum(n).toLocaleString('ja-JP');
+
+const normQ = s => String(s??'').normalize('NFKC').toLowerCase().replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60)).replace(/[\s　]+/g,'');
+const hasQ = (hay, q) => { const n=normQ(q); return !n || normQ(hay).includes(n); };
 
 const csvCell = v => { let s=String(v??''); if(/^[=+\-@\t\r]/.test(s)&&!/^[+-]?\d+(\.\d+)?$/.test(s)) s="'"+s; return `"${s.replace(/"/g,'""')}"`; };
 const addDays = (iso,n) => { const d=new Date(iso+'T00:00'); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
@@ -993,6 +1007,8 @@ const FileStore = (() => {
 const urlCache = new Map();
 async function fileURL(key){ if(urlCache.has(key)) return urlCache.get(key); const b=await FileStore.get(key); if(!b) return null; const u=URL.createObjectURL(b); urlCache.set(key,u); return u; }
 
+
+function heicNote(files){ const n=[...files].filter(f=>/heic|heif/i.test(f.type)||/\.hei[cf]$/i.test(f.name||'')).length; if(n) toast(`${n}枚は iPhone の写真形式（HEIC）のため、パソコンでは表示できないことがあります。iPhone から直接入れると、ふつうの形式で入ります`); }
 function shrinkImage(file, max=1600){
   return new Promise(res=>{
     if(!file.type.startsWith('image/')) return res(file);
@@ -1051,7 +1067,11 @@ const OFFICE_KIND = {meeting:'meetings',template:'templates',sale:'sales',plan:'
 const RECORD_KIND = {todo:'todos',report:'reports',notice:'notices',task:'tasks',estimate:'estimates',doc:'docs',photo:'photos',correction:'corrections',approval:'approvals',message:'messages',activity:'activity',change:'changes'};
 const Sync = {
   synced:{projects:new Map(), records:new Map(), internal_records:new Map()},
-  timer:null, busy:false, again:false,
+  timer:null, busy:false, again:false, pending:false, retryT:null,
+  
+  isNet(e){ return !navigator.onLine || !(e&&(e.status>0||e.code)); },
+  
+  showWait(on){ let el=document.getElementById('syncWait'); if(!on){ if(el) el.remove(); return; } if(!el){ el=document.createElement('div'); el.id='syncWait'; el.className='sync-wait'; el.setAttribute('role','status'); document.body.appendChild(el); } el.textContent='まだ送れていない変更があります。電波がつながったら自動で送ります（画面を閉じないでください）'; },
   
   rows(){
     const ids=new Set(S.projects.map(p=>p.id));
@@ -1075,22 +1095,25 @@ const Sync = {
   schedule(){ clearTimeout(this.timer); this.timer=setTimeout(()=>{ this.timer=null; this.flush(); }, 350); },
   async flush(){
     if(this.busy){ this.again=true; return; }
-    this.busy=true; let failed=null;
+    this.busy=true; let failed=null, net=false;
     try{
       const cur=this.rows(), order=['projects','records','internal_records'], seen={};
       for(const t of order){
         const m=this.synced[t], up=[]; seen[t]=new Set();
         for(const r of cur[t]){ const j=JSON.stringify(r); seen[t].add(r.id); if(m.get(r.id)!==j) up.push([r,j]); }
-        for(let i=0;i<up.length;i+=200){ const chunk=up.slice(i,i+200); const {error}=await SB.from(t).upsert(chunk.map(x=>x[0])); if(error) failed=error; else chunk.forEach(([r,j])=>m.set(r.id,j)); }
+        for(let i=0;i<up.length;i+=200){ const chunk=up.slice(i,i+200); const {error}=await SB.from(t).upsert(chunk.map(x=>x[0])); if(error){ if(this.isNet(error)) net=true; else failed=error; } else chunk.forEach(([r,j])=>m.set(r.id,j)); }
       }
       for(const t of [...order].reverse()){
         if(t==='internal_records' && me().role!=='rateru_admin') continue;
         const m=this.synced[t], gone=[...m.keys()].filter(id=>!seen[t].has(id));
-        if(gone.length){ const {error}=await SB.from(t).delete().in('id',gone); if(error) failed=error; else gone.forEach(id=>m.delete(id)); }
+        if(gone.length){ const {error}=await SB.from(t).delete().in('id',gone); if(error){ if(this.isNet(error)) net=true; else failed=error; } else gone.forEach(id=>m.delete(id)); }
       }
-    }catch(e){ failed=e; }
+    }catch(e){ if(this.isNet(e)) net=true; else failed=e; }
     this.busy=false;
-    if(failed){ toast('保存できなかった変更があります（権限がないか通信エラー）。最新の状態に戻しました'); await this.pull(); return; }
+    if(failed){ toast('保存できなかった変更があります（権限がありません）。最新の状態に戻しました'); this.pending=false; this.showWait(false); await this.pull(); return; }
+    
+    if(net){ this.pending=true; this.showWait(true); clearTimeout(this.retryT); this.retryT=setTimeout(()=>this.flush(), 15000); return; }
+    if(this.pending){ this.pending=false; clearTimeout(this.retryT); this.showWait(false); toast('送れていなかった変更を送りました'); }
     if(this.again){ this.again=false; this.flush(); }
   },
   async fetchAll(t){
@@ -1121,7 +1144,10 @@ const Sync = {
   }
 };
 let remoteT;
-function onRemoteChange(){ clearTimeout(remoteT); remoteT=setTimeout(()=>{ if(Sync.timer||Sync.busy) return onRemoteChange(); if(salesDeputy()) SalesTotals.rows=null; Sync.pull(); }, 700); }
+window.addEventListener('online', ()=>{ if(MODE==='server'&&Sync.pending) Sync.flush(); });   
+window.addEventListener('beforeunload', e=>{ if(MODE==='server'&&(Sync.pending||Sync.timer||Sync.busy)){ e.preventDefault(); e.returnValue=''; } });   
+
+function onRemoteChange(){ clearTimeout(remoteT); remoteT=setTimeout(()=>{ if(Sync.timer||Sync.busy) return onRemoteChange(); if(Sync.pending){ Sync.flush(); return; } if(salesDeputy()) SalesTotals.rows=null; Sync.pull(); }, 700); }
 
 function showLogin(msg){
   $('#app').hidden=true;
@@ -1634,19 +1660,19 @@ const progressBar = v => `<div class="progress" title="${v}%"><span style="width
 const projectOptions = (sel, all) => (all?`<option value="">全案件</option>`:'') + visibleProjects().map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)}</option>`).join('');
 
 function filteredProjects(){
-  const f=view.filters, q=f.q.trim().toLowerCase();
+  const f=view.filters, q=f.q;
   return visibleProjects().filter(p=>
-    (!q || [p.id,p.name,p.address,p.motoukeRep,p.rateruRep,(p.partners||[]).join(' ')].join(' ').toLowerCase().includes(q)) &&
+    hasQ([p.id,p.name,p.address,p.motoukeRep,p.rateruRep,(p.partners||[]).join(' ')].join(' '), q) &&
     (!f.status || p.status===f.status) && (!f.area || p.area===f.area) && (!f.type || p.type===f.type) && (!f.rep || [p.motoukeRep,...String(p.rateruRep||'').split(/\s*\/\s*/),...(p.partners||[])].map(x=>String(x||'').trim()).includes(f.rep)));
 }
 function filterBar(full){
   const f=view.filters;
   const areas=[...new Set(S.projects.map(p=>p.area))];
   return `<div class="toolbar">
-    <input class="search" id="f_q" data-filter="q" value="${esc(f.q)}" placeholder="案件番号・物件名・住所・担当者で検索">
-    ${full?`<select id="f_type" data-filter="type"><option value="">全区分</option>${['戸建','マンション','ビル'].map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select>`:''}
-    <select id="f_status" data-filter="status"><option value="">全ステータス</option><optgroup label="施工案件">${STATUS_ORDER.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${STATUS[s].label}</option>`).join('')}</optgroup>${me().role==='rateru_admin'?`<optgroup label="Rateru案件進捗（選ぶと進捗画面へ）">${PIPE_STATUS.map(([s])=>`<option value="pipe:${esc(s)}">${esc(s)}</option>`).join('')}</optgroup>`:''}</select>
-    <select id="f_area" data-filter="area"><option value="">全エリア</option>${areas.map(a=>`<option ${f.area===a?'selected':''}>${esc(a)}</option>`).join('')}</select>
+    <input class="search" id="f_q" data-filter="q" aria-label="案件を探す" value="${esc(f.q)}" placeholder="案件番号・物件名・住所・担当者で検索">
+    ${full?`<select id="f_type" data-filter="type" aria-label="区分で絞る"><option value="">全区分</option>${['戸建','マンション','ビル'].map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select>`:''}
+    <select id="f_status" data-filter="status" aria-label="ステータスで絞る"><option value="">全ステータス</option><optgroup label="施工案件">${STATUS_ORDER.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${STATUS[s].label}</option>`).join('')}</optgroup>${me().role==='rateru_admin'?`<optgroup label="Rateru案件進捗（選ぶと進捗画面へ）">${PIPE_STATUS.map(([s])=>`<option value="pipe:${esc(s)}">${esc(s)}</option>`).join('')}</optgroup>`:''}</select>
+    <select id="f_area" data-filter="area" aria-label="エリアで絞る"><option value="">全エリア</option>${areas.map(a=>`<option ${f.area===a?'selected':''}>${esc(a)}</option>`).join('')}</select>
     <select id="f_rep" data-filter="rep" aria-label="担当で絞り込む"><option value="">全担当</option>${[...new Set(S.projects.flatMap(p=>[p.motoukeRep,...String(p.rateruRep||'').split(/\s*\/\s*/),...(p.partners||[])]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja')).map(r=>`<option ${f.rep===r?'selected':''}>${esc(r)}</option>`).join('')}</select>
   </div>`;
 }
@@ -1709,8 +1735,8 @@ function pDashboard(){
       <div class="tablewrap"><table><thead><tr><th>案件</th><th>区分</th><th>状況</th><th>進捗</th><th>次アクション</th></tr></thead><tbody>
       ${rows.map(p=>`<tr class="clickable" data-act="open" data-pid="${p.id}"><td><b>${esc(p.name)}</b><br><small>${p.id}</small></td><td>${esc(p.type)}</td><td>${statusBadge(p.status)}</td><td>${progressBar(p.progress)}</td><td>${esc(p.next||'—')}</td></tr>`).join('')||`<tr><td colspan="5" class="empty">条件に合う案件はありません</td></tr>`}
       </tbody></table></div></div>`}
-    <div class="card section"><h3>要確認（${att.length}件）</h3>
-      ${att.slice(0,8).map(a=>`<button class="alert ${a.level==='ng'?'ng':''}" data-act="goto" data-go='${esc(JSON.stringify(a.go))}'><b>⚠ ${esc(a.title||pname(a.pid))}</b><br>${esc(a.text)}</button>`).join('')||'<div class="empty">要確認の項目はありません</div>'}
+    <div class="card section" id="attSec"><h3>要確認（${att.length}件）</h3>
+      ${att.slice(0,view.attAll?att.length:8).map(a=>`<button class="alert ${a.level==='ng'?'ng':''}" data-act="goto" data-go='${esc(JSON.stringify(a.go))}'><b>⚠ ${esc(a.title||pname(a.pid))}</b><br>${esc(a.text)}</button>`).join('')||'<div class="empty">要確認の項目はありません</div>'}${!view.attAll&&att.length>8?`<button class="btn sm" data-act="attAll">残り ${att.length-8}件も見る</button>`:''}
       <h3 class="mt">最近の動き</h3>
       <div class="timeline">${acts.map(a=>`<div class="tl"><div class="dot"></div><div><b>${mdhm(a.at)} ${esc(a.text.split(' / ')[0])}</b><small>${esc(pname(a.pid))}${a.text.includes(' / ')?' / '+esc(a.text.split(' / ').slice(1).join(' / ')):''}${a.by?' ・ '+esc(a.by):''}</small></div></div>`).join('')||'<div class="empty">まだ記録がありません</div>'}</div>
     </div>
@@ -1923,8 +1949,8 @@ const Pipe = {
   view:(()=>{ try{ return localStorage.getItem('hub-pipe-view')||'sheet'; }catch(e){ return 'sheet'; } })(),
   pref(k,v){ try{ localStorage.setItem('hub-pipe-'+k,v); }catch(e){} },
   list(withClosed){
-    const f=this.f, q=f.q.trim().toLowerCase();
-    return (S.pipeline||[]).filter(x=>(!q||[x.name,x.address,x.customer,x.requester,x.request].join(' ').toLowerCase().includes(q))
+    const f=this.f, q=f.q;
+    return (S.pipeline||[]).filter(x=>hasQ([x.name,x.address,x.customer,x.requester,x.request].join(' '), q)
       &&(!f.tanto||x.tanto1===f.tanto||x.tanto2===f.tanto)&&(!f.kakudo||x.kakudo===f.kakudo)&&(!f.status||x.status===f.status)
       &&((withClosed??f.closed)||!!f.status||!PIPE_CLOSED.has(x.status)));
   },
@@ -1942,7 +1968,7 @@ const Pipe = {
     const two=(a,b)=>`<div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${a}${b}</div>`;
     const hubOpts=[['','（つなげない）'],...S.projects.map(p=>[p.id,`${p.name}（${p.id}）`])];
     openDrawer(`${drawerHead(isNew?'案件進捗に追加':'案件進捗')}${isNew?'':lineShareRow(pipeLineText(x))+pipeRelated(x)}
-      <form data-form="pipe" data-id="${isNew?'':x.id}">
+      <form data-form="pipe" data-id="${isNew?'':x.id}">${isNew?'':`<input type="hidden" name="_at" value="${esc(x.at||'')}">`}
       ${fld('物件名','name',g('name'),'text','required placeholder="例：〇〇マンション 外壁改修"')}
       ${fld('住所','address',g('address'))}
       ${Q.custPick('顧客名（管理会社など）','customer',g('customer'))}${fld('依頼主','requester',g('requester'))}
@@ -1978,6 +2004,8 @@ const Pipe = {
     let noOwner=false;   
     if(!SALES_STAFF.includes(data.responsible)){ if(!['head','deputy'].includes(myPos())){ toast('売上責任者を選んでください（自分を選ぶと、この案件の責任者になります）'); return; } data.responsible=''; noOwner=true; }
     const old=id&&S.pipeline.find(x=>x.id===id);
+    
+    if(old&&v._at!==undefined&&(old.at||'')!==(v._at||'')&&!v._force){ confirmBox(`「${old.name}」は、開いたあとに ${old.by||'ほかの人'} さんが直しています（${old.at?mdhm(old.at):''}）。このまま保存すると、その直しの上に書き込みます。いったん閉じて開き直すと、最新の内容を見られます。`,'このまま保存する',()=>Pipe.save(id,{...v,_force:1})); return; }
     if(old&&salesOwner(old)&&data.responsible!==salesOwner(old)&&!['head','deputy'].includes(myPos())){ toast('責任者の変更は川端さんか井上さんに依頼してください'); return; }
     if(myPos()==='staff'&&(data.responsible!==mySalesOwner()||(old&&salesOwner(old)&&salesOwner(old)!==mySalesOwner()))){ toast('自分が責任者の案件だけ保存できます'); return; }
     if(data.folder&&!safeUrl(data.folder)){ toast('Dropboxのリンクは https:// で始まるものを貼り付けてください'); return; }
@@ -2413,7 +2441,7 @@ const dbxGroupRows = g => (DBX_GROUPS[g]||[]).slice().sort((a,b)=>a.name.localeC
 document.addEventListener('toggle', e=>{ const d=e.target; if(!(d instanceof HTMLDetailsElement)||!d.open||!d.dataset.dbxG) return; const box=d.querySelector('.plist'); if(box&&!box.childElementCount) box.innerHTML=dbxGroupRows(d.dataset.dbxG); }, true);
 function pDropbox(){
   const cs=(S.dbxCases||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,'ja')), fs=S.dbxFiles||[];
-  const q=(view.dbxQ||'').trim().toLowerCase(), hit=t=>!q||String(t).toLowerCase().includes(q);
+  const q=normQ(view.dbxQ), hit=t=>hasQ(t,q);
   const groups={}; fs.filter(x=>hit(x.name)||hit(x.folder)).forEach(x=>(groups[x.folder||'（一番上）']=groups[x.folder||'（一番上）']||[]).push(x));
   const stPill=s=>s==='完工'?'<span class="pill ok">完工</span>':s==='失注'?'<span class="pill todo">失注・ボツ</span>':'';
   const cust=cs.filter(c=>hit(c.name)||c.cases.some(k=>hit(k.name)));
@@ -3329,7 +3357,7 @@ function pApprovals(){
 function chatBlock(pid){
   const ms=S.messages.filter(m=>m.pid===pid); const u=me();
   return `<div class="messages" id="messages">${ms.map(m=>`<div class="msg ${m.company===u.company&&m.name===u.name?'me':''}"><small>${esc(m.company)} / ${esc(m.name)}　${mdhm(m.at)}${m.edited?'（直した）':''}</small>${esc(m.text)}${canEditRec('message',m)?` <button class="linkbtn" style="font-size:11px" data-act="editRec" data-t="message" data-id="${esc(m.id)}">直す</button>`:''}</div>`).join('')||'<div class="empty">まだメッセージはありません</div>'}</div>
-  <form class="compose" data-act="send" data-pid="${pid}"><input id="chatInput" placeholder="${esc(pname(pid))} へメッセージ" autocomplete="off"><button class="btn primary" type="submit">送信</button></form>`;
+  <form class="compose" data-act="send" data-pid="${pid}"><input id="chatInput" aria-label="メッセージ" placeholder="${esc(pname(pid))} へメッセージ" autocomplete="off"><button class="btn primary" type="submit">送信</button></form>`;
 }
 function pChat(){
   const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>案件チャット</h2><p>案件ごとに、元請・協力業者・Rateru でやりとりします。</p></div></div>${pipeDocsPicker('chat')}` : emptyScope();
@@ -3544,8 +3572,8 @@ const Q = {
   pickCase(id){ this.readForm(); const d=this.draft, p=(S.pipeline||[]).find(x=>x.id===id); d.pipeId=id;
     if(p){ if(p.customer) d.customer=p.customer; d.title=p.name||d.title; if(p.address) d.site=p.address; if(salesOwner(p)) d.owner=salesOwner(p); }
     render(); if(p&&!salesOwner(p)) toast('この案件は売上責任者が決まっていません。見積の「売上責任者」で選んでください'); },
-  filterCases(q){ const t=String(q||'').replace(/[\s　]/g,'').toLowerCase(), sel=$('#qf_pipeId'); if(!sel) return; let n=0, first='';
-    [...sel.options].forEach(o=>{ if(!o.value) return; const hit=!t||o.textContent.replace(/[\s　]/g,'').toLowerCase().includes(t); o.hidden=!hit; if(hit){ n++; if(!first) first=o.value; } });
+  filterCases(q){ const t=normQ(q), sel=$('#qf_pipeId'); if(!sel) return; let n=0, first='';
+    [...sel.options].forEach(o=>{ if(!o.value) return; const hit=hasQ(o.textContent,t); o.hidden=!hit; if(hit){ n++; if(!first) first=o.value; } });
     const lb=document.querySelector('label[for="qf_pipeId"]'); if(lb) lb.textContent=`案件（${t?'見つかった '+n+'件':n+'件'}）`; },
   input(el){ const d=this.draft; if(!d) return;
     if(el.id==='q_pipeSearch'){ this.filterCases(el.value); return; }
@@ -3673,7 +3701,7 @@ function projectTab(p){
     return `<div class="grid2"><div>
       <h3>お知らせ</h3>
       ${ns.map(n=>`<div class="alert" style="cursor:default"><b>${esc(n.text)}</b><br><small>${mdhm(n.at)} ・ ${esc(n.by)}</small> ${editBtn('notice',n)}</div>`).join('')||'<p class="muted">未だ、お知らせはありません。</p>'}
-      ${canNotice?`<form class="compose" data-form="notice" data-pid="${pid}" style="margin:0 0 16px"><input id="noticeInput" name="text" placeholder="案件メンバーへのお知らせ" autocomplete="off" required><button class="btn" type="submit">掲示</button></form>`:''}
+      ${canNotice?`<form class="compose" data-form="notice" data-pid="${pid}" style="margin:0 0 16px"><input id="noticeInput" name="text" aria-label="お知らせ" placeholder="案件メンバーへのお知らせ" autocomplete="off" required><button class="btn" type="submit">掲示</button></form>`:''}
       <h3>現在地</h3>
       <div class="alert" style="cursor:default"><b>${STATUS[p.status].label} ${p.progress}%</b><br>次の重要イベント：${esc(p.next||'—')}</div>
       <div class="row" style="margin-bottom:14px">${progressBar(p.progress)}${perm().createProject?`<input type="range" min="0" max="100" step="1" value="${p.progress}" data-act="progress" data-pid="${pid}" aria-label="進捗" style="flex:1;min-width:120px">`:''}</div>
@@ -3688,7 +3716,7 @@ function projectTab(p){
     const ts=(S.todos||[]).filter(t=>t.pid===pid).sort((a,b)=>(a.done-b.done)||((a.due||'9')).localeCompare(b.due||'9'));
     const today=todayISO();
     return `<div class="row" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">タスク（未完了 ${ts.filter(t=>!t.done).length}件）</h3></div>
-      <form class="compose" data-form="todo" data-pid="${pid}" style="margin:0 0 12px;flex-wrap:wrap"><input id="todoTitle" name="title" placeholder="やること（例：建具の納期確認）" required autocomplete="off" style="flex:2;min-width:180px"><input name="assignee" placeholder="担当" aria-label="担当" style="flex:1;min-width:90px"><input name="due" type="date" aria-label="期限" style="flex:0 0 auto"><button class="btn primary" type="submit">追加</button></form>
+      <form class="compose" data-form="todo" data-pid="${pid}" style="margin:0 0 12px;flex-wrap:wrap"><input id="todoTitle" name="title" aria-label="やること" placeholder="やること（例：建具の納期確認）" required autocomplete="off" style="flex:2;min-width:180px"><input name="assignee" placeholder="担当" aria-label="担当" style="flex:1;min-width:90px"><input name="due" type="date" aria-label="期限" style="flex:0 0 auto"><button class="btn primary" type="submit">追加</button></form>
       ${ts.map(t=>`<div class="todo ${t.done?'done':''}"><input type="checkbox" data-act="todoDone" data-id="${t.id}" ${t.done?'checked':''} aria-label="完了"><div class="t"><b>${esc(t.title)}</b><br><small>${esc(t.assignee||'担当未定')} ・ 期限 <span ${!t.done&&t.due&&t.due<today?'style="color:var(--ng);font-weight:700"':''}>${t.due?md(t.due):'—'}</span> ・ ${esc(t.by)}</small></div>${editBtn('todo',t)}<button class="btn sm" data-act="delTodo" data-id="${t.id}" aria-label="削除">×</button></div>`).join('')||'<div class="empty">タスクはありません</div>'}`;
   }
   case 'report': return `<div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 style="margin:0">報告・日報</h3>${canReport()?`<button class="btn sm primary" data-act="newReport" data-pid="${pid}">＋ 日報を書く</button>`:''}</div>${reportCards(S.reports.filter(r=>r.pid===pid).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at)),false)}`;
@@ -3857,6 +3885,7 @@ document.addEventListener('click', async e=>{
   case 'projView': view.projView=d.v; render(); break;
   case 'pipeView': Pipe.view=d.v; Pipe.pref('view',d.v); render(); break;
   case 'pipeAll': Pipe.showAll=true; render(); break;
+  case 'attAll': view.attAll=true; render(); break;
   case 'newPipe': Pipe.form(null); break;
   case 'editPipe': Pipe.form(d.id); break;
   case 'calWho': view.calWho=d.w||''; render(); break;
@@ -3921,7 +3950,8 @@ document.addEventListener('click', async e=>{
   case 'openOffice': { const x=officeColl(d.coll).find(v=>v.id===d.id); if(!x||(d.coll==='sales'&&!canViewSale(x))) break; await openBlob(x.fileKey, x.fileName||x.title); break; }
   case 'delOffice': Office.del(d.coll, d.id); break;
   case 'shareOfficeFile': await shareOfficeFile(d.coll, d.id); break;
-  case 'delPipe': { const x=S.pipeline.find(v=>v.id===d.id); if(!x||!(salesHead()||salesDeputy()||salesOwner(x)===mySalesOwner()&&canSeeSalesPage())) break; confirmBox(`「${x.name}」を案件進捗から削除します。`,'削除する',()=>{ S.pipeline=S.pipeline.filter(v=>v.id!==d.id); save(); closeDrawer(); render(); toast('削除しました'); }); break; }
+  case 'delPipe': { const x=S.pipeline.find(v=>v.id===d.id); if(!x||!(salesHead()||salesDeputy()||salesOwner(x)===mySalesOwner()&&canSeeSalesPage())) break; const nq=(S.quotes||[]).filter(v=>v.pipeId===x.id).length, ns=(S.sales||[]).filter(v=>v.pipeId===x.id).length, nm=(S.meetings||[]).filter(v=>v.pipeId===x.id).length, link=[nq&&`見積${nq}件`,ns&&`売上・仕入${ns}件`,nm&&`会議資料${nm}件`,x.pid&&'施工管理の案件（図面・写真など）'].filter(Boolean);   
+      confirmBox(`「${x.name}」を案件進捗から削除します。${link.length?`この案件につながっている ${link.join('・')} は消えずに残ります。`:''}`,'削除する',()=>{ S.pipeline=S.pipeline.filter(v=>v.id!==d.id); save(); closeDrawer(); render(); toast('削除しました'); }); break; }
   case 'moveStage': { e.stopPropagation(); const p=proj(d.pid), i=STATUS_ORDER.indexOf(p.status)+Number(d.d); if(i<0||i>=STATUS_ORDER.length) break; if(!String(p.rateruRep||'').trim()){ toast('先に案件のRateru担当を記入してください'); projectForm(p); break; } const to=STATUS_ORDER[i];
       change(p.id,`ステータス ${STATUS[p.status].label} → ${STATUS[to].label}`); log(p.id,`ステータス変更 / ${STATUS[to].label}`); p.status=to; if(to==='done') p.progress=100; save(); render(); break; }
   case 'csv': { const head=['案件ID','物件名','住所','エリア','区分','元請','契約番号','案件管理ID','元請担当','Rateru担当','協力会社','ステータス','進捗%','着工日','完工予定','次アクション'];
@@ -3977,7 +4007,8 @@ document.addEventListener('change', async e=>{
   if(d.custpick){ const box=document.getElementById('fm_'+d.custpick+'NewBox'); if(box){ box.hidden=el.value!=='__new'; if(!box.hidden) box.querySelector('input')?.focus(); } return; }   
   if(el.dataset.qf||el.dataset.ql!=null){ Q.input(el); return; }
   if(d.act==='noticePref'){ NoticePrefs.set(d.key,el.checked); if(el.checked) await NoticePrefs.request(); toast('通知設定を保存しました'); return; }
-  if(el.id==='roleSel'){ S.userId=el.value; if(MODE==='demo') try{ localStorage.setItem(DEMO_USER_KEY,'1'); }catch(e){} save(); toast(`${me().roleLabel}（${me().name}）として表示中（お試し版）`); if(view.page==='project'&&!visibleIds().has(view.pid)) view.page='projects'; render(); return; }
+  if(el.id==='roleSel'){ closeDrawer(); S.userId=el.value;   
+    if(MODE==='demo') try{ localStorage.setItem(DEMO_USER_KEY,'1'); }catch(e){} save(); toast(`${me().roleLabel}（${me().name}）として表示中（お試し版）`); if(view.page==='project'&&!visibleIds().has(view.pid)) view.page='projects'; render(); return; }
   if(d.filter){ if(d.filter==='status'&&el.value.startsWith('pipe:')&&me().role==='rateru_admin'){ Pipe.f.status=el.value.slice(5); go('pipeline'); return; } view.filters[d.filter]=el.value; render(); return; }
   if(d.act==='pick'){ view[d.key]=el.value; render(); return; }
   if(el.name==='clientChoice'&&el.closest('form[data-form="project"]')){ const form=el.closest('form'), field=form.querySelector('#newClientField'); field.hidden=!!el.value;
@@ -3992,12 +4023,13 @@ document.addEventListener('change', async e=>{
   if(d.act==='estState'){ const x=S.estimates.find(v=>v.id===d.id); x.state=el.value; change(x.pid,`見積 ${x.ver} の状態を変更`); save(); render(); return; }
   if(d.act==='addPhoto'){
     const folder=d.folder||($('#ph_label')||{}).value||'現地調査'; const files=[...el.files]; if(!files.length) return;
-    toast(`${files.length}枚を保存中…`);
-    for(const f of files){ let b=await shrinkImage(f); const key=`${d.pid}/${uid('f')}`, shotAt=f.lastModified?new Date(f.lastModified).toISOString():nowISO(); let board=null;
+    toast(`${files.length}枚を保存中…`); let done=0;
+    for(const f of files){ if(files.length>3) toast(`写真を保存中… ${++done} / ${files.length}`);   
+      let b=await shrinkImage(f); const key=`${d.pid}/${uid('f')}`, shotAt=f.lastModified?new Date(f.lastModified).toISOString():nowISO(); let board=null;
       if(view.board && b.type.startsWith('image/')){ const rows=boardRows(d.pid, folder, shotAt, view.boardNote.trim()); b=await burnBoard(b, rows); board=Object.fromEntries(rows); }
       await FileStore.put(key,b);
       S.photos.push({id:uid('ph'),pid:d.pid,folder,label:folder,date:nowISO(),shotAt,fileKey:key,by:myLabel(),...(board?{board}:{})}); }
-    log(d.pid,`写真登録 / ${folder} ${files.length}枚`); save(); render(); toast(`${files.length}枚を「${folder}」に登録しました`); return;
+    log(d.pid,`写真登録 / ${folder} ${files.length}枚`); save(); render(); toast(`${files.length}枚を「${folder}」に登録しました`); heicNote(files); return;
   }
   if(d.act==='todoDone'){ const t=S.todos.find(x=>x.id===d.id); t.done=el.checked; if(t.done) log(t.pid,`タスク完了 / ${t.title}`); save(); render(); return; }
   if(d.act==='boardOn'){ view.board=el.checked; try{ localStorage.setItem('hub-board', el.checked?'1':'0'); }catch(e){} render(); return; }
@@ -4081,7 +4113,7 @@ async function onSubmit(e,f){
     const r={id:uid('r'),pid:v.pid,type:v.type||'日報',date:v.date,weather:v.weather,workers:v.workers.trim(),work:v.work.trim(),tomorrow:v.tomorrow.trim(),issues:v.issues.trim(),by:myLabel(),at:nowISO()};
     
     const pf=canPhoto()?[...(f.querySelector('#fm_rphotos')?.files||[])].filter(x=>x.type.startsWith('image/')):[];
-    if(pf.length){ toast(`写真${pf.length}枚を保存中…`); r.photoIds=[]; for(const file of pf){ const key=`${v.pid}/${uid('f')}`, id=uid('ph'); await FileStore.put(key, await shrinkImage(file)); S.photos.push({id,pid:v.pid,folder:'施工中',label:'施工中',date:nowISO(),shotAt:file.lastModified?new Date(file.lastModified).toISOString():nowISO(),fileKey:key,by:myLabel(),report:r.id}); r.photoIds.push(id); } log(v.pid,`写真登録 / 施工中 ${pf.length}枚（日報）`); }
+    if(pf.length){ toast(`写真${pf.length}枚を保存中…`); r.photoIds=[]; let done=0; for(const file of pf){ if(pf.length>3) toast(`写真を保存中… ${++done} / ${pf.length}`); const key=`${v.pid}/${uid('f')}`, id=uid('ph'); await FileStore.put(key, await shrinkImage(file)); S.photos.push({id,pid:v.pid,folder:'施工中',label:'施工中',date:nowISO(),shotAt:file.lastModified?new Date(file.lastModified).toISOString():nowISO(),fileKey:key,by:myLabel(),report:r.id}); r.photoIds.push(id); } log(v.pid,`写真登録 / 施工中 ${pf.length}枚（日報）`); setTimeout(()=>heicNote(pf),2700); }
     S.reports.unshift(r); log(v.pid,`${v.type||'日報'} / ${v.date.slice(5).replace('-','/')} ${v.work.trim().slice(0,30)}`); save(); closeDrawer(); render();
     if(e.submitter?.value==='line') openDrawer(`${drawerHead('日報を登録しました')}<p>LINEの送り先を選んで送信してください。</p><div class="row">${lineBtn(reportLineText(r),'LINEの送信画面を開く')}</div>`);
     else toast('日報を登録しました'); return;
@@ -4163,7 +4195,8 @@ async function onSubmit(e,f){
 $('#overlay').addEventListener('click',()=>{ closeDrawer(); closeSidebar(); });
 $('#menuBtn').addEventListener('click',()=>{ $('#sidebar').classList.add('open'); $('#overlay').hidden=false; });
 $('#newProjectBtn').addEventListener('click',()=>{ if(canSeePage('pipeline')) Pipe.form(null); else projectForm(null); });   
-$('#bellBtn').addEventListener('click',()=>go('dashboard'));
+
+$('#bellBtn').addEventListener('click',()=>{ view.attAll=true; go('dashboard'); const a=$('#attSec'); if(a) a.scrollIntoView({block:'start'}); });
 document.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('rp-card')){ e.preventDefault(); Pipe.form(e.target.dataset.id); } });
 
 document.addEventListener('keydown',e=>{ const t=e.target; if((e.key==='Enter'||e.key===' ')&&t&&t.matches&&t.matches('tr.clickable[data-act]')){ e.preventDefault(); t.click(); } });
