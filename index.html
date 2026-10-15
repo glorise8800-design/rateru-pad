@@ -764,7 +764,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-15-4', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-15-5', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -2615,6 +2615,8 @@ const DZ_PERIODS = [['a','1〜10日'],['b','11〜20日'],['c','21日〜月末'],
 
 const DZ_KINDS = ['日中','夜勤','残業','有給','休み'];
 const DZ_WORK = new Set(['日中','夜勤','夜間','残業']);
+
+const dzNinku = x => DZ_WORK.has(x.kind||'日中') ? (Number(x.count)||0) : 0;
 const Dz = {
   month: () => view.dzMonth || todayISO().slice(0,7),
   period: () => view.dzPeriod || (()=>{ const d=+todayISO().slice(8); return d<=10?'a':d<=20?'b':'c'; })(),
@@ -2657,7 +2659,7 @@ const Dz = {
   },
   
   monthSum(who, m=this.month()){ const xs=this.live().filter(x=>x.who===who&&String(x.date).startsWith(m)), days=k=>new Set(xs.filter(k).map(x=>x.date)).size;
-    return {work:days(x=>DZ_WORK.has(x.kind||'日中')&&Number(x.count)>0), night:xs.filter(x=>x.kind==='夜勤'||x.kind==='夜間').length, paid:days(x=>x.kind==='有給'), off:days(x=>x.kind==='休み'), ninku:xs.reduce((n,x)=>n+(Number(x.count)||0),0)}; },
+    return {work:days(x=>DZ_WORK.has(x.kind||'日中')&&Number(x.count)>0), night:xs.filter(x=>x.kind==='夜勤'||x.kind==='夜間').length, paid:days(x=>x.kind==='有給'), off:days(x=>x.kind==='休み'), ninku:xs.reduce((n,x)=>n+dzNinku(x),0)}; },
   sumCsv(){ const m=this.month(), q=csvCell, lines=[['月','だれ','出勤日数','夜勤回数','有給','休み','人工合計'],...this.people().map(w=>{ const t=this.monthSum(w); return [m,w,t.work,t.night,t.paid,t.off,t.ninku]; })].map(r=>r.map(q).join(','));
     const u=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv'})); const el=document.createElement('a'); el.href=u; el.download=`出面の集計_${m}.csv`; document.body.appendChild(el); el.click(); el.remove(); toast('給与計算用の集計を書き出しました'); },
   uncheck(who){ const c=this.checked(who); if(!c) return; confirmBox(`${who}の「確認済み」を戻します（だれがいつ戻したかは残ります）。`,'戻す',()=>{ Object.assign(c,{type:'check-undone', undoneAt:nowISO(), undoneBy:myLabel()}); save(); render(); toast('確認済みを戻しました'); }); },
@@ -2673,7 +2675,7 @@ const Dz = {
 };
 function pDezura(){
   const m=Dz.month(), p=Dz.period(), [a,b]=Dz.range(), rows=Dz.live().filter(x=>x.date>=a&&x.date<=b);
-  const ppl=Dz.people(), tot=a=>a.reduce((n,x)=>n+(Number(x.count)||0),0);
+  const ppl=Dz.people(), tot=a=>a.reduce((n,x)=>n+dzNinku(x),0);
   return `${officeTabs()}<div class="hero"><div><h2>出面</h2><p>だれが、どの日に、どの現場で何人工か。10日ごとと月ごとに集計して、各自に送れます。</p></div>
     <div class="acts"><button class="btn primary" data-act="dzNew">＋ 出面を入れる</button><button class="btn" data-act="dzFromPlans">予定から作る</button><button class="btn" data-act="dzCsv">CSV出力</button></div></div>
   <div class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><button class="btn" data-act="dzMonth" data-d="-1" aria-label="前の月">‹</button><b style="min-width:100px;text-align:center">${monthLabel(m)}</b><button class="btn" data-act="dzMonth" data-d="1" aria-label="次の月">›</button>
@@ -2874,7 +2876,7 @@ function pipeRelated(x){
   const li=(t,sub,act,id,extra='')=>`<div class="rel"><button class="linkbtn" type="button" data-act="${act}" data-id="${id}">${t}</button><small>${sub}</small>${extra}</div>`;
   return `<div class="card section" style="margin:14px 0;padding:12px"><h3 style="margin:0 0 6px;font-size:14px">この案件につながっているもの</h3>
     ${x.folder?`<div class="rel">${extLink(x.folder,'📁 Dropboxのフォルダを開く','linkbtn')}<small>図面・写真・見積などの元ファイル</small></div>`:''}
-    ${x.pid?li(`施工管理の案件：${esc(pname(x.pid))}`,esc(x.pid),'open',x.pid):''}
+    ${x.pid&&proj(x.pid)?li(`施工管理の案件：${esc(pname(x.pid))}`,esc(x.pid),'open',x.pid):''}
     ${canSeeSalesPage()?`<div class="muted" style="font-size:13px;margin:6px 0 2px">売上 ${yen(s)}${salesAll()?` ・ 仕入 ${yen(b)}${canFinance()?` ・ 粗利 ${yen(s-b)}`:''}`:''}</div>`:''}
     ${sales.map(v=>li(`${v.type==='sale'?'売上':'仕入'}：${esc(v.party)} ${yen(v.amount)}`,`${monthLabel(v.month)} ・ ${esc(v.status)}${v.fileName?' ・ 📎 '+esc(v.fileName):''}`,'editSale',v.id)).join('')}
     ${meets.map(v=>li(`会議資料：${esc(v.title)}`,`${monthLabel(v.month)}${v.fileName?' ・ 📎 '+esc(v.fileName):''}`,'editMeeting',v.id)).join('')}
@@ -3434,6 +3436,7 @@ const Q = {
     const p=(S.pipeline||[]).find(x=>x.id===d.pipeId); if(p&&salesOwner(p)) d.owner=salesOwner(p); },
   save(){ this.readForm(); const d=this.draft;
     if(!d.customer){ toast('顧客を選んでください'); return false; } if(!d.title){ toast('工事名を入れてください'); return false; }
+    { const cc=this.calc(d); if(toNum(d.discount)>Math.max(0,cc.sub)){ toast('値引きが小計より大きくなっています（このままだと合計0円）。値引きを確かめてください'); return false; } }   
     if(!d.owner){ toast('売上責任者が決まっていません。「売上責任者」で選んでください'); return false; }
     if(!salesAll()&&d.owner!==mySalesOwner()){ toast('自分が責任者の見積だけ保存できます'); return false; }
     if(!this.cust(d.customer)) (S.customers=S.customers||[]).push({id:uid('cu'),name:d.customer,at:nowISO(),by:myLabel()});
