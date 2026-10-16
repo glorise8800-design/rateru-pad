@@ -154,6 +154,11 @@ tr.clickable:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
 #attSec{scroll-margin-top:90px}    
 .sync-wait{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:60;max-width:560px;margin:auto;padding:10px 14px;border-radius:12px;background:#fff7d6;color:#5a4300;border:2px solid #d9a400;font-size:14px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.18)}    
 .rphotos{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px} .rphotos img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--hover)}    
+.rp-table .late{color:var(--ng)}    
+.q-line-acts{white-space:nowrap} .q-line-acts .btn{margin:1px}    
+.to-top{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:28;border-radius:999px;padding:10px 14px;min-height:44px;background:var(--panel);color:var(--text);border:2px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.18);font-weight:700}
+@media print{ .to-top{display:none} }
+.rp-quick{font-size:12.5px;font-weight:700;border-radius:999px;padding:4px 8px;border:1px solid var(--line);background:var(--panel);max-width:150px}    
 .rp-yn{display:inline-block;min-width:26px;text-align:center;border-radius:4px;font-size:11px;font-weight:700;padding:1px 6px;border:1px solid var(--line);color:var(--muted)}
 .rp-yn.on{background:var(--rp-done-bg);color:var(--rp-done);border-color:transparent} .rp-yn.warn{color:var(--ng);border-color:var(--ng)}
  
@@ -245,6 +250,34 @@ a.ext.dbx{text-decoration:none;font-size:14px}
 .msg{max-width:78%;padding:9px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);margin:8px 0;font-size:13px;white-space:pre-wrap;word-break:break-word}
 .msg.me{margin-left:auto;background:var(--accent-soft);border-color:var(--accent-line)}
 .msg small{display:block;margin-bottom:2px}
+.msg-day,.msg-new{display:flex;align-items:center;gap:8px;margin:12px 0 6px;font-size:11px;color:var(--muted)}
+.msg-day::before,.msg-day::after,.msg-new::before,.msg-new::after{content:"";flex:1;border-top:1px solid var(--line)}
+.msg-new{color:var(--ng);font-weight:700}.msg-new::before,.msg-new::after{border-color:currentColor}
+.chat-unread{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0;font-size:12px}
+.tabs .badge{margin-left:4px}
+.drawer-head{position:sticky;top:calc(-20px - env(safe-area-inset-top,0px));z-index:3;background:var(--panel);margin:calc(-20px - env(safe-area-inset-top,0px)) -20px 16px!important;padding:calc(12px + env(safe-area-inset-top,0px)) 20px 10px;border-bottom:1px solid var(--line)}
+.drawer-head h2{margin:0;font-size:18px}
+.kpi-btn{text-align:left;font:inherit;color:inherit;cursor:pointer;width:100%}.kpi-btn:hover{border-color:var(--accent-line)}.kpi-btn.on{outline:2px solid var(--accent);outline-offset:-2px}
+.formgrid>.field{min-width:0}.formgrid>.field input{min-width:0;max-width:100%}
+html[data-fs="l"] #content,html[data-fs="l"] #drawer>*:not(.drawer-head){zoom:1.1}
+html[data-fs="xl"] #content,html[data-fs="xl"] #drawer>*:not(.drawer-head){zoom:1.2}
+.quick-links a.btn{text-decoration:none;color:var(--text)}
+.pill.new-doc{background:var(--ng);color:#fff;font-size:11px;padding:1px 7px}
+.due-quick{display:inline-flex;gap:4px;align-items:center}
+.toast-undo{margin-left:10px;border:1px solid currentColor;background:transparent;color:inherit;border-radius:999px;padding:4px 12px;font:inherit;font-weight:700;cursor:pointer;pointer-events:auto}
+.page-toc{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}.toc-h{scroll-margin-top:84px}
+@media(max-width:600px){ .tablewrap table.year-table{min-width:0} .year-table{font-size:13px} .year-table th:last-child,.year-table td:last-child{display:none} .year-table td,.year-table th{padding-left:4px;padding-right:4px} }
+.photo-view .pv-img{position:relative}.photo-view .pv-img img{display:block;max-width:100%;max-height:72vh;margin:0 auto}
+.pv-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.45);color:#fff;font-size:26px;line-height:1;cursor:pointer}
+.pv-nav.prev{left:6px}.pv-nav.next{right:6px}.pv-nav:disabled{opacity:.25;cursor:default}
+.site-row{padding:8px 0;border-bottom:1px solid var(--line)}.site-row:last-of-type{border-bottom:0}
+.site-row .site-name{font-size:15px;text-align:left}
+.check.check-go{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.check.check-go:hover{border-color:var(--accent-line)}
+.row.st-sel{display:none}
+@media(max-width:600px){ .row.st-btns{display:none} .row.st-sel{display:flex;gap:8px;align-items:center} .st-sel select{font-size:16px;min-height:40px;flex:0 1 180px} }
+.gantt .lbl,.gantt .hd:first-child{position:sticky;left:0;z-index:1;background:var(--panel)}
+.num-hint{display:block;font-size:12px;color:var(--muted);margin-top:2px;min-height:0}.num-hint:empty{display:none}
 .compose{display:flex;gap:8px;margin-top:10px}
 .compose input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel)}
 .approval{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
@@ -295,6 +328,7 @@ td.money,th.money{text-align:right}
 .more{margin:12px 0;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.more>summary{cursor:pointer;font-weight:700;color:var(--muted);padding:4px 0}
 .req{display:inline-block;margin-left:6px;padding:0 6px;border-radius:6px;background:var(--ng-bg,#fde8e8);color:var(--ng,#b91c1c);font-size:11px;font-weight:700;vertical-align:1px}
 @media (max-width:640px){
+  .rp-quick{font-size:16px;max-width:190px;padding:2px 8px}    
    
   .viewer .vbar .dot{width:38px;height:38px} .viewer button[data-v="prev"],.viewer button[data-v="next"]{min-width:42px}
    
@@ -412,6 +446,10 @@ td.money,th.money{text-align:right}
  .project-header .row.mt .muted{white-space:nowrap}
  .tabs button{padding:11px 9px}
 }
+@media(max-width:430px){
+  
+ .topbar .top-brand,.topbar .back-label{display:none} .topbar .rolesel{max-width:112px}
+}
 @media(max-width:360px){
  .topbar{padding:8px 6px;gap:4px}
  .topbar .left,.topbar .right{gap:4px}
@@ -474,6 +512,7 @@ body.noscroll{overflow:hidden}
         <span class="top-brand mobile-only">RateruPAD</span><span class="top-sub hide-sm">施工管理</span>
       </div>
       <div class="right">
+        <button class="btn" id="searchBtn" aria-label="全体を探す">🔍</button>
         <button class="btn" id="newProjectBtn" aria-label="新規案件">＋<span class="hide-sm"> 新規案件</span></button>
         <select class="rolesel" id="roleSel" aria-label="利用者（名前）を選ぶ"></select>
         <span class="rolesel" id="userChip" hidden></span>
@@ -766,7 +805,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-16-1', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-16-3', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -822,6 +861,7 @@ const yen = n => '¥' + toNum(n).toLocaleString('ja-JP');
 const normQ = s => String(s??'').normalize('NFKC').toLowerCase().replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60)).replace(/[\s　]+/g,'');
 const hasQ = (hay, q) => { const n=normQ(q); return !n || normQ(hay).includes(n); };
 
+const saveCsv = (name, rows) => { const u=URL.createObjectURL(new Blob(['﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); };
 const csvCell = v => { let s=String(v??''); if(/^[=+\-@\t\r]/.test(s)&&!/^[+-]?\d+(\.\d+)?$/.test(s)) s="'"+s; return `"${s.replace(/"/g,'""')}"`; };
 const addDays = (iso,n) => { const d=new Date(iso+'T00:00'); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
 const daysBetween = (a,b) => Math.round((new Date(b+'T00:00')-new Date(a+'T00:00'))/86400000);
@@ -946,7 +986,7 @@ function load(){
   catch(e){ loadIssue='保存データを読み込めません。元データを保護するため保存を停止しました。'; }
   d=d||{...emptyState(), userId:'u_rateru_admin'};
   
-  ['reports','notices','todos','internal','pipeline','meetings','templates','sales','dbxCases','dbxFiles','dezura','bank','petty','settings','customers','quotes','qitems','orders'].forEach(k=>d[k]=d[k]||[]);
+  ['reports','notices','todos','internal','pipeline','meetings','templates','sales','dbxCases','dbxFiles','dezura','bank','petty','settings','customers','quotes','qitems','orders','trash'].forEach(k=>d[k]=d[k]||[]);
   if(!d.plans) d.plans=[];
   return d;
 }
@@ -988,6 +1028,27 @@ function save(){ if(MODE==='server'){ Sync.schedule(); return true; }
     if(Big.state==='on'&&Big.dirty){ Big.dirty=false; Big.ref=dbxFiles; Big.len=(dbxFiles||[]).length; Big.put('dbxFiles', dbxFiles||[]).then(ok=>{ if(!ok){ Big.dirty=true; toast('Dropbox の資料の一覧を、この端末に保存できませんでした'); } }); } }
   try{ if(!Keep.has&&!Keep.busy){ const old=localStorage.getItem(STORE_KEY); if(old) Keep.first(old); }
     localStorage.setItem(STORE_KEY, JSON.stringify(data)); return true; }catch(e){ toast('この端末に保存できませんでした（入りきりません）。ページを開き直すと、今の変更は消えます'); return false; } }
+
+const TRASH_DAYS = 30;
+const Trash = {
+  list(){ return (S.trash=S.trash||[]); },
+  
+  put(label, parts, files=[]){ const items=parts.filter(x=>x.items&&x.items.length); if(!items.length) return null;
+    const scope=items.some(x=>['sales','quotes','orders','bank'].includes(x.coll))?'sales':items.every(x=>x.coll==='dezura')?'office':'';
+    const e={id:uid('tr'), label, at:nowISO(), by:myLabel(), byId:S.userId, scope, parts:JSON.parse(JSON.stringify(items)), files:[...new Set(files.filter(Boolean))]};
+    this.list().unshift(e); this.pending={id:e.id,t:Date.now()}; return e; },
+  canSee(e){ if(!e) return false; if(e.scope==='sales') return salesAll(); if(e.scope==='office') return me().role==='office'||me().role==='rateru_admin'; return me().role==='rateru_admin'; },
+  restore(id){ const e=this.list().find(x=>x.id===id); if(!e||!this.canSee(e)) return; let n=0, skip=0;
+    for(const pt of e.parts){
+      if(pt.coll==='surveys'||pt.coll==='inspections'){ S[pt.coll]=S[pt.coll]||{}; for(const it of pt.items){ if(S[pt.coll][it.pid]) skip++; else { S[pt.coll][it.pid]=it.value; n++; } } continue; }
+      const arr=(S[pt.coll]=S[pt.coll]||[]); for(const it of pt.items){ if(it&&it.id&&arr.some(x=>x.id===it.id)){ skip++; continue; } if(pt.coll==='pipeline'||pt.coll==='projects') arr.unshift(it); else arr.push(it); n++; } }
+    S.trash=this.list().filter(x=>x!==e); save(); render(); toast(`「${e.label}」を戻しました（${n}件${skip?`。同じものがもうある ${skip}件は飛ばしました`:''}）`); },
+  purge(){ const lim=Date.now()-TRASH_DAYS*864e5, old=this.list().filter(e=>Date.parse(e.at)<lim); if(!old.length) return;
+    old.forEach(e=>(e.files||[]).forEach(k=>FileStore.del(k))); S.trash=this.list().filter(e=>!old.includes(e)); save(); },
+  page(){ const xs=this.list().filter(e=>this.canSee(e));
+    return `<div class="card section mt" id="trashSec"><h3>消したもの（ゴミ箱）</h3><p class="muted" style="margin-top:0">消したものは ${TRASH_DAYS}日のあいだここに残り、「戻す」で元に戻せます。${TRASH_DAYS}日たつと本当に消えます。</p>
+      ${xs.length?`<div class="plist">${xs.map(e=>`<div class="prow" style="cursor:default"><span class="pm"><b>${esc(e.label)}</b><small class="muted"> ${mdhm(e.at)} ${esc(e.by||'')} ・ あと${Math.max(0,TRASH_DAYS-Math.floor((Date.now()-Date.parse(e.at))/864e5))}日</small></span><button class="btn sm" data-act="trashRestore" data-id="${e.id}">戻す</button></div>`).join('')}</div>`:'<div class="empty">消したものはありません</div>'}</div>`; }
+};
 const FileStore = (() => {
   let dbp = null; const mem = new Map();
   
@@ -1057,7 +1118,7 @@ const ROLE_COMPANY={motouke_admin:'motouke',motouke_sales:'motouke',rateru_admin
 const ROLE_NAME = {rateru_admin:'Rateru 管理者', motouke_admin:'元請 管理者', motouke_sales:'元請 営業', partner:'協力業者', office:'事務', guest:'限定予定の閲覧者'};
 const roleLabel = r => ROLE_NAME[r] || r;
 const loginEmail = id => id.includes('@') ? id.trim() : `${id.trim()}@${CFG().loginDomain||'hub.local'}`;
-const emptyState = () => ({version:2,userId:null,projects:[],surveys:{},tasks:[],estimates:[],docs:[],photos:[],reports:[],notices:[],todos:[],inspections:{},corrections:[],approvals:[],messages:[],activity:[],changes:[],internal:[],pipeline:[],meetings:[],templates:[],sales:[],plans:[],dbxCases:[],dbxFiles:[],dezura:[],bank:[],petty:[],settings:[],customers:[],quotes:[],qitems:[],orders:[]});
+const emptyState = () => ({version:2,userId:null,projects:[],surveys:{},tasks:[],estimates:[],docs:[],photos:[],reports:[],notices:[],todos:[],inspections:{},corrections:[],approvals:[],messages:[],activity:[],changes:[],internal:[],pipeline:[],meetings:[],templates:[],sales:[],plans:[],dbxCases:[],dbxFiles:[],dezura:[],bank:[],petty:[],settings:[],customers:[],quotes:[],qitems:[],orders:[],trash:[]});
 function loadScript(src){ return new Promise((res,rej)=>{ const e=document.createElement('script'); e.src=src; e.onload=res; e.onerror=rej; document.head.appendChild(e); }); }
 
 const Remote = {
@@ -1067,7 +1128,7 @@ const Remote = {
   async del(key){ const [b,path]=this.loc(key); await SB.storage.from(b).remove([path]); }
 };
 
-const OFFICE_KIND = {meeting:'meetings',template:'templates',sale:'sales',plan:'plans',dbxcase:'dbxCases',dbxfile:'dbxFiles',dezura:'dezura',bank:'bank',petty:'petty',setting:'settings',customer:'customers',quote:'quotes',qitem:'qitems',order:'orders'};   
+const OFFICE_KIND = {meeting:'meetings',template:'templates',sale:'sales',plan:'plans',dbxcase:'dbxCases',dbxfile:'dbxFiles',dezura:'dezura',bank:'bank',petty:'petty',setting:'settings',customer:'customers',quote:'quotes',qitem:'qitems',order:'orders',trash:'trash'};   
 const RECORD_KIND = {todo:'todos',report:'reports',notice:'notices',task:'tasks',estimate:'estimates',doc:'docs',photo:'photos',correction:'corrections',approval:'approvals',message:'messages',activity:'activity',change:'changes'};
 const Sync = {
   synced:{projects:new Map(), records:new Map(), internal_records:new Map()},
@@ -1090,6 +1151,7 @@ const Sync = {
     }
     
     if(me().role==='office') for(const [kind,key] of [['dezura','dezura'],['petty','petty'],['setting','settings']]) for(const x of (S[key]||[])) out.internal_records.push({id:x.id,project_id:null,kind,data:x});
+    if(['rateru_admin','office'].includes(me().role)) for(const x of (S.trash||[])) if(Trash.canSee(x)) out.internal_records.push({id:x.id,project_id:null,kind:'trash',data:x});   
     if(me().role==='rateru_admin'){
       if(canFinance()) for(const e of S.estimates) if(ids.has(e.pid)) out.internal_records.push({id:'cost:'+e.id,project_id:e.pid,kind:'estimate_cost',data:{estimateId:e.id,cost:e.cost||0}});
       for(const x of S.internal) out.internal_records.push({id:x.id,project_id:ids.has(x.pid)?x.pid:null,kind:x.kind,data:x});
@@ -1145,6 +1207,7 @@ const Sync = {
       S=st;
       const cur=this.rows();
       for(const t of Object.keys(this.synced)){ this.synced[t]=new Map(cur[t].map(r=>[r.id,JSON.stringify(r)])); }
+      if(me().role==='rateru_admin') setTimeout(()=>Trash.purge(),0);   
       render();
     }catch(e){ toast('サーバーからデータを読み込めませんでした：'+(e.message||e)); }
   }
@@ -1525,7 +1588,7 @@ const Move = {
     const j=JSON.parse(renameLegacy(text));
     const pack = isBackupFormat(j.format) ? j : {format:BACKUP_FORMAT,version:1,exportedAt:null,data:j,files:{}};   
     const d=pack.data; if(!d || !Array.isArray(d.projects)) throw new Error('形式が違います');
-    for(const k of ['tasks','estimates','docs','photos','reports','notices','todos','corrections','approvals','messages','activity','changes','internal','pipeline','meetings','templates','sales','plans','dbxCases','dbxFiles','dezura','bank','petty','settings','customers','quotes','qitems','orders']) d[k]=Array.isArray(d[k])?d[k]:[];
+    for(const k of ['tasks','estimates','docs','photos','reports','notices','todos','corrections','approvals','messages','activity','changes','internal','pipeline','meetings','templates','sales','plans','dbxCases','dbxFiles','dezura','bank','petty','settings','customers','quotes','qitems','orders','trash']) d[k]=Array.isArray(d[k])?d[k]:[];
     d.surveys=d.surveys||{}; d.inspections=d.inspections||{}; d.version=2;
     return pack;
   },
@@ -1578,6 +1641,10 @@ function attentionItems(){
     out.push({pid:c.pid,level:c.due<today?'ng':'warn',text:c.reported?`是正の完了報告：${c.item}（${c.place}）確認して完了にしてください`:`是正：${c.item}（${c.place}）期限 ${md(c.due)}${c.due<today?' 期限超過':''}`,go:['project',c.pid,'check']}));
   (S.todos||[]).filter(t=>ids.has(t.pid)&&!t.done&&t.due&&t.due<today).forEach(t=>
     out.push({pid:t.pid,level:'ng',text:`タスク期限切れ：${t.title}（${t.assignee||'担当未定'}・${md(t.due)}）`,go:['project',t.pid,'todo']}));
+  (S.todos||[]).filter(t=>ids.has(t.pid)&&!t.done&&t.due===today&&(!t.assignee||staffShort(t.assignee)===me().name)).forEach(t=>   
+    out.push({pid:t.pid,level:'warn',text:`タスク今日まで：${t.title}（${t.assignee||'担当未定'}）`,go:['project',t.pid,'todo']}));
+  if(me().role==='rateru_admin') (S.pipeline||[]).filter(x=>x.nextDate&&x.nextDate<today&&!PIPE_CLOSED.has(x.status)&&Pipe.isMine(x)).forEach(x=>   
+    out.push({pid:'',title:x.name,level:'warn',text:`次回アクションの日を過ぎています：${x.next||''}（${md(x.nextDate)}）`,go:['pipeline']}));
   S.tasks.filter(t=>ids.has(t.pid)&&!t.done&&t.end<today).forEach(t=>
     out.push({pid:t.pid,level:'ng',text:`工程遅れ：${t.trade}（予定 ${md(t.end)} 終了）`,go:['project',t.pid,'schedule']}));
   Object.entries(S.surveys).filter(([pid])=>ids.has(pid)).forEach(([pid,s])=>{
@@ -1590,6 +1657,9 @@ function attentionItems(){
     out.push({pid:x.pid||'',title:x.name,level:'warn',text:`工事日 未入力：状態は「${x.status}」（案件進捗）`,go:['pipeline']}));
   if(me().role==='rateru_admin') (S.sales||[]).filter(x=>canViewSale(x)&&x.type==='sale'&&x.status!=='入金済み'&&x.due&&x.due<today).forEach(x=>
     out.push({pid:'',title:x.party,level:'ng',text:`入金予定を過ぎています：${x.title||''} ${yen(x.amount)}（予定 ${md(x.due)}）`,go:['sales']}));
+  if(me().role==='rateru_admin') Q.list().filter(q=>Q.waitDays(q)>=14&&staffShort(q.owner||'')===me().name).forEach(q=>   
+    out.push({pid:'',title:q.customer||q.no,level:'warn',text:`見積の返事がありません（${Q.waitDays(q)}日）：${q.title||q.no}`,go:['quotes']}));
+  [...ids].forEach(pid=>{ const n=ChatSeen.count(pid); if(n) out.push({pid,level:'warn',text:`チャットの未読：${n}件`,go:['project',pid,'chat']}); });   
   return out;
 }
 
@@ -1600,6 +1670,7 @@ function routeNow(){ return {page:view.page,pid:view.pid,tab:view.tab}; }
 function go(page, pid, tab, remember=true){
   if(remember && (view.page!==page || (page==='project' && (view.pid!==pid || (tab&&view.tab!==tab))))){ navTrail.push(routeNow()); pushHist('page'); }
   view.page=page;
+  if(page==='project'&&pid) Recent.add('proj',pid);
   if(page==='project'){ if(view.pid!==pid){ view.photoSel.clear(); view.docFolder=null; } view.pid=pid; view.tab=tab||'overview'; }
   if(page==='docs' && pid){ view.docsPid=pid; }
   if(page==='survey' && pid) view.surveyPid=pid;
@@ -1610,7 +1681,7 @@ function go(page, pid, tab, remember=true){
 
 function pushHist(kind){ try{ history.pushState({rp:kind},''); }catch(e){} }
 window.addEventListener('popstate',()=>{ if($('#viewer')){ closeViewer(); return; }   
-  const m=$('#modalRoot'); if(m&&m.querySelector('.modal')&&!m.querySelector('[data-form="login"]')&&!m.querySelector('#ul_pin')){ m.innerHTML=''; return; } if($('#drawer').classList.contains('open')){ closeDrawer(); return; } if(navTrail.length) goBack(); });
+  const m=$('#modalRoot'); if(m&&m.querySelector('.modal')&&!m.querySelector('[data-form="login"]')&&!m.querySelector('#ul_pin')){ m.innerHTML=''; return; } if($('#drawer').classList.contains('open')){ if(!askCloseDrawer()) pushHist('drawer'); return; } if(navTrail.length) goBack(); });   
 function goBack(){
   closeDrawer();
   while(navTrail.length){ const prev=navTrail.pop(); if(canSeePage(prev.page) && (prev.page!=='project'||visibleIds().has(prev.pid))) return go(prev.page,prev.pid,prev.tab,false); }
@@ -1620,20 +1691,26 @@ function goBack(){
  
 function render(){
   document.getElementById('app').classList.toggle('hide-cost', !perm().cost || !canFinance());
+  { const cp=chatViewPid(); if(cp&&visibleIds().has(cp)&&canSeePage(view.page)&&!UserLock.needs()) ChatSeen.mark(cp); else if(!cp) ChatSeen.enter(null); }   
   renderNav(); renderTop();
   const c=$('#content');
   if(!canSeePage(view.page)) view.page = me().role==='guest' ? 'guest' : me().role==='office' ? 'dezura' : 'dashboard';
   $('#backBtn').hidden=view.page==='dashboard';
   const fn={quotes:pQuotes,customers:pCustomers,dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,perms:pPerms,office:pOfficeHome,petty:pPetty,dezura:pDezura,finance:pFinance,dropbox:pDropbox,guest:pGuest,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
-  const ae=document.activeElement, keep=(ae&&ae.id&&c.contains(ae))?{id:ae.id,v:ae.value,s:ae.selectionStart}:null;
+  const ae=document.activeElement, keep=(ae&&ae.id&&c.contains(ae))?{id:ae.id,v:ae.value,s:ae.selectionStart,pid:ae.dataset&&ae.dataset.pid}:null;
   if(UserLock.needs()){ c.innerHTML=UserLock.gate(); const ul=$('#ul_pin'); if(ul) setTimeout(()=>ul.focus(),30); return; }   
   if(LOCKED_PAGES.has(view.page)&&!view.lockOpen){ c.innerHTML=lockGate(); const pin=$('#lk_pin'); if(pin) setTimeout(()=>pin.focus(),30); return; }
   c.innerHTML=fn();
-  if(keep){ const n=document.getElementById(keep.id); if(n){ if(keep.id==='chatInput') n.value=keep.v; n.focus(); try{ n.setSelectionRange(keep.s,keep.s); }catch(e){} } }
+  if(keep){ const n=document.getElementById(keep.id); if(n&&!(keep.id==='chatInput'&&n.dataset.pid!==keep.pid)){ if(keep.id==='chatInput') n.value=keep.v; n.focus(); try{ n.setSelectionRange(keep.s,keep.s); }catch(e){} } }
   if(view.page==='settings' && MODE==='server' && me().role==='rateru_admin'){ Members.load(); LineCfg.load(); }
   hydrateImages();
   if(V.id){ if(!vDoc()) closeViewer(); else { vMarks(); vBar(); vSide(); } }   
-  const m=$('#messages'); if(m) m.scrollTop=m.scrollHeight;
+  addPageToc();
+  { const pk=[view.page,view.pid,view.tab].join('|'); if(GanttPos.key!==pk){ GanttPos.key=pk; GanttPos.at={}; }   
+    document.querySelectorAll('#content .gantt-wrap').forEach((w,i)=>{ const k=i+'|'+(view.schedulePid||''); w.dataset.gk=k;
+      if(GanttPos.at[k]!=null){ w.scrollLeft=GanttPos.at[k]; return; }
+      const t=w.querySelector('.hd.today'), l=w.querySelector('.gantt .hd'); if(t) w.scrollLeft=Math.max(0,t.getBoundingClientRect().left-w.getBoundingClientRect().left-(l?l.offsetWidth:110)-72); }); }
+  const m=$('#messages'); if(m){ const nw=$('#msgNew'); if(nw&&!ChatSeen.jumped){ ChatSeen.jumped=true; m.scrollTop=0; m.scrollTop=nw.getBoundingClientRect().top-m.getBoundingClientRect().top-8; } else m.scrollTop=m.scrollHeight; }   
   c.querySelectorAll('tr.clickable[data-act]:not([tabindex])').forEach(tr=>tr.tabIndex=0);   
   
   c.querySelectorAll('.month-list').forEach(l=>{ const on=l.querySelector('button.on'); if(on&&l.scrollWidth>l.clientWidth) l.scrollLeft=on.offsetLeft-l.offsetLeft-(l.clientWidth-on.offsetWidth)/2; });
@@ -1646,7 +1723,8 @@ function renderNav(){
   const label=(id,l)=>id==='office'?(canFinance()?'事務・財務':'事務（出面・小口現金）'):l;
   $('#nav').innerHTML=NAV_GROUPS.map(([h,ids])=>{ const vis=ids.filter(id=>P[id]&&canSeePage(id)); if(!vis.length) return '';
     return (h?`<div class="nav-h">${h}</div>`:'')+vis.map(id=>{ const [,ic,l]=P[id];
-    const b = id==='dashboard'&&active ? `<span class="badge">${active}</span>` : id==='approvals'&&pend ? `<span class="badge">${pend}</span>` : '';
+    const cu = id==='projects' ? ChatSeen.total() : 0;   
+    const b = id==='dashboard'&&active ? `<span class="badge">${active}</span>` : id==='approvals'&&pend ? `<span class="badge">${pend}</span>` : cu ? `<span class="badge" title="未読のメッセージ">${cu}</span>` : '';
     return `<button data-act="nav" data-page="${id}" data-menu="1" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('') + ((TRIAL||me().role!=='rateru_admin')?'':`<div class="nav-h">ヘルプ</div><a class="nav-help" href="manual.html" target="_blank" rel="noopener"><span>📖　使い方</span></a>`);   
   const favs=Favs.get(), act=visibleProjects().filter(p=>p.status!=='done').sort((a,b)=>(favs.has(b.id)-favs.has(a.id)));
   $('#sideProjects').innerHTML=`<h4>進行中案件</h4>${act.slice(0,12).map(p=>`<button data-act="open" data-pid="${p.id}" title="${esc(p.name)}">${favs.has(p.id)?'★ ':''}${esc(p.name)}</button>`).join('')||'<small style="padding:0 12px">ありません</small>'}`;
@@ -1657,6 +1735,7 @@ const Favs = {
   toggle(id){ const f=this.get(); f.has(id)?f.delete(id):f.add(id); this._m=f; try{ localStorage.setItem('hub-favs',JSON.stringify([...f])); }catch(e){} }
 };
 function renderTop(){
+  $('#searchBtn').hidden=['office','guest'].includes(me().role);   
   const srv=MODE==='server'; $('#roleSel').hidden=srv; $('#userChip').hidden=!srv; $('#logoutBtn').hidden=!srv;
   $('#demoBanner').hidden=srv;
   if(!srv) $('#demoBanner').innerHTML=`<span class="db-long">お試し版・本番ではありません｜利用者：${esc(me().name)}（${esc(me().roleLabel)}）｜名前の選択は本人確認ではありません</span><span class="db-short">お試し版（本番ではありません）｜${esc(me().name)}</span>`;   
@@ -1671,10 +1750,12 @@ const progressBar = v => `<div class="progress" title="${v}%"><span style="width
 const projectOptions = (sel, all) => (all?`<option value="">全案件</option>`:'') + visibleProjects().map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)}</option>`).join('');
 
 function filteredProjects(){
-  const f=view.filters, q=f.q;
-  return visibleProjects().filter(p=>
+  const f=view.filters, q=f.q, favs=Favs.get();
+  const by={due:(a,b)=>(a.status==='done')-(b.status==='done')||String(a.due||'9999').localeCompare(String(b.due||'9999')), name:(a,b)=>String(a.name).localeCompare(String(b.name),'ja'), fav:(a,b)=>favs.has(b.id)-favs.has(a.id)}[f.sort];   
+  const out=visibleProjects().filter(p=>
     hasQ([p.id,p.name,p.address,p.motoukeRep,p.rateruRep,(p.partners||[]).join(' ')].join(' '), q) &&
     (!f.status || p.status===f.status) && (!f.area || p.area===f.area) && (!f.type || p.type===f.type) && (!f.rep || [p.motoukeRep,...String(p.rateruRep||'').split(/\s*\/\s*/),...(p.partners||[])].map(x=>String(x||'').trim()).includes(f.rep)));
+  return by?out.slice().sort(by):out;
 }
 function filterBar(full){
   const f=view.filters;
@@ -1685,6 +1766,8 @@ function filterBar(full){
     <select id="f_status" data-filter="status" aria-label="ステータスで絞る"><option value="">全ステータス</option><optgroup label="施工案件">${STATUS_ORDER.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${STATUS[s].label}</option>`).join('')}</optgroup>${me().role==='rateru_admin'?`<optgroup label="Rateru案件進捗（選ぶと進捗画面へ）">${PIPE_STATUS.map(([s])=>`<option value="pipe:${esc(s)}">${esc(s)}</option>`).join('')}</optgroup>`:''}</select>
     <select id="f_area" data-filter="area" aria-label="エリアで絞る"><option value="">全エリア</option>${areas.map(a=>`<option ${f.area===a?'selected':''}>${esc(a)}</option>`).join('')}</select>
     <select id="f_rep" data-filter="rep" aria-label="担当で絞り込む"><option value="">全担当</option>${[...new Set(S.projects.flatMap(p=>[p.motoukeRep,...String(p.rateruRep||'').split(/\s*\/\s*/),...(p.partners||[])]).map(x=>String(x||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja')).map(r=>`<option ${f.rep===r?'selected':''}>${esc(r)}</option>`).join('')}</select>
+    ${full?`<select id="f_sort" data-filter="sort" aria-label="並べ方"><option value="">並べ方：登録順</option>${[['due','完工予定が近い順'],['name','名前順'],['fav','★を先に']].map(([v,l])=>`<option value="${v}" ${f.sort===v?'selected':''}>${l}</option>`).join('')}</select>`:''}
+    ${['q','status','area','type','rep'].some(k=>f[k])?'<button class="btn sm" data-act="clearFilters">絞り込みを消す</button>':''}
   </div>`;
 }
 
@@ -1714,9 +1797,37 @@ function pipeSummary(){
   if(me().role!=='rateru_admin'||!(S.pipeline||[]).length) return '';
   const all=S.pipeline, open=all.filter(x=>!PIPE_CLOSED.has(x.status)), today=todayISO();
   const in14=pipeWorks().filter(x=>!PIPE_CLOSED.has(x.status)&&x.end>=today&&x.start<=addDays(today,14)).length;
-  const k=(label,num,sub,st='')=>`<button class="card kpi" style="text-align:left;cursor:pointer" data-act="nav" data-page="pipeline"${st?` data-st="${st}"`:''}><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`;
+  const k=(label,num,sub)=>{ const key=Object.keys(Pipe.KPI).find(v=>Pipe.KPI[v]===label); return `<button class="card kpi" style="text-align:left;cursor:pointer" ${key?`data-act="pipeKpiGo" data-k="${key}"`:'data-act="nav" data-page="pipeline"'}><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`; };   
   return `<div class="row" style="justify-content:space-between;align-items:baseline;margin:0 0 6px"><h3 style="margin:0">案件進捗</h3><button class="linkbtn" data-act="nav" data-page="pipeline">すべて見る ›</button></div>
   <div class="kpis" style="margin-bottom:16px">${k('進行中',open.length,`全${all.length}件`)}${k('お客様判断待ち',open.filter(x=>x.status==='お客様見積判断待ち').length,'見積の返事待ち')}${k('見積書 未作成',open.filter(x=>x.estimate!=='完'&&['見積作成中','社内見積判断待ち'].includes(x.status)).length,'見積作成中・社内判断待ち')}${k('2週間以内の工事',in14,'工程表に載っている工事')}</div>`;
+}
+
+
+function siteTodayCard(){
+  const role=me().role; if(!['partner','motouke_admin','motouke_sales'].includes(role)) return '';
+  const t=todayISO(), d=new Date(t+'T00:00'), wd='日月火水木金土'[d.getDay()], ps=visibleProjects();
+  const live=ps.map(p=>{ const ts=S.tasks.filter(x=>x.pid===p.id&&!x.done&&x.start<=t&&t<=x.end), ins=S.inspections[p.id]||{}, insT=[['mid','中間検査'],['final','完了検査']].filter(([k])=>ins[k]?.date===t).map(([,l])=>l);
+    return {p,ts,insT,rep:S.reports.some(r=>r.pid===p.id&&r.date===t&&r.by===myLabel())}; }).filter(x=>x.ts.length||x.insT.length);
+  const wait=role.startsWith('motouke')?S.approvals.filter(a=>a.state==='motouke_wait'&&visibleIds().has(a.pid)).length:0;
+  return `<div class="card section today" id="siteToday"><div class="row" style="justify-content:space-between;align-items:baseline"><h3 style="margin:0">今日の現場（${d.getMonth()+1}/${d.getDate()}・${wd}）</h3><button class="linkbtn" data-act="nav" data-page="calendar">カレンダー ›</button></div>
+    ${live.length?live.map(x=>`<div class="site-row"><button class="linkbtn site-name" data-act="open" data-pid="${x.p.id}" data-tab="schedule"><b>${esc(x.p.name)}</b></button><small class="muted"> ${esc([...x.ts.map(v=>v.trade),...x.insT].join('・'))}</small>
+      ${canReport()?`<div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap">${x.rep?'<span class="pill ok">今日の日報 済</span>':`<button class="btn sm primary" data-act="newReport" data-pid="${x.p.id}">今日の日報を書く</button>`}<button class="btn sm" data-act="open" data-pid="${x.p.id}" data-tab="photo">写真</button></div>`:''}</div>`).join('')
+      :'<p class="muted" style="margin:6px 0">今日 工事が入っている現場はありません</p>'}
+    ${wait?`<button class="btn sm" data-act="nav" data-page="approvals" style="margin-top:8px">元請の承認待ち ${wait}件 ›</button>`:''}</div>`;
+}
+function todayCard(){
+  if(me().role!=='rateru_admin') return siteTodayCard();
+  const t=todayISO(), who=PIPE_STAFF.find(n=>staffShort(n)===me().name)||'', d=new Date(t+'T00:00'), wd='日月火水木金土'[d.getDay()];
+  const rows=calendarRows(t.slice(0,7), who).filter(r=>r.date<=t&&(r.end||r.date)>=t&&(who||r.who===PLAN_ALL));
+  const mine=x=>!x.assignee||staffShort(x.assignee)===me().name;
+  const todos=(S.todos||[]).filter(x=>!x.done&&x.due&&x.due<=t&&visibleIds().has(x.pid)&&mine(x)).sort((a,b)=>a.due.localeCompare(b.due));
+  const apr=(S.approvals||[]).filter(a=>a.state==='rateru_check'&&visibleIds().has(a.pid)).length;
+  const nexts=(S.pipeline||[]).filter(x=>x.nextDate&&x.nextDate<=t&&!PIPE_CLOSED.has(x.status)&&Pipe.isMine(x)).sort((a,b)=>a.nextDate.localeCompare(b.nextDate));   
+  return `<div class="card section today" id="todaySec"><div class="row" style="justify-content:space-between;align-items:baseline"><h3 style="margin:0">今日（${d.getMonth()+1}/${d.getDate()}・${wd}）</h3><button class="linkbtn" data-act="nav" data-page="calendar">カレンダー ›</button></div>
+    ${rows.length?`<div class="plist">${rows.map(r=>`<button class="prow" type="button" ${r.act&&r.id?`data-act="${r.act}" data-id="${esc(r.id)}"`:''}><span class="pd">${esc(r.time||(r.kind==='工事'?'工事':'終日'))}</span><span class="pm"><b>${esc(r.title)}</b><small class="muted"> ${esc([r.who===PLAN_ALL?'全員':'',r.place].filter(Boolean).join(' ・ '))}</small></span></button>`).join('')}</div>`:'<p class="muted" style="margin:6px 0">今日の予定は入っていません</p>'}
+    ${todos.length?`<h4 class="perm-cat">期限が今日までのやること（${todos.length}件）</h4><div class="plist">${todos.slice(0,6).map(x=>`<button class="prow" type="button" data-act="open" data-pid="${esc(x.pid)}" data-tab="todo"><span class="pd" ${x.due<t?'style="color:var(--ng);font-weight:700"':''}>${x.due<t?'遅れ ':''}${md(x.due)}</span><span class="pm"><b>${esc(x.title)}</b><small class="muted"> ${esc(pname(x.pid))}</small></span></button>`).join('')}</div>`:''}
+    ${nexts.length?`<h4 class="perm-cat">案件進捗の次回アクション（${nexts.length}件）</h4><div class="plist">${nexts.slice(0,6).map(x=>`<button class="prow" type="button" data-act="editPipe" data-id="${esc(x.id)}"><span class="pd" ${x.nextDate<t?'style="color:var(--ng);font-weight:700"':''}>${x.nextDate<t?'遅れ ':''}${md(x.nextDate)}</span><span class="pm"><b>${esc(x.next||'次回アクション')}</b><small class="muted"> ${esc(x.name)}</small></span></button>`).join('')}</div>`:''}
+    ${apr?`<button class="btn sm" data-act="nav" data-page="approvals" style="margin-top:8px">Rateru の確認待ちの申請 ${apr}件 ›</button>`:''}</div>`;
 }
 function pDashboard(){
   const noProj = me().role==='rateru_admin' && !visibleProjects().length;   
@@ -1732,7 +1843,7 @@ function pDashboard(){
   const acts=S.activity.filter(a=>!a.pid||ids.has(a.pid)).slice(0,8);
   const kpi=(label,num,sub,act)=>`<button class="card kpi" data-act="kpi" data-status="${act}"><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`;
   const rows=filteredProjects().filter(p=>p.status!=='done');
-  return `${demoEntryCard()}${trialNotice()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
+  return `${demoEntryCard()}${trialNotice()}${todayCard()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
     <div class="acts"><button class="btn primary" data-act="nav" data-page="projects">案件を見る</button></div></div>
   ${noProj?`<div class="card section"><p style="margin:0">施工管理の案件（元請・協力業者と一緒に使う案件）は、まだありません。<br>図面・資料、現調・採寸、工程、チャット、日報は、それぞれの画面で<b>案件進捗の案件を選んで</b>始められます。</p></div>`:`<div class="kpis">
     ${kpi('進行中案件',ps.filter(p=>p.status!=='done').length,`全${ps.length}件`,'')}
@@ -1935,6 +2046,12 @@ function planSeed(){
     X(15,a,'14:00','サンプル管理会社 訪問'),X(18,b,'9:00','着工前の確認'),X(22,PLAN_ALL,'','休み'),X(25,c,'16:00','材料の受け取り'),X(26,PLAN_ALL,'17:00','定例会議','事務所'),X(28,d,'12:00','現場確認（サンプル）')];
 }
 const safeUrl = u => /^https:\/\/[^\s"'<>]+$/.test(String(u||'').trim()) ? String(u).trim() : '';
+
+const telLink = n => { const t=String(n||'').trim(), m=t.normalize('NFKC').match(/\+?\d[\d\-‐−–—ー― ]{7,}\d/); return m?`<a class="ext tel" href="tel:${m[0].replace(/[^\d+]/g,'')}">${esc(t)}</a>`:esc(t); };
+
+const quickLinks = (phone,address) => { const m=String(phone||'').normalize('NFKC').match(/\+?\d[\d\-‐−–—ー― ]{7,}\d/), a=String(address||'').trim(); if(!m&&!a) return '';
+  return `<div class="row quick-links" style="gap:6px;margin:0 0 10px;flex-wrap:wrap">${m?`<a class="btn sm ext" href="tel:${m[0].replace(/[^\d+]/g,'')}">📞 電話する</a>`:''}${a?`<a class="btn sm ext" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}" target="_blank" rel="noopener noreferrer">🗺 地図</a>`:''}</div>`; };
+const mapLink = a => { const t=String(a||'').trim(); return t&&t!=='—'?`<a class="ext map" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t)}" target="_blank" rel="noopener noreferrer">${esc(t)}</a>`:esc(t); };
 const extLink = (u, label, cls='') => safeUrl(u) ? `<a class="ext ${cls}" href="${esc(safeUrl(u))}" target="_blank" rel="noopener noreferrer">${label}</a>` : '';
 const mNorm = v => String(v||'').normalize('NFKC').toLowerCase().replace(/[\s　【】\[\]（）()「」『』・,、。.\/\\_\-－—~〜:：]/g,'');
 const mTokens = v => [...new Set(String(v||'').normalize('NFKC').split(/[\s　【】\[\]（）()「」『』・,、。\/\\_\-－—~〜:：]+/).map(mNorm).filter(t=>t.length>=2&&!/^(御?請求書?|ご請求書|見積書?|御見積書?|工事|株式会社|有限会社|株|御中|様|分|の|pdf|xlsx?|jpg|png|\d{1,4})$/.test(t)))];
@@ -1972,13 +2089,24 @@ function pipelineSeed(){
 }
 
 const Pipe = {
-  f:{q:'',tanto:'',kakudo:'',status:'',closed:false},
+  
+  canQuick(x){ return !!x&&me().role==='rateru_admin'&&(['head','deputy'].includes(myPos())||(!!mySalesOwner()&&salesOwner(x)===mySalesOwner())); },
+  quickStatus(id, s){ const x=(S.pipeline||[]).find(v=>v.id===id); if(!x||!this.canQuick(x)||!PIPE_STATUS.some(v=>v[0]===s)||x.status===s) return;
+    const prev=x.status; x.status=s; x.at=nowISO(); x.by=myLabel(); save(); render(); toast(`「${x.name}」の状態を「${s}」にしました（前は「${prev}」）`); },
+  
+  f:(()=>{ const f={q:'',tanto:'',kakudo:'',status:'',closed:false,mine:false}; try{ Object.assign(f,JSON.parse(localStorage.getItem('hub-pipe-f')||'{}'),{q:''}); }catch(e){} return f; })(),
+  saveF(){ const {q,kpi,...rest}=this.f; this.pref('f',JSON.stringify(rest)); },
+  
+  KPI:{wait:'お客様判断待ち', noest:'見積書 未作成', soon:'2週間以内の工事', nodate:'工事日 未入力'},
+  kpiOk(x,k){ const t=todayISO(); if(k==='wait') return x.status==='お客様見積判断待ち'; if(k==='noest') return x.estimate!=='完'&&['見積作成中','社内見積判断待ち'].includes(x.status);
+    if(k==='soon') return !!x.start&&x.status!=='キャンセル'&&(x.end||x.start)>=t&&x.start<=addDays(t,14); if(k==='nodate') return ['工事日調整済','着工中'].includes(x.status)&&!x.start; return true; },
+  isMine(x){ const me1=me().name; return salesOwner(x)===me1||staffShort(x.tanto1)===me1||staffShort(x.tanto2)===me1; },
   view:(()=>{ try{ return localStorage.getItem('hub-pipe-view')||'sheet'; }catch(e){ return 'sheet'; } })(),
   pref(k,v){ try{ localStorage.setItem('hub-pipe-'+k,v); }catch(e){} },
   list(withClosed){
     const f=this.f, q=f.q;
     return (S.pipeline||[]).filter(x=>hasQ([x.name,x.address,x.customer,x.requester,x.request].join(' '), q)
-      &&(!f.tanto||x.tanto1===f.tanto||x.tanto2===f.tanto)&&(!f.kakudo||x.kakudo===f.kakudo)&&(!f.status||x.status===f.status)
+      &&(!f.tanto||x.tanto1===f.tanto||x.tanto2===f.tanto)&&(!f.kakudo||x.kakudo===f.kakudo)&&(!f.status||x.status===f.status)&&(!f.mine||this.isMine(x))&&(!f.kpi||this.kpiOk(x,f.kpi))
       &&((withClosed??f.closed)||!!f.status||!PIPE_CLOSED.has(x.status)));
   },
   move(id, dir){
@@ -1989,18 +2117,19 @@ const Pipe = {
     if(i<0||i>=PIPE_STATUS.length) return;
     x.status=PIPE_STATUS[i][0]; x.at=nowISO(); x.by=myLabel(); save(); render(); toast(`「${x.name}」を${x.status}にしました`);
   },
-  form(id){
-    const isNew=!id, x=isNew?{status:'アポイント前',estimate:'未',schedule:'無',inputDate:todayISO()}:S.pipeline.find(v=>v.id===id);
+  form(id, pre){
+    if(id) Recent.add('pipe',id);
+    const isNew=!id, x=isNew?{status:'アポイント前',estimate:'未',schedule:'無',inputDate:todayISO(),...(pre||{})}:S.pipeline.find(v=>v.id===id);   
     const g=(k)=>x[k]||'';
     const two=(a,b)=>`<div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${a}${b}</div>`;
     const hubOpts=[['','（つなげない）'],...S.projects.map(p=>[p.id,`${p.name}（${p.id}）`])];
-    openDrawer(`${drawerHead(isNew?'案件進捗に追加':'案件進捗')}${isNew?'':lineShareRow(pipeLineText(x))+pipeRelated(x)}
+    openDrawer(`${drawerHead(isNew?'案件進捗に追加':'案件進捗')}${isNew?'':quickLinks(x.phone,x.address)+lineShareRow(pipeLineText(x))+pipeRelated(x)}
       <form data-form="pipe" data-id="${isNew?'':x.id}">${isNew?'':`<input type="hidden" name="_at" value="${esc(x.at||'')}">`}
       ${fld('物件名','name',g('name'),'text','required placeholder="例：〇〇マンション 外壁改修"')}
       ${fld('住所','address',g('address'))}
       ${Q.custPick('顧客名（管理会社など）','customer',g('customer'))}${fld('依頼主','requester',g('requester'))}
       ${two(fld('電話番号','phone',g('phone'),'tel'),fld('入力日','inputDate',g('inputDate'),'date'))}
-      ${sel('売上責任者（売上・見積を入れるときに必要）','responsible',[['','まだ決めていない'],...SALES_STAFF.map(n=>[n,n])],isNew&&SALES_STAFF.includes(mySalesOwner())?mySalesOwner():salesOwner(x))}
+      ${sel('売上責任者（売上・見積を入れるときに必要）','responsible',[['','まだ決めていない'],...SALES_STAFF.map(n=>[n,n])],isNew&&!x.responsible&&SALES_STAFF.includes(mySalesOwner())?mySalesOwner():salesOwner(x))}
       <p class="perm-note">この人の売上として集計します。担当①・②とは別に、責任者を1人決めてください。</p>
       ${two(sel('担当①','tanto1',['',...PIPE_STAFF],g('tanto1')),sel('担当②','tanto2',['',...PIPE_STAFF],g('tanto2')))}
       ${area('依頼内容','request',g('request'))}
@@ -2008,8 +2137,8 @@ const Pipe = {
       ${two(sel('状態','status',PIPE_STATUS.map(v=>v[0]),g('status')),sel('案件確度','kakudo',['',...PIPE_KAKUDO],g('kakudo')))}
       ${two(sel('見積書','estimate',['完','未'],g('estimate')||'未'),sel('工程表','schedule',['有','無'],g('schedule')||'無'))}
       ${fld('応募費用','cost',g('cost'))}
-      ${area('進捗状況','progress',g('progress'),'いつ・何をして・どういう状況か')}
-      ${fld('次回アクション','next',g('next'))}
+      ${area('進捗状況','progress',g('progress'),'いつ・何をして・どういう状況か')}<div class="row prog-stamp" style="gap:6px;flex-wrap:wrap;margin:-4px 0 10px"><small class="muted">日付つきで書く：</small>${['電話した','訪問した','見積を出した','返事待ち'].map(t=>`<button type="button" class="btn sm" data-act="progStamp" data-t="${t}">${t}</button>`).join('')}</div>
+      ${two(fld('次回アクション','next',g('next')),fld('次回の日（あれば）','nextDate',g('nextDate'),'date'))}
       <h3 style="margin:18px 0 8px;font-size:14px">工事日（工程表とカレンダーに載ります）</h3>
       ${two(fld('工事開始日','start',g('start'),'date'),fld('工事終了日','end',g('end'),'date'))}
       <details class="more" ${g('pid')||g('folder')||g('alias')||g('billing')?'open':''}><summary>くわしい設定（施工管理の案件・Dropbox・別名・請求書の送り方）</summary>
@@ -2020,12 +2149,12 @@ const Pipe = {
       <h3 style="margin:18px 0 8px;font-size:14px">各種手配</h3>
       ${PIPE_ARRANGE.map(([k,l])=>fld(l,k,g(k))).join('')}
       <p class="perm-note">この内容はRateruだけが見られます。元請・協力業者には表示されません。</p>
-      <div class="row" style="justify-content:space-between;margin-top:12px">${isNew?'<span></span>':`<button class="btn danger" type="button" data-act="delPipe" data-id="${x.id}">削除</button>`}<button class="btn primary" type="submit">保存</button></div>
+      <div class="row" style="justify-content:space-between;margin-top:12px">${isNew?'<span></span>':`<span class="row" style="gap:6px"><button class="btn danger" type="button" data-act="delPipe" data-id="${x.id}">削除</button><button class="btn" type="button" data-act="copyPipe" data-id="${x.id}" title="顧客・依頼主・担当を写して、新しい案件を入れる">写して新しく</button></span>`}<button class="btn primary" type="submit">保存</button></div>
       </form>`);
   },
   save(id, v){
     if('customerPick' in v) v.customer=Q.custValue(v,'customer');   
-    const keys=['name','address','customer','requester','phone','inputDate','responsible','tanto1','tanto2','request','status','kakudo','estimate','schedule','cost','progress','next','start','end','pid','folder','billing','alias',...PIPE_ARRANGE.map(a=>a[0])];
+    const keys=['name','address','customer','requester','phone','inputDate','responsible','tanto1','tanto2','request','status','kakudo','estimate','schedule','cost','progress','next','nextDate','start','end','pid','folder','billing','alias',...PIPE_ARRANGE.map(a=>a[0])];
     const data={}; keys.forEach(k=>data[k]=String(v[k]??'').trim());
     if(!data.name){ toast('物件名を入れてください'); return; }
     let noOwner=false;   
@@ -2065,7 +2194,7 @@ const Pipe = {
       <div class="row" style="justify-content:flex-end;flex-wrap:wrap"><button class="btn" data-act="closeModal">やめる</button><button class="btn" id="modalReplace">入れ替える</button><button class="btn primary" id="modalOk">追加する</button></div></div></div>`;
     const done=(list,msg)=>{ $('#modalRoot').innerHTML=''; S.pipeline=list; save(); Pipe.view='sheet'; render(); toast(msg); };
     $('#modalOk').onclick=()=>done([...add,...S.pipeline],`${add.length}件を追加しました${dup?`（${dup}件は登録済みのため飛ばしました）`:''}`);
-    $('#modalReplace').onclick=()=>confirmBox(`今の案件進捗${S.pipeline.length}件を消して、CSVの${items.length}件と入れ替えます。アプリで直した内容も消えます。`,'入れ替える',()=>done(items,`${items.length}件を入れました`));
+    $('#modalReplace').onclick=()=>confirmBox(`今の案件進捗${S.pipeline.length}件を消して、CSVの${items.length}件と入れ替えます。アプリで直した内容も消えます（前の${S.pipeline.length}件は、30日のあいだ「消したもの」からまとめて戻せます）。`,'入れ替える',()=>{ Trash.put(`CSVで入れ替える前の案件進捗 ${S.pipeline.length}件`,[{coll:'pipeline',items:S.pipeline}]); done(items,`${items.length}件を入れました`); });
   }
 };
 function parseCsv(text){
@@ -2108,14 +2237,15 @@ function pPipeline(){
   const all=S.pipeline||[], open=all.filter(x=>!PIPE_CLOSED.has(x.status)), f=Pipe.f, today=todayISO();
   const in14=pipeWorks().filter(x=>!PIPE_CLOSED.has(x.status)&&x.end>=today&&x.start<=addDays(today,14)).length;
   const noDate=open.filter(x=>['工事日調整済','着工中'].includes(x.status)&&!x.start).length;
-  const kpi=(label,num,sub)=>`<div class="card kpi"><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></div>`;
+  const kpi=(label,num,sub)=>{ const k=Object.keys(Pipe.KPI).find(v=>Pipe.KPI[v]===label); return k?`<button type="button" class="card kpi kpi-btn ${f.kpi===k?'on':''}" data-act="pipeKpi" data-k="${k}" aria-pressed="${f.kpi===k}"><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`:`<div class="card kpi"><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></div>`; };
   const opt=(arr,v,all)=>`<option value="">${all}</option>`+arr.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('');
   const tools=`<div class="toolbar">
       <input class="search" id="rp_q" placeholder="物件名・住所・顧客名・依頼内容で検索" value="${esc(f.q)}" aria-label="案件進捗を検索">
       <select data-act="pipeFilter" data-key="status" aria-label="全ステータス"><option value="">全ステータス</option>${PIPE_STATUS.map(([s])=>`<option value="${esc(s)}" ${f.status===s?'selected':''}>${esc(s)}</option>`).join('')}</select>
+      ${me().name&&PIPE_STAFF.some(n=>staffShort(n)===me().name)?`<button class="btn sm ${f.mine?'primary':''}" data-act="pipeMine" aria-pressed="${f.mine?'true':'false'}">自分の案件</button>`:''}
       <select data-act="pipeFilter" data-key="tanto" aria-label="担当">${opt(PIPE_STAFF,f.tanto,'担当：全員')}</select>
       <select data-act="pipeFilter" data-key="kakudo" aria-label="案件確度">${opt(PIPE_KAKUDO,f.kakudo,'確度：すべて')}</select>
-      <label class="row" style="gap:6px;font-size:12px;white-space:nowrap"><input type="checkbox" data-act="pipeFilter" data-key="closed" ${f.closed?'checked':''}> 完了・キャンセルも表示</label></div>`;
+      <label class="row" style="gap:6px;font-size:12px;white-space:nowrap"><input type="checkbox" data-act="pipeFilter" data-key="closed" ${f.closed?'checked':''}> 完了・キャンセルも表示</label>${f.kpi?`<button class="btn sm primary" data-act="pipeKpi" data-k="${f.kpi}">「${esc(Pipe.KPI[f.kpi])}」だけ ×</button>`:''}</div>`;
   const body = Pipe.view==='board' ? pipeBoard() : Pipe.view==='cust' ? pipeCustomers() : pipeSheet();
   return `${caseTabs()}<div class="hero"><div><h2>案件進捗</h2><p>Rateruの案件進捗シートをそのまま移したものです。元請・協力業者には表示されません。</p></div>
     <div class="acts"><button class="btn ${!['board','cust'].includes(Pipe.view)?'primary':''}" data-act="pipeView" data-v="sheet">シート</button><button class="btn ${Pipe.view==='board'?'primary':''}" data-act="pipeView" data-v="board">状態ボード</button><button class="btn ${Pipe.view==='cust'?'primary':''}" data-act="pipeView" data-v="cust">顧客別</button><button class="btn" data-act="pipeCsv">CSV出力</button><label class="btn">CSV読み込み<input type="file" accept=".csv,text/csv" hidden data-act="pipeImport"></label><button class="btn primary" data-act="newPipe">＋ 追加</button></div></div>
@@ -2129,12 +2259,12 @@ function pipeSheet(){
   const e=v=>v?'':' e';
   const row=x=>`<tr class="clickable" data-act="editPipe" data-id="${x.id}">
     <td class="c-k${e(x.kakudo)}" data-l="確度"><b>${esc(x.kakudo)}</b></td><td class="c-d${e(x.inputDate)}" data-l="入力"><small>${esc(x.inputDate?md(x.inputDate):'')}</small></td>
-    <td class="c-name"><b>${esc(x.name)}</b>${x.folder?' '+extLink(x.folder,'📁','dbx'):''}${x.pid?`<br><small>Hub：${esc(x.pid)}</small>`:''}<br><small>${esc(x.address)}</small></td>
-    <td class="c-who${e(x.requester||x.phone)}" data-l="依頼主">${esc(x.requester)}<br><small>${esc(x.phone)}</small></td><td class="c-who c-tan"><b>責任者：${esc(salesOwner(x)||'未設定')}</b><br>${esc(x.tanto1)}<br><small>${esc(x.tanto2)}</small></td>
-    <td class="c-req${e(x.request)}" data-l="依頼内容">${esc(x.request)}</td><td class="c-st">${pipeBadge(x.status)}</td>
+    <td class="c-name"><b>${esc(x.name)}</b>${x.folder?' '+extLink(x.folder,'📁','dbx'):''}${x.pid?`<br><small>Hub：${esc(x.pid)}</small>`:''}<br><small>${mapLink(x.address)}</small></td>
+    <td class="c-who${e(x.requester||x.phone)}" data-l="依頼主">${esc(x.requester)}<br><small>${telLink(x.phone)}</small></td><td class="c-who c-tan"><b>責任者：${esc(salesOwner(x)||'未設定')}</b><br>${esc(x.tanto1)}<br><small>${esc(x.tanto2)}</small></td>
+    <td class="c-req${e(x.request)}" data-l="依頼内容">${esc(x.request)}</td><td class="c-st">${Pipe.canQuick(x)?`<select class="rp-quick" data-act="pipeQuickStatus" data-id="${x.id}" aria-label="状態を変える">${PIPE_STATUS.map(([s])=>`<option ${s===x.status?'selected':''}>${esc(s)}</option>`).join('')}</select>`:pipeBadge(x.status)}</td>
     <td class="c-yn" data-l="見積書">${yn(x.estimate,'完')}</td><td class="c-yn" data-l="工程表">${yn(x.schedule,'有',['工事日調整済','着工中'].includes(x.status))}</td>
     <td class="c-wd${e(x.start)}" data-l="工事日"><small>${x.start?`${md(x.start)}〜${md(x.end||x.start)}`:''}</small></td>
-    <td class="c-prog${e(x.progress)}" data-l="進捗">${esc(x.progress)}</td><td class="c-next${e(x.next)}" data-l="次回">${esc(x.next)}</td>
+    <td class="c-prog${e(x.progress)}" data-l="進捗">${esc(x.progress)}</td><td class="c-next${e(x.next||x.nextDate)}" data-l="次回">${x.nextDate?`<b class="${x.nextDate<todayISO()&&!PIPE_CLOSED.has(x.status)?'late':''}">${md(x.nextDate)}</b> `:''}${esc(x.next)}</td>
     <td class="c-arr${e(PIPE_ARRANGE.some(([k])=>x[k]))}" data-l="手配"><small>${PIPE_ARRANGE.filter(([k])=>x[k]).map(([k,l])=>`${esc(l.replace('手配',''))}：${esc(x[k])}`).join('<br>')}</small></td></tr>`;
   
   const LIMIT=500, cap=!Pipe.showAll&&!String(Pipe.f.q||'').trim(); let shown=0, hidden=0;
@@ -2238,7 +2368,7 @@ const Office = {
   del(coll, id){
     const arr=officeColl(coll), x=arr.find(y=>y.id===id);
     if(coll==='sales'&&!canEditSale(x)){ toast('この売上を削除する権限がありません'); return; }
-    confirmBox(`「${x.title||x.party}」を削除します。`,'削除する',()=>{ if(x.fileKey) FileStore.del(x.fileKey); const i=arr.indexOf(x); arr.splice(i,1); save(); closeDrawer(); render(); toast('削除しました'); });
+    confirmBox(`「${x.title||x.party}」を削除します（30日のあいだ「消したもの」から戻せます）。`,'削除する',()=>{ Trash.put(`${({meetings:'会議資料',templates:'書類ひな形',sales:x.type==='buy'?'仕入':'売上'})[coll]||'資料'}「${x.title||x.party||''}」`,[{coll,items:[x]}],[x.fileKey]); const i=arr.indexOf(x); arr.splice(i,1); save(); closeDrawer(); render(); toast('削除しました'); });
   },
   fileField(x){ return `<div class="field"><label for="fm_file">ファイル（PDF・Excel・Wordなど。任意）</label><input id="fm_file" name="file" type="file">${x&&x.fileName?`<small>今のファイル：${esc(x.fileName)}（選ぶと差し替えます）</small>`:''}</div>
     ${fld('Dropboxのリンク（任意）','link',x?.link||'','url','placeholder="https://www.dropbox.com/..."')}`; },
@@ -2649,7 +2779,9 @@ const Dz = {
   people(){ return [...new Set([...PIPE_STAFF, ...this.live().map(x=>x.who)])]; },
   siteName: x => x.pid ? ((S.pipeline||[]).find(p=>p.id===x.pid)||{}).name || x.site || '' : x.site || '',
   form(id, date, who){
-    const x=id?S.dezura.find(v=>v.id===id):{date:date||todayISO(), who:who||PIPE_STAFF[0], count:1, kind:'日中'};
+    
+    const w=who||PIPE_STAFF.find(n=>staffShort(n)===me().name)||PIPE_STAFF[0], last=id?null:this.live().filter(v=>v.who===w&&!['有給','休み'].includes(v.kind)&&(v.pid||v.site)).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+    const x=id?S.dezura.find(v=>v.id===id):{date:date||todayISO(), who:w, count:1, kind:'日中', pid:last?.pid||'', site:last?.pid?'':(last?.site||'')};
     const ppl=[...new Set([...PIPE_STAFF, x.who].filter(Boolean))];
     const pipeOpts=[['','（案件から選ばない）'],...(S.pipeline||[]).filter(p=>!PIPE_CLOSED.has(p.status)||p.id===x.pid).map(p=>[p.id,p.name])];
     openDrawer(`${drawerHead(id?'出面':'出面を入れる')}<form data-form="dezura" data-id="${id||''}">
@@ -2657,7 +2789,7 @@ const Dz = {
       ${fld('ほかの人（職人さんなど。入れるとこちらが優先）','whoOther','','text','placeholder="例：大工 川井さん"')}
       ${sel('現場（案件進捗から選ぶ）','pid',pipeOpts,x.pid||'')}${fld('現場名（案件にないとき）','site',x.site||'','text','placeholder="例：〇〇マンション 302号室"')}
       <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('人工','count',x.count??1,'number','required min="0" max="3" step="0.5" inputmode="decimal"')}${sel('区分','kind',DZ_KINDS,x.kind==='夜間'?'夜勤':(x.kind||'日中'))}</div>
-      ${area('メモ','memo',x.memo||'')}
+      ${last?`<p class="perm-note">前回（${md(last.date)}）の現場を入れています。違うときは選び直してください。</p>`:''}${area('メモ','memo',x.memo||'')}
       <p class="perm-note">出面はだれでも見られます。</p>
       <div class="row" style="justify-content:space-between;margin-top:12px">${id?`<button class="btn danger" type="button" data-act="dzVoid" data-id="${id}">取り消し</button>`:'<span></span>'}<button class="btn primary" type="submit">保存</button></div></form>`);
   },
@@ -2769,7 +2901,7 @@ const Petty = {
 function pPetty(){
   const admin=Petty.admin();
   return `${officeTabs()}<div class="hero"><div><h2>小口現金・立替</h2><p>使ったらレシートの写真と金額を入れます。${admin?'内藤さん・川端さん・舟田さんは、全員分を見て精算できます。':'自分の分だけが表示されます。'}</p></div>
-    <div class="acts"><button class="btn primary" data-act="pettyNew">＋ レシートを入れる</button></div></div>
+    <div class="acts"><button class="btn primary" data-act="pettyNew">＋ レシートを入れる</button>${Petty.admin()?'<button class="btn" data-act="pettyCsv">CSV（全員分）</button>':''}</div></div>
   <div class="pgrid">${Petty.people().map(w=>{ const st=Petty.state(w), open=st.xs.filter(x=>(x.kind==='use'||x.kind==='adv')&&!x.settled).sort((a,b)=>b.date.localeCompare(a.date)), hist=st.xs.filter(x=>x.kind==='refill'||x.kind==='refund').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
     return `<div class="card pcard"><b>${esc(w)}</b>
       <dl>${st.fl?`<dt>預けている額</dt><dd>${yen(st.fl)}</dd><dt>使った（未精算）</dt><dd>${yen(st.used)}</dd><dt>手元にあるはず</dt><dd><b>${yen(st.left)}</b>${st.left<10000?' <span class="pill wait">少なくなっています</span>':''}</dd>`:''}
@@ -2780,7 +2912,7 @@ function pPetty(){
   <p class="perm-note">精算は、手元の現金と「手元にあるはず」の額が合っているか確かめてから押してください。精算した分の記録は消えずに残ります。</p>`;
 }
 const tabsBar = (items, extra='') => `<div class="tabs-bar" role="tablist">${items.filter(Boolean).map(([id,l])=>`<button class="tb ${view.page===id?'on':''}" role="tab" aria-selected="${view.page===id}" data-act="nav" data-page="${id}">${l}</button>`).join('')}${extra}</div>`;
-const caseTabs = () => tabsBar([['projects','案件一覧'], canSeePage('pipeline')&&['pipeline','案件進捗（社内）'], ['chat','案件チャット']]);
+const caseTabs = () => { const n=view.page==='chat'?0:ChatSeen.total(); return tabsBar([['projects','案件一覧'], canSeePage('pipeline')&&['pipeline','案件進捗（社内）'], ['chat','案件チャット'+(n?` <span class="badge" title="未読のメッセージ">${n}</span>`:'')]]); };
 const schedTabs = () => tabsBar([['calendar','カレンダー'],['schedule','工程表']]);
 const officeTabs = () => tabsBar([['dezura','出面'],['petty','小口現金・立替'], canSeePage('finance')&&['finance','財務']],
   `<span class="sp"></span>${canFinance()?'<button class="btn sm" data-act="pinChange">暗証番号を変える</button>':''}<button class="btn sm" data-act="lockClose">🔒 閉じる</button>`);
@@ -2869,7 +3001,7 @@ function salesScopeTabs(scope){
 function pSales(){
   if(!canSeeSalesPage()) return '<div class="empty">売上管理の閲覧権限がありません</div>';
   const m=Office.sMonth||monthKey(), y=m.slice(0,4), want=Office.saleScope||(salesAll()?'all':mySalesOwner()), scope=allowedSalesScopes().includes(want)?want:(salesAll()?'all':mySalesOwner()), headAll=salesAll()&&scope==='all';
-  const header=`<div class="hero"><div><h2>${scope==='all'?'売上管理 全体':'売上管理 '+esc(scope)}</h2><p>${scope==='all'?'全体の売上':'責任者の案件につながる売上'}を月ごとに確認します。</p></div><div class="acts"><button class="btn" data-act="saleMonth" data-d="-1" aria-label="前の月">‹</button><button class="btn" data-act="saleMonth" data-d="0">${monthLabel(m)}</button><button class="btn" data-act="saleMonth" data-d="1" aria-label="次の月">›</button></div></div>${salesScopeTabs(scope)}`;
+  const header=`<div class="hero"><div><h2>${scope==='all'?'売上管理 全体':'売上管理 '+esc(scope)}</h2><p>${scope==='all'?'全体の売上':'責任者の案件につながる売上'}を月ごとに確認します。</p></div><div class="acts"><button class="btn" data-act="saleMonth" data-d="-1" aria-label="前の月">‹</button><button class="btn" data-act="saleMonth" data-d="0">${monthLabel(m)}</button><button class="btn" data-act="saleMonth" data-d="1" aria-label="次の月">›</button>${salesAll()?`<button class="btn" data-act="salesCsv" data-r="m">CSV（この月）</button><button class="btn" data-act="salesCsv" data-r="y">CSV（この年）</button>`:''}</div></div>${salesScopeTabs(scope)}`;
   const sum=a=>a.reduce((s,x)=>s+(Number(x.amount)||0),0), kpi=(l,n,s)=>`<div class="card kpi money"><div class="label">${l}</div><div class="num">${n}</div><div class="sub">${s}</div></div>`;
   if(salesDeputy()&&scope==='all'){
     if(MODE==='server'&&SalesTotals.rows===null){ SalesTotals.load(); return header+'<div class="card section">全体の売上合計を読み込んでいます…</div>'; }
@@ -2881,13 +3013,17 @@ function pSales(){
   const unassigned=headAll?(S.sales||[]).filter(x=>x.type==='sale'&&!saleOwner(x)):[];
   const all=(S.sales||[]).filter(x=>canViewSale(x)&&(headAll?(x.type!=='sale'||!!saleOwner(x)):x.type==='sale'&&saleOwner(x)===scope));
   const inM=all.filter(x=>x.month===m), sales=inM.filter(x=>x.type==='sale'), buys=headAll?inM.filter(x=>x.type==='buy'):[];
+  
+  const mAdd=(k,n)=>{ const d=new Date(Number(k.slice(0,4)),Number(k.slice(5))-1+n,1); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; };
+  const sOf=k=>sum(all.filter(x=>x.type==='sale'&&x.month===k)), cmp=(a,b,l)=>b?`${l} ${a>=b?'+':'−'}${Math.abs(Math.round((a-b)/b*100))}%`:'';
+  const cmpTxt=[cmp(sum(sales),sOf(mAdd(m,-1)),'先月比'),cmp(sum(sales),sOf(mAdd(m,-12)),'前年同月比')].filter(Boolean).join('・');
   const open=all.filter(x=>x.type==='sale'&&x.status!=='入金済み'), unpaid=open.filter(x=>x.status==='送付済み'), draft=open.filter(x=>x.status==='作成中'), today=todayISO(), late=open.filter(x=>x.due&&x.due<today);
-  const row=x=>`<tr class="clickable" data-act="editSale" data-id="${x.id}"><td>${esc(x.date?md(x.date):'—')}</td><td><b>${esc(x.party)}</b>${x.pipeId?`<br><button class="linkbtn" data-act="editPipe" data-id="${x.pipeId}">${esc((S.pipeline.find(p=>p.id===x.pipeId)||{}).name||'')}</button>`:'<br><small class="pill wait">責任者未設定</small>'}</td><td>${esc(x.title)}</td>
-    <td class="num" style="text-align:right">${yen(x.amount)}</td><td><span class="pill ${x.status!=='入金済み'&&x.status!=='支払済み'&&x.due&&x.due<today?'ng':SALE_PILL[x.status]||'todo'}">${esc(x.status)}</span>${x.type==='sale'&&x.method?`<br><small>${esc(x.method)}</small>`:''}</td><td><small>${x.due?md(x.due):''}</small></td><td>${x.dbx&&!x.amount?'<span class="pill wait">金額を入れる</span> ':''}${dbxTag(x)}${dbxBtn(x,'sales','PDF')}${x.fileKey?`<button class="btn sm" data-act="openOffice" data-coll="sales" data-id="${x.id}">PDF</button>`:''}${x.link?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener">Dropbox</a>`:''}</td></tr>`;
-  const table=(title,type,arr)=>`<div class="card section mt"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${title}（${arr.length}件 ・ ${yen(sum(arr))}）</h3><button class="btn sm primary" data-act="newSale" data-t="${type}">＋ 追加</button></div><div class="tablewrap"><table><thead><tr><th>請求日</th><th>${type==='sale'?'請求先':'業者名'}</th><th>件名</th><th style="text-align:right">金額（税込）</th><th>状態</th><th>${type==='sale'?'入金予定':'支払予定'}</th><th>書類</th></tr></thead><tbody>${arr.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(row).join('')||`<tr><td colspan="7" class="empty">${monthLabel(m)}の${type==='sale'?'売上':'仕入'}はまだありません</td></tr>`}</tbody></table></div></div>`;
+  const row=x=>`<tr class="clickable" data-act="editSale" data-id="${x.id}"><td data-l="請求日">${esc(x.date?md(x.date):'—')}</td><td data-l="${x.type==='sale'?'請求先':'業者名'}"><div><b>${esc(x.party)}</b>${x.pipeId?`<br><button class="linkbtn" data-act="editPipe" data-id="${x.pipeId}">${esc((S.pipeline.find(p=>p.id===x.pipeId)||{}).name||'')}</button>`:'<br><small class="pill wait">責任者未設定</small>'}</div></td><td data-l="件名">${esc(x.title)}</td>
+    <td class="num" data-l="金額" style="text-align:right">${yen(x.amount)}</td><td data-l="状態"><span class="pill ${x.status!=='入金済み'&&x.status!=='支払済み'&&x.due&&x.due<today?'ng':SALE_PILL[x.status]||'todo'}">${esc(x.status)}</span>${x.type==='sale'&&x.method?` <small>${esc(x.method)}</small>`:''}</td><td data-l="${x.type==='sale'?'入金予定':'支払予定'}"><small>${x.due?md(x.due):''}</small></td><td data-l="書類">${x.dbx&&!x.amount?'<span class="pill wait">金額を入れる</span> ':''}${dbxTag(x)}${dbxBtn(x,'sales','PDF')}${x.fileKey?`<button class="btn sm" data-act="openOffice" data-coll="sales" data-id="${x.id}">PDF</button>`:''}${x.link?`<a class="btn sm" href="${esc(x.link)}" target="_blank" rel="noopener">Dropbox</a>`:''}</td></tr>`;
+  const table=(title,type,arr)=>`<div class="card section mt"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${title}（${arr.length}件 ・ ${yen(sum(arr))}）</h3><button class="btn sm primary" data-act="newSale" data-t="${type}">＋ 追加</button></div><div class="tablewrap"><table class="mcards"><thead><tr><th>請求日</th><th>${type==='sale'?'請求先':'業者名'}</th><th>件名</th><th style="text-align:right">金額（税込）</th><th>状態</th><th>${type==='sale'?'入金予定':'支払予定'}</th><th>書類</th></tr></thead><tbody>${arr.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(row).join('')||`<tr><td colspan="7" class="empty">${monthLabel(m)}の${type==='sale'?'売上':'仕入'}はまだありません</td></tr>`}</tbody></table></div></div>`;
   const year=[...Array(12)].map((_,i)=>`${y}-${pad(i+1)}`).map(k=>{ const a=all.filter(x=>x.month===k); return {k,s:sum(a.filter(x=>x.type==='sale')),b:headAll?sum(a.filter(x=>x.type==='buy')):0}; });
   const max=Math.max(1,...year.map(r=>Math.max(r.s,r.b)));
-  return header+`${unassigned.length?`<div class="alert ng">案件・売上責任者が未設定の売上が ${unassigned.length}件あります。結び付けるまで全体合計と個人別集計には入れません。${SaleOwnerGuess.can()?'<button class="btn sm primary" data-act="saleOwnerPreview">ファイルの名前から担当者を入れる</button>':''}${unassigned.slice(0,30).map(x=>`<button class="btn sm" data-act="editSale" data-id="${x.id}">${esc(x.party||x.title||'売上を開く')}</button>`).join('')}</div>`:''}<div class="kpis money">${kpi(`${monthLabel(m)} 売上`,yen(sum(sales)),`${sales.length}件`)}${headAll?kpi(`${monthLabel(m)} 仕入`,yen(sum(buys)),`${buys.length}件`):''}${headAll&&canFinance()?kpi('粗利',yen(sum(sales)-sum(buys)),sum(sales)?`粗利率 ${Math.round((sum(sales)-sum(buys))/sum(sales)*100)}%`:'—'):''}${kpi('入金待ち（請求済み）',yen(sum(unpaid)),`${unpaid.length}件${draft.length?` ・ 作成中 ${draft.length}件 ${yen(sum(draft))}`:''}`)}${kpi('入金予定を過ぎた',late.length,late.length?yen(sum(late)):'なし')}</div>
+  return header+`${unassigned.length?`<div class="alert ng">案件・売上責任者が未設定の売上が ${unassigned.length}件あります。結び付けるまで全体合計と個人別集計には入れません。${SaleOwnerGuess.can()?'<button class="btn sm primary" data-act="saleOwnerPreview">ファイルの名前から担当者を入れる</button>':''}${unassigned.slice(0,30).map(x=>`<button class="btn sm" data-act="editSale" data-id="${x.id}">${esc(x.party||x.title||'売上を開く')}</button>`).join('')}</div>`:''}<div class="kpis money">${kpi(`${monthLabel(m)} 売上`,yen(sum(sales)),`${sales.length}件${cmpTxt?`<br><span class="kpi-cmp">${cmpTxt}</span>`:''}`)}${headAll?kpi(`${monthLabel(m)} 仕入`,yen(sum(buys)),`${buys.length}件`):''}${headAll&&canFinance()?kpi('粗利',yen(sum(sales)-sum(buys)),sum(sales)?`粗利率 ${Math.round((sum(sales)-sum(buys))/sum(sales)*100)}%`:'—'):''}${kpi('入金待ち（請求済み）',yen(sum(unpaid)),`${unpaid.length}件${draft.length?` ・ 作成中 ${draft.length}件 ${yen(sum(draft))}`:''}`)}${kpi('入金予定を過ぎた',late.length,late.length?yen(sum(late)):'なし')}</div>
   ${table('売上（請求書 売上）','sale',sales)}${headAll?table('仕入（請求書 業者さんから）','buy',buys):''}
   <div class="card section mt"><h3>${y}年の月別</h3><div class="tablewrap"><table class="year-table"><thead><tr><th>月</th><th style="text-align:right">売上</th>${headAll?'<th style="text-align:right">仕入</th><th style="text-align:right">粗利</th>':''}<th style="min-width:180px">売上の比較</th></tr></thead><tbody>${year.map(r=>`<tr class="clickable ${r.k===m?'on':''}" data-act="saleMonthSet" data-m="${r.k}"><td>${Number(r.k.slice(5))}月</td><td class="num" style="text-align:right">${r.s?yen(r.s):'—'}</td>${headAll?`<td class="num" style="text-align:right">${r.b?yen(r.b):'—'}</td><td class="num" style="text-align:right">${r.s||r.b?yen(r.s-r.b):'—'}</td>`:''}<td><div class="ybar"><span class="s" style="width:${r.s/max*100}%"></span></div>${headAll?`<div class="ybar"><span class="b" style="width:${r.b/max*100}%"></span></div>`:''}</td></tr>`).join('')}</tbody></table></div><div class="row perm-note"><span class="pill" style="background:var(--band);color:var(--band-text)">売上</span>${headAll?'<span class="pill todo">仕入</span>':''}<span>行を押すとその月を表示します。</span></div></div>`;
 }
@@ -2910,6 +3046,21 @@ function pipeRelated(x){
 }
 
  
+
+const TOC_PAGES=new Set(['finance','settings']);
+function addPageToc(){ if(!TOC_PAGES.has(view.page)) return; const c=$('#content'); const hs=[...c.querySelectorAll('.card.section > h3, .card.section > .row > h3')].filter(h=>h.offsetParent!==null&&h.textContent.trim()); if(hs.length<4) return;
+  hs.forEach((h,i)=>{ h.id='toc'+i; h.classList.add('toc-h'); });
+  const nav=document.createElement('nav'); nav.className='page-toc'; nav.setAttribute('aria-label','この画面の目次');
+  nav.innerHTML='<small class="muted">この画面の中：</small>'+hs.map((h,i)=>`<button type="button" class="btn sm" data-act="tocGo" data-i="${i}">${esc(h.textContent.replace(/（[^）]*）/g,'').replace(/\s+/g,' ').trim().slice(0,16))}</button>`).join('');
+  const hero=c.querySelector('.hero'); if(hero) hero.after(nav); else c.prepend(nav); }
+
+const FontSize={ key:'rateru-pad-font-size', get(){ try{ return localStorage.getItem(this.key)||''; }catch(e){ return ''; } },
+  apply(){ const v=this.get(); if(v) document.documentElement.dataset.fs=v; else delete document.documentElement.dataset.fs; },
+  set(v){ try{ if(v) localStorage.setItem(this.key,v); else localStorage.removeItem(this.key); }catch(e){} this.apply(); },
+  card(){ const v=this.get(); return `<div class="card section mt"><h3>文字の大きさ（この端末）</h3><div class="row" style="gap:6px;flex-wrap:wrap">${[['','標準'],['l','大きめ'],['xl','とても大きい']].map(([k,l])=>`<button class="btn ${v===k?'primary':''}" data-act="fontSize" data-v="${k}" aria-pressed="${v===k}">${l}</button>`).join('')}</div><p class="perm-note">この端末で見るときだけ変わります。ほかの人の画面は変わりません。</p></div>`; } };
+FontSize.apply();
+const GanttPos={key:'',at:{}};
+document.addEventListener('scroll',e=>{ const w=e.target; if(w&&w.classList&&w.classList.contains('gantt-wrap')&&w.dataset.gk!=null) GanttPos.at[w.dataset.gk]=w.scrollLeft; },true);
 function gantt(tasks, showProject, opt={}){
   if(!tasks.length) return '<div class="empty">工程がまだ登録されていません</div>';
   const today=todayISO();
@@ -3012,6 +3163,44 @@ function pInspection(){
 
  
 const canSeeDoc = d => d.visibility!=='rateru' || me().role==='rateru_admin';
+
+
+const Recent = { key:'rateru-pad-recent',
+  all(){ try{ return JSON.parse(localStorage.getItem(this.key)||'{}')||{}; }catch(e){ return {}; } },
+  add(k,id){ if(!id||!S.userId) return; const a=this.all(); a[S.userId]=[{k,id},...(a[S.userId]||[]).filter(x=>!(x.k===k&&x.id===id))].slice(0,8); try{ localStorage.setItem(this.key,JSON.stringify(a)); }catch(e){} },
+  list(){ const vis=visibleIds(); return (this.all()[S.userId]||[]).map(x=>{
+    if(x.k==='proj'){ const p=vis.has(x.id)&&proj(x.id); return p?{k:'proj',id:p.id,label:p.name,sub:'案件'}:null; }
+    if(x.k==='pipe'&&canSeePage('pipeline')){ const v=(S.pipeline||[]).find(y=>y.id===x.id); return v?{k:'pipe',id:v.id,label:v.name,sub:['案件進捗',v.status].filter(Boolean).join(' ・ ')}:null; }
+    return null; }).filter(Boolean); }
+};
+const GSearch = {
+  q:'',
+  open(){ openDrawer(`${drawerHead('全体を探す')}<div class="field"><label for="gs_q">探す言葉（名前・住所・顧客・番号など）</label><input id="gs_q" class="search" autocomplete="off" placeholder="例：サンプルマンション" value="${esc(this.q)}"></div><div id="gs_res"></div>`); const i=$('#gs_q'); if(i){ i.focus(); this.draw(); } },
+  groups(q){ const out=[], add=(title,kind,rows,hay,label,sub)=>{ const hit=rows.filter(x=>hasQ(hay(x),q)); if(hit.length) out.push({title,kind,hit,label,sub}); };
+    const vis=visibleIds();
+    if(canSeePage('pipeline')) add('案件進捗','pipe',S.pipeline||[],x=>[x.name,x.address,x.customer,x.requester,x.phone,x.request].join(' '),x=>x.name,x=>[x.customer,x.status].filter(Boolean).join(' ・ '));
+    add('案件','proj',visibleProjects(),x=>[x.id,x.name,x.address,x.client,x.customerName].join(' '),x=>x.name,x=>[x.id,x.address].filter(Boolean).join(' ・ '));
+    if(canSeePage('customers')) add('顧客','cust',S.customers||[],x=>[x.name,x.address,x.phone,x.contact].join(' '),x=>x.name,x=>[x.phone,x.address].filter(Boolean).join(' ・ '));
+    if(canSeePage('quotes')) add('見積','quote',Q.list(),x=>[x.no,x.title,x.customer,x.site].join(' '),x=>x.title||x.no,x=>[x.no,x.customer,x.status].filter(Boolean).join(' ・ '));
+    add('図面・資料','doc',(S.docs||[]).filter(d=>vis.has(d.pid)&&canSeeDoc(d)),x=>[x.name,x.folder,pname(x.pid)].join(' '),x=>x.name,x=>pname(x.pid));
+    add('日報・報告','rep',(S.reports||[]).filter(r=>vis.has(r.pid)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))),x=>[x.date,x.work,x.tomorrow,x.issues,x.workers,x.by,pname(x.pid)].join(' '),x=>`${x.date} ${x.type||'日報'}`,x=>[pname(x.pid),String(x.work||'').slice(0,30)].filter(Boolean).join(' ・ '));   
+    if(me().role==='rateru_admin') add('予定','plan',(S.plans||[]).filter(p=>canSeePlan(p)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))),x=>[x.title,x.place,x.memo,x.date,staffShort(x.who)].join(' '),x=>x.title,x=>[x.date,x.time,x.who===PLAN_ALL?'全員':staffShort(x.who),x.place].filter(Boolean).join(' ・ '));
+    if(canSeePage('meetings')) add('会議資料','meet',S.meetings||[],x=>[x.title,x.text,x.fileName].join(' '),x=>x.title||x.fileName,x=>monthLabel(x.month));
+    if(canSeePage('dropbox')) add('Dropbox 資料','dbx',S.dbxFiles||[],x=>[x.name,x.folder].join(' '),x=>x.name,x=>x.folder||'');
+    return out; },
+  draw(){ const box=$('#gs_res'); if(!box) return; const q=this.q=($('#gs_q')?.value||''); if(!normQ(q)){ const rc=Recent.list(); box.innerHTML='<p class="muted">言葉を入れると、見られる範囲の中から探します（ひらがな・カタカナ・半角・全角のちがいも同じに探します）。</p>'+(rc.length?`<h4 class="perm-cat">最近開いたもの</h4><div class="plist" id="gs_recent">${rc.map(x=>`<button class="prow" type="button" data-act="gsOpen" data-k="${x.k}" data-id="${esc(x.id)}"><span class="pm"><b>${esc(x.label||'（名前なし）')}</b><small class="muted"> ${esc(x.sub)}</small></span></button>`).join('')}</div>`:''); return; }
+    const gs=this.groups(q); if(!gs.length){ box.innerHTML='<div class="empty">見つかりませんでした</div>'; return; }
+    box.innerHTML=gs.map(g=>`<h4 class="perm-cat">${g.title}（${g.hit.length}件）</h4><div class="plist">${g.hit.slice(0,8).map(x=>`<button class="prow" type="button" data-act="gsOpen" data-k="${g.kind}" data-id="${esc(x.id||'')}"><span class="pm"><b>${esc(g.label(x)||'（名前なし）')}</b><small class="muted"> ${esc(g.sub(x)||'')}</small></span></button>`).join('')}${g.hit.length>8?`<small class="muted">ほかに ${g.hit.length-8}件。言葉を足すと しぼれます</small>`:''}</div>`).join(''); },
+  go(k,id){ closeDrawer();
+    if(k==='pipe'){ go('pipeline'); Pipe.form(id); } else if(k==='proj') go('project',id,'overview');
+    else if(k==='cust'){ const c=(S.customers||[]).find(x=>x.id===id); go('customers'); if(c) Q.click('q_custEdit',{name:c.name}); }
+    else if(k==='quote'){ go('quotes'); Q.open(id); } else if(k==='doc'){ const d=S.docs.find(x=>x.id===id); if(d) go('project',d.pid,'draw'); }
+    else if(k==='rep'){ const r=(S.reports||[]).find(x=>x.id===id); if(r) go('project',r.pid,'report'); }
+    else if(k==='plan'){ const x=(S.plans||[]).find(v=>v.id===id); if(x){ view.calMonth=x.date.slice(0,7); go('calendar'); Plan.form(id); } }
+    else if(k==='meet'){ const m=S.meetings.find(x=>x.id===id); if(m) Office.mMonth=m.month; go('meetings'); } else if(k==='dbx'){ const f=(S.dbxFiles||[]).find(x=>x.id===id); view.dbxQ=f?f.name:''; go('dropbox'); } }
+};
+
+const isNewDoc = d => !!d.updated && d.updated.slice(0,10) >= addDays(todayISO(),-3);
 function docsBlock(pid){
   const all=S.docs.filter(d=>d.pid===pid && canSeeDoc(d)), can=perm().docs==='edit', isRateru=me().role==='rateru_admin', f=view.docFolder;
   const folders=[...new Set([...DOC_FOLDERS, ...all.map(docFolder)])];
@@ -3021,12 +3210,13 @@ function docsBlock(pid){
   if(!f){
     return crumbs+`<div class="tablewrap"><table><thead><tr><th>フォルダ</th><th>資料数</th><th>最終更新</th></tr></thead><tbody>
       ${folders.map(x=>{ const ds=all.filter(d=>docFolder(d)===x); const last=ds.map(d=>d.updated).sort().pop();
-        return `<tr class="clickable" data-act="docFolder" data-f="${esc(x)}"><td><b>📁 ${esc(x)}</b></td><td>${ds.length}</td><td>${last?mdhm(last):'—'}</td></tr>`; }).join('')}
+        const nw=ds.filter(isNewDoc).length;
+        return `<tr class="clickable" data-act="docFolder" data-f="${esc(x)}"><td><b>📁 ${esc(x)}</b>${nw?` <span class="pill new-doc">新 ${nw}</span>`:''}</td><td>${ds.length}</td><td>${last?mdhm(last):'—'}</td></tr>`; }).join('')}
       </tbody></table></div>${can?'<div class="perm-note">フォルダを開いてから「＋ 資料を追加」を押すと、そのフォルダに入ります。複数ファイルをまとめて選べます。</div>':''}`;
   }
   const ds=all.filter(d=>docFolder(d)===f).sort((a,b)=>b.updated.localeCompare(a.updated));
   return crumbs+`<div class="tablewrap"><table><thead><tr><th>資料名称</th><th>版</th><th>公開</th><th>更新日</th><th></th></tr></thead><tbody>
-    ${ds.map(d=>`<tr><td><b>${esc(d.name)}</b><br><small>${esc(d.type)}${d.fileKey?' ・ '+esc(d.fileName):' ・ ファイル未添付'}${(d.marks||[]).length?` ・ <span class="pill">✏️ 書き込み${d.marks.length}件</span>`:''}</small></td>
+    ${ds.map(d=>`<tr><td><b>${esc(d.name)}</b>${isNewDoc(d)?' <span class="pill new-doc">新</span>':''}<br><small>${esc(d.type)}${d.fileKey?' ・ '+esc(d.fileName):' ・ ファイル未添付'}${(d.marks||[]).length?` ・ <span class="pill">✏️ 書き込み${d.marks.length}件</span>`:''}</small></td>
       <td>v${d.ver}${d.history.length?`<br><small>旧版${d.history.length}件 使用停止</small>`:''}</td>
       <td>${isRateru?`<select data-act="docVis" data-id="${d.id}" aria-label="公開範囲"><option value="all" ${d.visibility!=='rateru'?'selected':''}>全員</option><option value="rateru" ${d.visibility==='rateru'?'selected':''}>Rateru社内のみ</option></select>`:'<span class="pill ok">公開</span>'}</td>
       <td>${mdhm(d.updated)}</td>
@@ -3180,6 +3370,7 @@ function reportForm(pid){
   const ps=visibleProjects();
   openDrawer(`${drawerHead('日報を書く')}<form data-form="report">${sel('案件','pid',ps.map(p=>[p.id,p.name]),pid||ps[0]?.id)}
     <div class="formgrid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">${sel('種類','type',REPORT_TYPES,'日報')}${fld('日付','date',todayISO(),'date','required')}${sel('天気','weather',WEATHER,'晴れ')}</div>
+    <div class="row" style="justify-content:flex-end;margin:-4px 0 6px"><button class="btn sm" type="button" data-act="reportCopyPrev">前の日報から写す</button></div>
     ${fld('作業人数','workers','','text','placeholder="例：大工2名・電気1名"')}
     ${area('本日の作業','work','','どこで何をしたか')}${area('明日の予定','tomorrow','')}${area('気づき・問題点（あれば）','issues','','追加工事・資材不足・近隣など')}
     ${canPhoto()?`<div class="field"><label for="fm_rphotos">写真（あれば・何枚でも）</label><input id="fm_rphotos" name="rphotos" type="file" accept="image/*" multiple><small class="muted">案件の写真の「施工中」にも入ります</small></div>`:''}
@@ -3188,10 +3379,15 @@ function reportForm(pid){
 }
 function pReports(){
   const ids=visibleIds(), pid=view.reportsPid;
-  const rs=S.reports.filter(r=>pid?r.pid===pid:ids.has(r.pid)).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at));
+  const rs0=S.reports.filter(r=>pid?r.pid===pid:ids.has(r.pid)).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at));
+  
+  const q=view.reportsQ||'', iss=!!view.reportsIss, lim=view.reportsN||20;
+  const rsF=rs0.filter(r=>(!iss||String(r.issues||'').trim())&&(!normQ(q)||hasQ([r.date,r.type,r.weather,r.workers,r.work,r.tomorrow,r.issues,r.by,pname(r.pid)].join(' '),q))), rs=rsF.slice(0,lim);
   return `<div class="hero"><div><h2>報告・日報</h2><p>現場の一日を記録して、元請・Rateru・協力業者で同じ情報を見る。</p></div>
     ${canReport()&&visibleProjects().length?`<div class="acts"><button class="btn primary" data-act="newReport" data-pid="${pid}">＋ 日報を書く</button></div>`:''}</div>${pipeDocsPicker('report')}
-  <div class="card section"><div class="field" style="max-width:360px"><label for="rp_pid">案件</label><select id="rp_pid" data-act="pick" data-key="reportsPid">${projectOptions(pid,true)}</select></div>${reportCards(rs,!pid)}</div>`;
+  <div class="card section"><div class="field" style="max-width:360px"><label for="rp_pid">案件</label><select id="rp_pid" data-act="pick" data-key="reportsPid">${projectOptions(pid,true)}</select></div>
+  ${rs0.length>3?`<div class="toolbar" style="margin:4px 0 10px"><input class="search" id="rep_q" autocomplete="off" placeholder="日報を探す（作業・困りごと・日付など）" value="${esc(q)}" aria-label="日報を探す"><button class="btn sm ${iss?'primary':''}" data-act="reportsIss" aria-pressed="${iss}">困りごとがあるものだけ</button><small class="muted">${rsF.length}件</small></div>`:''}
+  ${reportCards(rs,!pid)}${rsF.length>rs.length?`<button class="btn mt" style="width:100%" data-act="reportsMore">もっと見る（あと ${rsF.length-rs.length}件）</button>`:''}</div>`;
 }
 
  
@@ -3228,9 +3424,9 @@ const planVis = p => p.vis || 'work';
 const canSeePlan = (p, u=me()) => planVis(p)==='work' ? u.role==='rateru_admin' : (planOwner(p)===u.id || (planVis(p)==='limited' && (p.shareWith||[]).includes(u.id)));
 const canEditPlan = (p, u=me()) => planVis(p)==='work' ? u.role==='rateru_admin' : planOwner(p)===u.id;   
 const Plan = {
-  form(id, date, who){
+  form(id, date, who, pre){
     const mine=PIPE_STAFF.find(n=>staffShort(n)===me().name);
-    const x=id?S.plans.find(p=>p.id===id):{date:date||todayISO(),who:who||mine||PIPE_STAFF[0],time:'',vis:'work'};
+    const x=id?S.plans.find(p=>p.id===id):pre?{...pre}:{date:date||todayISO(),who:who||mine||PIPE_STAFF[0],time:'',vis:'work'};   
     if(id&&!canEditPlan(x)){ toast('この予定は本人だけが直せます'); return; }
     const owner=id?planOwner(x):me().id, shareOpts=USERS.filter(u=>(u.role==='rateru_admin'||u.role==='guest'||u.role==='office')&&u.id!==owner);
     const whoOpts=[...PIPE_STAFF.map(n=>[n,n]),[PLAN_ALL,'全員（会社の予定）']];
@@ -3239,12 +3435,13 @@ const Plan = {
       <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('日付','date',x.date,'date','required')}${fld('時間（任意）','time',x.time||'','text','placeholder="例：9:00 / 午前"')}</div>
       ${fld('予定','title',x.title||'','text','required placeholder="例：〇〇様 現調"')}
       <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('場所（任意）','place',x.place||'')}${fld('終わりの日（何日か続くとき）','end',x.end||'','date')}</div>
+      ${id?'':sel('くり返し（毎週の定例など）','repeat',[['','くり返さない'],['w4','毎週・4回'],['w8','毎週・8回'],['w12','毎週・12回'],['m6','毎月・6回']],'')}
       ${area('メモ','memo',x.memo||'')}
       ${sel('公開範囲','vis',PLAN_VIS,planVis(x))}
       <div class="plan-share" ${planVis(x)==='limited'?'':'hidden'}><div class="field"><label>見せる相手（本人が選ぶ）</label><div class="row" style="flex-wrap:wrap;gap:6px 14px">${shareOpts.map(u=>`<label class="row" style="gap:4px;font-size:14px"><input type="checkbox" name="share" value="${u.id}" ${(x.shareWith||[]).includes(u.id)?'checked':''}> ${esc(u.name)}</label>`).join('')}</div></div></div>
       <label class="row plan-busy" style="gap:6px;font-size:14px;margin:4px 0 8px" ${planVis(x)==='work'?'hidden':''}><input type="checkbox" name="busy" ${x.busy?'checked':''}> ほかの人には日時と「予定あり」だけ出す（件名・場所・メモは出さない）</label>
       <p class="perm-note">${planVis(x)==='work'?'この予定はRateruの全員が見られます。':'この予定は、あなたと、あなたが選んだ人だけが見られます。役職やシステムの権限でも見られません。'}</p>
-      <div class="row" style="justify-content:space-between;margin-top:12px">${id?`<button class="btn danger" type="button" data-act="delPlan" data-id="${id}">削除</button>`:'<span></span>'}<button class="btn primary" type="submit">保存</button></div></form>`);
+      <div class="row" style="justify-content:space-between;margin-top:12px">${id?`<span class="row" style="gap:6px"><button class="btn danger" type="button" data-act="delPlan" data-id="${id}">削除</button><button class="btn" type="button" data-act="copyPlan" data-id="${id}">写して新しく</button></span>`:'<span></span>'}<button class="btn primary" type="submit">保存</button></div></form>`);
   },
   save(id, v){
     const d=Object.fromEntries(['who','date','end','time','title','place','memo'].map(k=>[k,String(v[k]??'').trim()]));
@@ -3257,12 +3454,17 @@ const Plan = {
     if(d.end&&d.end<d.date){ toast('終わりの日が日付より前になっています'); return; }
     if(d.end===d.date) d.end='';
     if(id) Object.assign(S.plans.find(p=>p.id===id), d, {at:nowISO(),by:myLabel()});
-    else S.plans.push({id:uid('pn'),...d,ext:'',at:nowISO(),by:myLabel()});
+    else { S.plans.push({id:uid('pn'),...d,ext:'',at:nowISO(),by:myLabel()});
+      
+      const rp=String(v.repeat||''), n=Number(rp.slice(1))||0, span=d.end?Math.round((new Date(d.end)-new Date(d.date))/864e5):0;
+      for(let i=1;i<n;i++){ const nd=rp[0]==='w'?addDays(d.date,7*i):(()=>{ const [y,m,dd]=d.date.split('-').map(Number); const t=new Date(y,m-1+i,1), last=new Date(y,m+i,0).getDate(); return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(Math.min(dd,last))}`; })();
+        S.plans.push({id:uid('pn'),...d,date:nd,end:span?addDays(nd,span):'',ext:'',repeatOf:rp,at:nowISO(),by:myLabel()}); }
+    }
     
     const dup=d.time?(S.plans||[]).find(p=>p.id!==id&&p.who===d.who&&d.who!==PLAN_ALL&&p.date===d.date&&p.time===d.time&&p.title!==d.title):null;
-    view.calMonth=d.date.slice(0,7); save(); closeDrawer(); render(); toast(dup?`予定を保存しました（同じ時間に「${dup.title}」の予定もあります）`:'予定を保存しました');
+    view.calMonth=d.date.slice(0,7); save(); closeDrawer(); render(); { const nrep=!id?(Number(String(v.repeat||'').slice(1))||0):0; toast(`${nrep>1?`予定を ${nrep}回分 入れました`:'予定を保存しました'}${dup?`（同じ時間に「${dup.title}」の予定もあります）`:''}`); }
   },
-  del(id){ const x=S.plans.find(p=>p.id===id); if(!canEditPlan(x)){ toast('この予定は本人だけが消せます'); return; } confirmBox(`「${x.title}」を削除します。`,'削除する',()=>{ S.plans=S.plans.filter(p=>p.id!==id); save(); closeDrawer(); render(); toast('削除しました'); }); }
+  del(id){ const x=S.plans.find(p=>p.id===id); if(!canEditPlan(x)){ toast('この予定は本人だけが消せます'); return; } confirmBox(`「${x.title}」を削除します（30日のあいだ「消したもの」から戻せます）。`,'削除する',()=>{ Trash.put(`予定「${x.title}」`,[{coll:'plans',items:[x]}]); S.plans=S.plans.filter(p=>p.id!==id); save(); closeDrawer(); render(); toast('削除しました'); }); }
 };
 
 const Ical = {
@@ -3394,28 +3596,54 @@ function approvalCard(a, showProject=true){
     <div class="hist">${a.history.map(h=>`${mdhm(h.at)} ${esc(h.by)}：${esc(h.action)}${h.comment?'「'+esc(h.comment)+'」':''}`).join('<br>')}</div></div>`;
 }
 function pApprovals(){
-  const ids=visibleIds(); const f=view.apprFilter;
-  const list=S.approvals.filter(a=>ids.has(a.pid)&&(f==='all'||(f==='open')===['motouke_wait','rateru_check','need_answer'].includes(a.state)));
+  const ids=visibleIds(); const f=view.apprFilter, OPEN=['motouke_wait','rateru_check','need_answer'];
+  const all=S.approvals.filter(a=>ids.has(a.pid)), pids=[...new Set(all.map(a=>a.pid))];   
+  if(view.apprPid&&!pids.includes(view.apprPid)) view.apprPid='';
+  const inP=all.filter(a=>!view.apprPid||a.pid===view.apprPid), nOf=k=>inP.filter(a=>k==='all'||(k==='open')===OPEN.includes(a.state)).length;
+  const list=inP.filter(a=>f==='all'||(f==='open')===OPEN.includes(a.state));
   const canReq=['request','decide'].includes(perm().approval);
   return `<div class="hero"><div><h2>承認・変更管理</h2><p>追加・変更・設計確認を口頭で終わらせず履歴化。</p></div>
     ${canReq?'<div class="acts"><button class="btn primary" data-act="newApproval">＋ 申請・依頼を作成</button></div>':''}</div>
-  <div class="card section"><div class="toolbar">${[['open','対応中'],['closed','完了'],['all','すべて']].map(([k,l])=>`<button class="btn sm ${f===k?'primary':''}" data-act="apprFilter" data-f="${k}">${l}</button>`).join('')}</div>
+  <div class="card section"><div class="toolbar">${[['open','対応中'],['closed','完了'],['all','すべて']].map(([k,l])=>`<button class="btn sm ${f===k?'primary':''}" data-act="apprFilter" data-f="${k}">${l}（${nOf(k)}）</button>`).join('')}${pids.length>1?`<select id="ap_pid" data-act="apprPid" aria-label="案件でしぼる"><option value="">すべての案件</option>${pids.map(id=>`<option value="${id}" ${id===view.apprPid?'selected':''}>${esc(pname(id))}</option>`).join('')}</select>`:''}</div>
   ${list.map(a=>approvalCard(a)).join('')||'<div class="empty">該当する申請はありません</div>'}</div>`;
 }
 
  
+
+const ChatSeen={ key:'rateru-pad-chat-seen', cur:null, prevSince:null, drafts:{},   
+  all(){ try{ return JSON.parse(localStorage.getItem(this.key)||'{}')||{}; }catch(e){ return {}; } },
+  write(a){ try{ localStorage.setItem(this.key,JSON.stringify(a)); }catch(e){} },
+  mine(){ const a=this.all(); if(!a[S.userId]){ a[S.userId]={_init:nowISO()}; this.write(a); } return a[S.userId]; },
+  isMe(m){ const u=me(); return m.company===u.company&&m.name===u.name; },
+  since(pid){ const m=this.mine(); return m[pid]||m._init||''; },
+  count(pid){ const s=this.since(pid); return (S.messages||[]).filter(m=>m.pid===pid&&m.at>s&&!this.isMe(m)).length; },
+  total(){ const ids=visibleIds(); return [...ids].reduce((n,pid)=>n+this.count(pid),0); },
+  enter(pid){ if(this.cur!==pid){ this.cur=pid; this.prevSince=null; this.jumped=false; } },
+  mark(pid){ if(!pid) return; this.enter(pid); const a=this.all(), m=a[S.userId]||{_init:nowISO()}, old=m[pid]||m._init||'';
+    const last=(S.messages||[]).filter(x=>x.pid===pid).reduce((t,x)=>x.at>t?x.at:t,'');
+    if(last>old){ if(this.prevSince==null) this.prevSince=old; m[pid]=last; }
+    a[S.userId]=m; this.write(a); }
+};
+const chatViewPid = () => view.page==='chat' ? view.chatPid : (view.page==='project'&&view.tab==='chat' ? view.pid : null);
+const dayLabel = iso => { const d=new Date(iso); return `${d.getMonth()+1}/${d.getDate()}（${'日月火水木金土'[d.getDay()]}）`; };
 function chatBlock(pid){
   const ms=S.messages.filter(m=>m.pid===pid); const u=me();
-  return `<div class="messages" id="messages">${ms.map(m=>`<div class="msg ${m.company===u.company&&m.name===u.name?'me':''}"><small>${esc(m.company)} / ${esc(m.name)}　${mdhm(m.at)}${m.edited?'（直した）':''}</small>${esc(m.text)}${canEditRec('message',m)?` <button class="linkbtn" style="font-size:11px" data-act="editRec" data-t="message" data-id="${esc(m.id)}">直す</button>`:''}</div>`).join('')||'<div class="empty">まだメッセージはありません</div>'}</div>
-  <form class="compose" data-act="send" data-pid="${pid}"><input id="chatInput" aria-label="メッセージ" placeholder="${esc(pname(pid))} へメッセージ" autocomplete="off"><button class="btn primary" type="submit">送信</button></form>`;
+  const ps=ChatSeen.cur===pid?ChatSeen.prevSince:null; let newShown=false, day='';
+  const sep=m=>{ let h=''; const dl=dayLabel(m.at); if(dl!==day){ day=dl; h+=`<div class="msg-day"><span>${dl}</span></div>`; }
+    if(ps!=null&&!newShown&&m.at>ps&&!ChatSeen.isMe(m)){ newShown=true; h+=`<div class="msg-new" id="msgNew"><span>ここから新しいメッセージ</span></div>`; } return h; };
+  return `<div class="messages" id="messages">${ms.map(m=>`${sep(m)}<div class="msg ${m.company===u.company&&m.name===u.name?'me':''}"><small>${esc(m.company)} / ${esc(m.name)}　${mdhm(m.at)}${m.edited?'（直した）':''}</small>${esc(m.text)}${canEditRec('message',m)?` <button class="linkbtn" style="font-size:11px" data-act="editRec" data-t="message" data-id="${esc(m.id)}">直す</button>`:''}</div>`).join('')||'<div class="empty">まだメッセージはありません</div>'}</div>
+  <form class="compose" data-act="send" data-pid="${pid}"><input id="chatInput" data-pid="${pid}" value="${esc(ChatSeen.drafts[pid]||'')}" aria-label="メッセージ" placeholder="${esc(pname(pid))} へメッセージ" autocomplete="off"><button class="btn primary" type="submit">送信</button></form>`;
 }
 function pChat(){
   const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>案件チャット</h2><p>案件ごとに、元請・協力業者・Rateru でやりとりします。</p></div></div>${pipeDocsPicker('chat')}` : emptyScope();
-  if(!view.chatPid || !ps.some(p=>p.id===view.chatPid)) view.chatPid=(ps.find(p=>S.messages.some(m=>m.pid===p.id))||ps[0]).id;
+  if(!view.chatPid || !ps.some(p=>p.id===view.chatPid)) view.chatPid=(ps.find(p=>ChatSeen.count(p.id))||ps.find(p=>S.messages.some(m=>m.pid===p.id))||ps[0]).id;
+  ChatSeen.mark(view.chatPid);
   const p=proj(view.chatPid);
+  const unread=ps.map(x=>[x,ChatSeen.count(x.id)]).filter(([,n])=>n);
   const members=[`元請 / ${p.motoukeRep}`,...p.rateruRep.split('/').map(s=>'Rateru / '+s.trim()),...(p.partners||[])];
   return `${caseTabs()}<div class="hero"><div><h2>案件チャット</h2><p>案件ごとにやり取りを残し、LINE・電話依存を減らす。</p></div></div>${pipeDocsPicker('chat')}
-  <div class="chat"><div><div class="field" style="max-width:360px"><label for="ch_pid">案件</label><select id="ch_pid" data-act="pick" data-key="chatPid">${projectOptions(view.chatPid)}</select></div>${chatBlock(view.chatPid)}</div>
+  <div class="chat"><div><div class="field" style="max-width:360px"><label for="ch_pid">案件</label><select id="ch_pid" data-act="pick" data-key="chatPid">${ps.map(x=>{ const n=ChatSeen.count(x.id); return `<option value="${x.id}" ${x.id===view.chatPid?'selected':''}>${esc(x.name)}${n?`（未読 ${n}）`:''}</option>`; }).join('')}</select></div>
+    ${unread.length?`<div class="chat-unread">未読：${unread.map(([x,n])=>`<button class="btn sm" data-act="chatGo" data-pid="${x.id}">${esc(x.name)} <span class="badge">${n}</span></button>`).join('')}</div>`:''}${chatBlock(view.chatPid)}</div>
     <div class="card section"><h3>案件メンバー</h3>${members.map(m=>`<div>${esc(m)}</div>`).join('')}
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0"><h3>通知ルール</h3><small>承認依頼・工程変更・検査NGのみ重要通知。通常会話は案件内に保存。</small></div></div>`;
 }
@@ -3465,6 +3693,7 @@ const Q = {
     return t; },
   
   canView(q){ return !!q && me().role==='rateru_admin' && (salesAll() || (q.owner&&q.owner===mySalesOwner())); },
+  waitDays(q){ return q&&q.status==='提出済'&&q.date?Math.max(0,daysBetween(q.date,todayISO())):0; },   
   list(){ return (S.quotes||[]).filter(q=>this.canView(q)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.no).localeCompare(String(a.no))); },
   nextNo(prefix, arr){ const d=todayISO().replace(/-/g,'').slice(2), base=`${prefix}-${d}-`; let n=1; while(arr.some(x=>x.no===base+pad(n))) n++; return base+pad(n); },
   calc(q){ const sub=(q.lines||[]).reduce((s,l)=>s+Math.round(toNum(l.qty)*toNum(l.price)),0), disc=Math.max(0,toNum(q.discount)), base=Math.max(0,sub-disc), tax=Math.floor(base*(Number(q.tax??Q_TAX))/100);
@@ -3490,7 +3719,7 @@ const Q = {
     save(); toast(learned?`見積を保存しました（品目の単価を ${learned}件 覚えました）`:'見積を保存しました'); return true; },
   addLine(it){ this.readForm(); this.draft.lines.push({cat:it?.cat||this.cat||'雑工事・その他', name:it?.name||'', spec:it?.spec||'', qty:1, unit:it?.unit||'式', price:it?.price??''}); render(); },
   totalsHtml(q){ const c=this.calc(q); return `<table class="q-tot"><tr><th>小計</th><td>${yen(c.sub)}</td></tr><tr><th>値引き</th><td>${c.disc?'−'+yen(c.disc):'—'}</td></tr><tr><th>消費税（${q.tax??Q_TAX}%）</th><td>${yen(c.tax)}</td></tr><tr class="q-sum"><th>合計（税込）</th><td>${yen(c.total)}</td></tr></table>`; },
-  editor(){ const d=this.draft, items=this.items().filter(x=>x.cat===this.cat), pipes=(S.pipeline||[]).filter(p=>salesAll()||salesOwner(p)===mySalesOwner());
+  editor(){ const d=this.draft, items=normQ(this.itemQ)?this.items().filter(x=>hasQ([x.name,x.spec,x.cat].join(' '),this.itemQ)):this.items().filter(x=>x.cat===this.cat), pipes=(S.pipeline||[]).filter(p=>salesAll()||salesOwner(p)===mySalesOwner());
     const f=(l,k,t='text',x='')=>`<div class="field"><label for="qf_${k}">${l}</label><input id="qf_${k}" data-qf="${k}" type="${t}" value="${esc(d[k]??'')}" ${x}></div>`;
     return `<div class="hero"><div><h2>${d.id?'見積書を直す':'見積書を作る'}</h2><p>品目は下の種類のタブから押して足します。数量と単価を入れると金額と合計が自動で出ます。</p></div>
       <div class="acts"><button class="btn" data-act="q_back">一覧へ戻る</button><button class="btn primary" data-act="q_save">保存</button></div></div>
@@ -3506,7 +3735,8 @@ const Q = {
       </div><div class="field"><label for="qf_note">備考（見積書の下に出ます）</label><textarea id="qf_note" data-qf="note">${esc(d.note||'')}</textarea></div>
       ${d.owner?`<p class="muted" style="margin:4px 0 0">売上責任者：<b>${esc(d.owner)}</b></p>`:`<div class="field" style="margin-top:6px"><label for="qf_owner">売上責任者（決まっていません。ここで選べます）</label><select id="qf_owner" data-act="q_owner"><option value="">選んでください</option>${(salesAll()?SALES_STAFF:[mySalesOwner()].filter(Boolean)).map(n=>`<option>${esc(n)}</option>`).join('')}</select><small class="muted">案件とつないでいるときは、案件進捗の責任者にも入ります</small></div>`}</div>
       <div class="card section mt"><h3 style="margin-top:0">3. 品目を選ぶ</h3>
-        <div class="tabs-bar q-cats" role="tablist">${Q_CATS.map(c=>`<button class="tb ${c===this.cat?'on':''}" data-act="q_cat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+        <div class="field" style="margin:0 0 8px"><label for="q_itemQ">品目を名前で探す（全部の工事項目から）</label><input id="q_itemQ" class="search" autocomplete="off" placeholder="例：クロス" value="${esc(this.itemQ||'')}"></div>
+        ${normQ(this.itemQ)?`<p class="muted" style="margin:0 0 6px">「${esc(this.itemQ)}」で探した品目 ${items.length}件</p>`:`<div class="tabs-bar q-cats" role="tablist">${Q_CATS.map(c=>`<button class="tb ${c===this.cat?'on':''}" data-act="q_cat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>`}
         <div class="q-items">${items.map(x=>`<button class="btn sm" data-act="q_addItem" data-id="${esc(x.id)}">＋ ${esc(x.name)}${x.spec?`（${esc(x.spec)}）`:''}${x.price!==''&&x.price!=null?` ${yen(x.price)}/${esc(x.unit)}`:''}</button>`).join('')||'<span class="muted">この種類の品目はまだありません</span>'}
           <button class="btn sm" data-act="q_addLine">＋ 自由に1行足す</button></div>
         <p class="perm-note">品目の名前・単位・単価は「品目の一覧」タブで直せます。</p></div>
@@ -3515,7 +3745,7 @@ const Q = {
           <td data-l="数量"><input data-ql="${i}" data-f="qty" type="number" step="any" min="0" value="${esc(l.qty)}" style="width:80px" aria-label="数量"></td>
           <td data-l="単位"><select data-ql="${i}" data-f="unit" aria-label="単位">${[...new Set([...Q_UNITS,l.unit].filter(Boolean))].map(u=>`<option ${u===l.unit?'selected':''}>${esc(u)}</option>`).join('')}</select></td>
           <td data-l="単価"><input data-ql="${i}" data-f="price" type="number" step="1" min="0" value="${esc(l.price)}" style="width:110px" aria-label="単価"></td>
-          <td class="money" data-l="金額" id="ql_amt_${i}">${yen(Math.round(toNum(l.qty)*toNum(l.price)))}</td><td><button class="btn sm danger" data-act="q_delLine" data-i="${i}" aria-label="この行を消す">×</button></td></tr>`).join('')||'<tr><td colspan="8" class="muted">上の品目を押すと、ここに行が増えます</td></tr>'}
+          <td class="money" data-l="金額" id="ql_amt_${i}">${yen(Math.round(toNum(l.qty)*toNum(l.price)))}</td><td class="q-line-acts"><button class="btn sm" data-act="q_lineMove" data-i="${i}" data-d="-1" aria-label="この行を上へ" ${i===0?'disabled':''}>↑</button><button class="btn sm" data-act="q_lineMove" data-i="${i}" data-d="1" aria-label="この行を下へ" ${i===d.lines.length-1?'disabled':''}>↓</button><button class="btn sm" data-act="q_lineCopy" data-i="${i}" aria-label="この行を写す">写す</button><button class="btn sm danger" data-act="q_delLine" data-i="${i}" aria-label="この行を消す">×</button></td></tr>`).join('')||'<tr><td colspan="8" class="muted">上の品目を押すと、ここに行が増えます</td></tr>'}
         </tbody></table></div>
         <div class="row" style="justify-content:flex-end;gap:16px;flex-wrap:wrap;margin-top:10px"><div class="field" style="max-width:180px"><label for="qf_discount">値引き（円）</label><input id="qf_discount" data-qf="discount" type="number" min="0" step="1" value="${esc(d.discount||0)}"></div><div id="qTotals">${this.totalsHtml(d)}</div></div></div>
       <div class="card section mt"><h3 style="margin-top:0">この見積から作る</h3><div class="row" style="flex-wrap:wrap;gap:8px">
@@ -3531,14 +3761,16 @@ const Q = {
     if(this.tab==='cust') return tabs+this.custPage();
     if(this.tab==='items') return tabs+this.itemsPage();
     if(this.tab==='company') return tabs+this.companyPage();
-    const L=this.list();
+    const L0=this.list(), L=L0.filter(q=>hasQ([q.no,q.title,q.customer,q.site,q.owner].join(' '),this.listQ)&&(!this.listSt||q.status===this.listSt));   
     return tabs+`<div class="hero"><div><h2>見積・契約・請求</h2><p>見積書を作って、同じ内容から契約書・請求書${canFinance()?'・発注書':''}を作ります。見られるのは自分が売上責任者の見積だけです（川端さん・舟田さん・向さんは全部）。</p></div><div class="acts"><button class="btn primary" data-act="q_new">＋ 見積書を作る</button></div></div>
-      <div class="card section">${L.length?`<div class="tablewrap"><table><thead><tr><th>見積番号</th><th>日付</th><th>顧客</th><th>工事名</th><th>責任者</th><th>状態</th><th style="text-align:right">合計（税込）</th><th></th></tr></thead><tbody>${L.map(q=>`<tr class="clickable" data-act="q_open" data-id="${esc(q.id)}"><td>${esc(q.no)}</td><td>${md(q.date)}</td><td>${esc(q.customer)}</td><td>${esc(q.title)}</td><td>${esc(q.owner||'')}</td><td>${esc(q.status)}</td><td class="money">${yen(this.calc(q).total)}</td><td><button class="btn sm" data-act="q_copy" data-id="${esc(q.id)}">写して作る</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">まだ見積書はありません。「＋ 見積書を作る」から始めます。</div>'}</div>`; },
-  custPage(){ const names=this.custNames(), P=S.pipeline||[];
+      <div class="card section">${L0.length>3?`<div class="toolbar" style="margin-bottom:8px"><input class="search" id="q_listQ" autocomplete="off" placeholder="見積番号・工事名・顧客で探す" aria-label="見積を探す" value="${esc(this.listQ||'')}"><select data-act="q_listSt" aria-label="状態で絞る"><option value="">状態：すべて</option>${Q_STATUS.map(s=>`<option ${s===this.listSt?'selected':''}>${esc(s)}</option>`).join('')}</select>${L.length!==L0.length?`<small class="muted">${L0.length}件のうち ${L.length}件</small>`:''}</div>`:''}${L.length?`<div class="tablewrap"><table><thead><tr><th>見積番号</th><th>日付</th><th>顧客</th><th>工事名</th><th>責任者</th><th>状態</th><th style="text-align:right">合計（税込）</th><th></th></tr></thead><tbody>${L.map(q=>`<tr class="clickable" data-act="q_open" data-id="${esc(q.id)}"><td>${esc(q.no)}</td><td>${md(q.date)}</td><td>${esc(q.customer)}</td><td>${esc(q.title)}</td><td>${esc(q.owner||'')}</td><td>${esc(q.status)}${this.waitDays(q)>=14?` <span class="pill wait">${this.waitDays(q)}日 返事なし</span>`:''}</td><td class="money">${yen(this.calc(q).total)}</td><td><button class="btn sm" data-act="q_copy" data-id="${esc(q.id)}">写して作る</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">まだ見積書はありません。「＋ 見積書を作る」から始めます。</div>'}</div>`; },
+  custPage(){ const names0=this.custNames(), P=S.pipeline||[], QL=this.list(), cq=this.custQ||'';
+    const names=names0.filter(n=>{ const c=this.cust(n)||{}; return !normQ(cq)||hasQ([n,c.address,c.phone,c.contact,c.email].join(' '),cq); });   
     return `<div class="hero"><div><h2>顧客の一覧</h2><p>案件進捗や見積で選ぶ顧客です。住所・電話・担当者・請求書の送り方を入れておくと、見積書や請求書の宛先に使えます。</p></div><div class="acts"><button class="btn primary" data-act="q_custEdit" data-name="">＋ 顧客を追加</button></div></div>
-      <div class="pgrid">${names.map(n=>{ const c=this.cust(n)||{}, cnt=P.filter(p=>p.customer===n).length;
+      ${names0.length>5?`<div class="toolbar" style="margin-bottom:10px"><input class="search" id="q_custQ" autocomplete="off" placeholder="顧客名・住所・電話・担当者で探す" aria-label="顧客を探す" value="${esc(cq)}">${names.length!==names0.length?`<small class="muted">${names0.length}件のうち ${names.length}件</small>`:''}</div>`:''}
+      <div class="pgrid">${names.map(n=>{ const c=this.cust(n)||{}, cnt=P.filter(p=>p.customer===n).length, qn=QL.filter(q=>q.customer===n).length;
         return `<div class="card pcard cust"><div class="row" style="justify-content:space-between"><b>${esc(n)}</b><button class="btn sm" data-act="q_custEdit" data-name="${esc(n)}">編集</button></div>
-          <dl>${c.address?`<dt>住所</dt><dd>${esc(c.address)}</dd>`:''}${c.phone?`<dt>電話</dt><dd>${esc(c.phone)}</dd>`:''}${c.contact?`<dt>担当者</dt><dd>${esc(c.contact)}</dd>`:''}${c.billing?`<dt>請求書</dt><dd>${esc(c.billing)}</dd>`:''}<dt>案件</dt><dd>${cnt}件</dd></dl></div>`; }).join('')||'<div class="empty">まだ顧客はいません</div>'}</div>`; },
+          <dl>${c.address?`<dt>住所</dt><dd>${mapLink(c.address)}</dd>`:''}${c.phone?`<dt>電話</dt><dd>${telLink(c.phone)}</dd>`:''}${c.contact?`<dt>担当者</dt><dd>${esc(c.contact)}</dd>`:''}${c.billing?`<dt>請求書</dt><dd>${esc(c.billing)}</dd>`:''}<dt>案件</dt><dd>${canSeePage('pipeline')?`<button class="linkbtn" data-act="q_custNewPipe" data-name="${esc(n)}" style="float:right">＋ 案件進捗に追加</button>`:''}${cnt&&canSeePage('pipeline')?`<button class="linkbtn" data-act="q_custPipe" data-name="${esc(n)}">${cnt}件 ›</button>`:`${cnt}件`}</dd>${qn?`<dt>見積</dt><dd><button class="linkbtn" data-act="q_custQuotes" data-name="${esc(n)}">${qn}件 ›</button></dd>`:''}</dl></div>`; }).join('')||`<div class="empty">${names0.length?'見つかりませんでした':'まだ顧客はいません'}</div>`}</div>`; },
   custForm(name){ const c=this.cust(name)||{name}; const isNew=!name;
     openDrawer(`${drawerHead(isNew?'顧客を追加':'顧客を編集')}<form data-form="q_cust" data-old="${esc(name||'')}">
       ${fld('顧客名','name',c.name||'','text','required')}${fld('住所','address',c.address||'')}${fld('電話番号','phone',c.phone||'','tel')}${fld('担当者','contact',c.contact||'')}${fld('メール','email',c.email||'','email')}
@@ -3635,6 +3867,9 @@ const Q = {
     else if(el.dataset.qf){ d[el.dataset.qf]=el.value; }
     const t=$('#qTotals'); if(t) t.innerHTML=this.totalsHtml(d); },
   click(a, d){
+    if(a==='q_custPipe'){ Pipe.f.q=d.name||''; go('pipeline'); return; }
+    if(a==='q_custNewPipe'){ const c=this.cust(d.name)||{}; go('pipeline'); Pipe.form(null,{customer:d.name||'', phone:c.phone||'', billing:c.billing||''}); return; }
+    if(a==='q_custQuotes'){ this.listQ=d.name||''; this.listSt=''; this.draft=null; this.tab='list'; go('quotes'); return; }
     if(a==='q_tab'){ if(this.tab==='edit'&&d.t==='list'){ this.draft=null; } this.tab=d.t; render(); return; }
     if(a==='q_new'){ this.newQuote(''); return; }
     if(a==='q_newFor'){ closeDrawer(); this.newQuote(d.pipe); return; }
@@ -3647,6 +3882,9 @@ const Q = {
     if(a==='q_addItem'){ this.addLine(this.items().find(x=>x.id===d.id)); return; }
     if(a==='q_addLine'){ this.addLine(null); return; }
     if(a==='q_delLine'){ this.readForm(); this.draft.lines.splice(+d.i,1); render(); return; }
+    
+    if(a==='q_lineMove'){ this.readForm(); const L=this.draft.lines, i=+d.i, j=i+Number(d.d); if(j<0||j>=L.length) return; [L[i],L[j]]=[L[j],L[i]]; render(); return; }
+    if(a==='q_lineCopy'){ this.readForm(); const L=this.draft.lines, i=+d.i; L.splice(i+1,0,JSON.parse(JSON.stringify(L[i]))); render(); toast('行を写しました（すぐ下に入りました）'); return; }
     if(a==='q_print'){ this.readForm(); this.print(d.t, this.draft); return; }
     if(a==='q_invoice'){ this.invoiceForm(); return; }
     if(a==='q_invEdit'){ this.invoiceEdit(d.id); return; }
@@ -3654,10 +3892,10 @@ const Q = {
     if(a==='q_order'){ this.orderForm(); return; }
     if(a==='q_printInv'){ const v=(this.draft?.invoices||[]).find(x=>x.id===d.id); if(v) this.print('invoice', this.draft, v); return; }
     if(a==='q_printOrder'){ if(!canFinance()) return; const o=(S.orders||[]).find(x=>x.id===d.id); if(o) this.print('order', this.draft, o); return; }
-    if(a==='q_del'){ const id=this.draft?.id; confirmBox('この見積を消します。作った請求書の記録も消えます（売上管理に登録した売上は残ります）。','消す',()=>{ S.quotes=(S.quotes||[]).filter(x=>x.id!==id); save(); this.draft=null; this.tab='list'; render(); toast('見積を消しました'); }); return; }
+    if(a==='q_del'){ const id=this.draft?.id; confirmBox('この見積を消します。作った請求書の記録も一緒に消えます（売上管理に登録した売上は残ります。30日のあいだ「消したもの」から戻せます）。','消す',()=>{ const q0=(S.quotes||[]).find(x=>x.id===id); if(q0) Trash.put(`見積「${q0.title||q0.no||''}」`,[{coll:'quotes',items:[q0]}]); S.quotes=(S.quotes||[]).filter(x=>x.id!==id); save(); this.draft=null; this.tab='list'; render(); toast('見積を消しました'); }); return; }
     if(a==='q_custEdit'){ this.custForm(d.name); return; }
     if(a==='q_itemEdit'){ this.itemForm(d.id); return; }
-    if(a==='q_itemDel'){ const it=this.items().find(x=>x.id===d.id); confirmBox(`品目「${it?it.name:''}」を消します。`,'消す',()=>{ S.qitems=this.items().filter(x=>x.id!==d.id); save(); closeDrawer(); render(); toast('品目を消しました'); }); return; }
+    if(a==='q_itemDel'){ const it=this.items().find(x=>x.id===d.id); confirmBox(`品目「${it?it.name:''}」を消します（30日のあいだ「消したもの」から戻せます）。`,'消す',()=>{ if(it) Trash.put(`品目「${it.name}」`,[{coll:'qitems',items:[it]}]); S.qitems=this.items().filter(x=>x.id!==d.id); save(); closeDrawer(); render(); toast('品目を消しました'); }); return; }
   },
   submit(k, v, f){
     if(k==='q_case'){ const name=String(v.name||'').trim(), resp=String(v.responsible||''); if(!name){ toast('物件名を入れてください'); return; }
@@ -3709,6 +3947,8 @@ function pSettings(){
   ${roles.map(r=>`<tr ${me().role===r?'style="background:var(--accent-soft)"':''}><td><b>${roleLabel(r)}</b></td>${PERM_ROWS.map(x=>`<td>${x[1][r]}</td>`).join('')}</tr>`).join('')}
   </tbody></table></div></div>`}
   ${UserLock.card()}
+  ${FontSize.card()}
+  ${me().role==='rateru_admin'?Trash.page():''}
   <div class="card section mt"><h3>通知設定</h3><label class="row"><input type="checkbox" data-act="noticePref" data-key="changes" ${NoticePrefs.get().changes?'checked':''}> 案件・予定の変更を通知</label><label class="row mt"><input type="checkbox" data-act="noticePref" data-key="app" ${NoticePrefs.get().app?'checked':''}> アプリの更新を通知</label><p class="perm-note">公開お試し版では、この端末の別タブで変更された内容と、この端末でアプリを更新して開いた時に通知します。アプリを閉じている間や、他の人の端末での変更は通知できません。</p>${MODE==='demo'&&!TRIAL?`<div class="row"><button class="btn" data-act="checkAppUpdate">更新を確認</button><small>画面の版：${APP_RELEASE}</small></div>`:''}</div>
   <div class="card section mt"><h3>データ管理</h3>
     <p class="muted" style="margin-top:0">${MODE==='server'?'データはサーバーに保存され、ログインした全員に自動で反映されます。会社ごとに見える範囲はサーバー側で制限されています。':'このアプリのデータは今使っているブラウザの中に保存されています（お試し版）。別の端末や他の人とは共有されません。'}</p>
@@ -3738,10 +3978,12 @@ function pProject(){
   return `<div class="card project-header"><div class="project-top">
     <div><small>${esc(p.client||'元請')} ・ ${p.id}</small><h2 style="margin:4px 0 0">${esc(p.name)} <button class="star" data-act="fav" data-pid="${p.id}" aria-label="お気に入り" title="お気に入り">${Favs.get().has(p.id)?'★':'☆'}</button></h2></div>
     <div class="row">${statusBadge(p.status)}${lineBtn(projectLineText(p))}${canEdit?`<button class="btn sm" data-act="editProject" data-pid="${p.id}">編集</button>`:''}</div></div>
-    <div class="meta"><span>${esc(p.address)}</span><span>${esc(p.type)}</span><span>元請担当：${esc(p.motoukeRep||'—')}</span><span>Rateru担当：${esc(p.rateruRep)}</span>${(p.partners||[]).length?`<span>協力：${esc(p.partners.join('・'))}</span>`:''}<span>完工予定：${esc(p.due||'—')}</span></div>
-    ${canEdit?`<div class="row mt" style="flex-wrap:wrap"><span class="muted" style="font-size:12px">ステータス</span>${STATUS_ORDER.map(s=>`<button class="btn sm ${p.status===s?'primary':''}" data-act="setStatus" data-pid="${p.id}" data-s="${s}">${STATUS[s].label}</button>`).join('')}</div>`:''}
+    <div class="meta"><span>${mapLink(p.address)}</span><span>${esc(p.type)}</span><span>元請担当：${esc(p.motoukeRep||'—')}</span><span>Rateru担当：${esc(p.rateruRep)}</span>${(p.partners||[]).length?`<span>協力：${esc(p.partners.join('・'))}</span>`:''}<span>完工予定：${esc(p.due||'—')}</span></div>
+    ${canEdit?`<div class="row mt st-btns" style="flex-wrap:wrap"><span class="muted" style="font-size:12px">ステータス</span>${STATUS_ORDER.map(s=>`<button class="btn sm ${p.status===s?'primary':''}" data-act="setStatus" data-pid="${p.id}" data-s="${s}">${STATUS[s].label}</button>`).join('')}</div>
+    <div class="row mt st-sel"><label class="muted" style="font-size:12px" for="pj_st">ステータス</label><select id="pj_st" data-act="setStatusSel" data-pid="${p.id}">${STATUS_ORDER.map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${STATUS[s].label}</option>`).join('')}</select></div>`:''}
   </div>
-  <div class="card"><div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" class="${view.tab===k?'active':''}" data-act="tab" data-tab="${k}">${l}</button>`).join('')}</div>
+  <div class="card"><div class="tabs" role="tablist">${tabs.map(([k,l])=>{ const n=k==='chat'&&view.tab!=='chat'?ChatSeen.count(p.id):0, td=k==='todo'?(S.todos||[]).filter(t=>t.pid===p.id&&!t.done&&t.due&&t.due<=todayISO()).length:0;   
+    return `<button role="tab" class="${view.tab===k?'active':''}" data-act="tab" data-tab="${k}">${l}${n?` <span class="badge" title="未読のメッセージ">${n}</span>`:''}${td?` <span class="badge" title="期限が今日まで・過ぎたタスク">${td}</span>`:''}</button>`; }).join('')}</div>
   <div class="tabcontent">${projectTab(p)}</div></div>`;
 }
 function projectTab(p){
@@ -3761,9 +4003,10 @@ function projectTab(p){
       <div class="alert" style="cursor:default"><b>${STATUS[p.status].label} ${p.progress}%</b><br>次の重要イベント：${esc(p.next||'—')}</div>
       <div class="row" style="margin-bottom:14px">${progressBar(p.progress)}${perm().createProject?`<input type="range" min="0" max="100" step="1" value="${p.progress}" data-act="progress" data-pid="${pid}" aria-label="進捗" style="flex:1;min-width:120px">`:''}</div>
       <h3>次に必要なこと</h3>
-      <div class="checklist">${att.map(a=>`<div class="check"><div><div class="title">${esc(a.text.split('：')[0])}</div><div class="desc">${esc(a.text.split('：').slice(1).join('：'))}</div></div><span class="pill ${a.level==='ng'?'ng':'wait'}">要対応</span></div>`).join('')||'<div class="muted">要対応の項目はありません</div>'}</div>
+      <div class="checklist">${att.slice(0,view.ovAttAll?att.length:5).map(a=>`<button type="button" class="check check-go" data-act="goto" data-go='${esc(JSON.stringify(a.go))}'><div><div class="title">${esc(a.text.split('：')[0])}</div><div class="desc">${esc(a.text.split('：').slice(1).join('：'))}</div></div><span class="pill ${a.level==='ng'?'ng':'wait'}">要対応 ›</span></button>`).join('')||'<div class="muted">要対応の項目はありません</div>'}
+        ${att.length>5?`<button class="btn sm" data-act="ovAttAll">${view.ovAttAll?'少なく表示':`ほか ${att.length-5}件を見る`}</button>`:''}</div>
       ${p.note?`<h3 class="mt">備考</h3><p style="white-space:pre-wrap">${esc(p.note)}</p>`:''}</div>
-      <div><h3>詳細情報</h3><div class="kv">${kv.map(([k,v])=>`<div>${k}</div><div>${esc(v)}</div>`).join('')}</div>
+      <div><h3>詳細情報</h3><div class="kv">${kv.map(([k,v])=>`<div>${k}</div><div>${k==='住所'?mapLink(v):/電話/.test(k)?telLink(v):esc(v)}</div>`).join('')}</div>
       <h3>案件の流れ</h3><div class="flow" style="margin-bottom:16px">${STATUS_ORDER.map((st,i)=>`<span class="${i===si?'on':i<si?'past':''}">${STATUS[st].label}</span>`).join('')}</div>
       <h3>最近の動き</h3><div class="timeline">${acts.map(a=>`<div class="tl"><div class="dot"></div><div><b>${mdhm(a.at)} ${esc(a.text.split(' / ')[0])}</b><small>${esc(a.text.split(' / ').slice(1).join(' / '))}${a.by?' ・ '+esc(a.by):''}</small></div></div>`).join('')||'<div class="muted">まだ記録がありません</div>'}</div></div></div>`;
   }
@@ -3771,7 +4014,7 @@ function projectTab(p){
     const ts=(S.todos||[]).filter(t=>t.pid===pid).sort((a,b)=>(a.done-b.done)||((a.due||'9')).localeCompare(b.due||'9'));
     const today=todayISO();
     return `<div class="row" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">タスク（未完了 ${ts.filter(t=>!t.done).length}件）</h3></div>
-      <form class="compose" data-form="todo" data-pid="${pid}" style="margin:0 0 12px;flex-wrap:wrap"><input id="todoTitle" name="title" aria-label="やること" placeholder="やること（例：建具の納期確認）" required autocomplete="off" style="flex:2;min-width:180px"><input name="assignee" placeholder="担当" aria-label="担当" style="flex:1;min-width:90px"><input name="due" type="date" aria-label="期限" style="flex:0 0 auto"><button class="btn primary" type="submit">追加</button></form>
+      <form class="compose" data-form="todo" data-pid="${pid}" style="margin:0 0 12px;flex-wrap:wrap"><input id="todoTitle" name="title" aria-label="やること" placeholder="やること（例：建具の納期確認）" required autocomplete="off" style="flex:2;min-width:180px"><input name="assignee" placeholder="担当" aria-label="担当" list="todoWho" autocomplete="off" style="flex:1;min-width:90px"><datalist id="todoWho">${[...new Set([p.motoukeRep,...String(p.rateruRep||'').split('/'),...(p.partners||[])].map(s=>String(s||'').trim()).filter(Boolean))].map(s=>`<option value="${esc(s)}">`).join('')}</datalist><input name="due" type="date" aria-label="期限" style="flex:0 0 auto"><span class="due-quick">${[['0','今日'],['1','明日'],['7','1週間後']].map(([n,l])=>`<button type="button" class="btn sm" data-act="dueQuick" data-n="${n}">${l}</button>`).join('')}</span><button class="btn primary" type="submit">追加</button></form>
       ${ts.map(t=>`<div class="todo ${t.done?'done':''}"><input type="checkbox" data-act="todoDone" data-id="${t.id}" ${t.done?'checked':''} aria-label="完了"><div class="t"><b>${esc(t.title)}</b><br><small>${esc(t.assignee||'担当未定')} ・ 期限 <span ${!t.done&&t.due&&t.due<today?'style="color:var(--ng);font-weight:700"':''}>${t.due?md(t.due):'—'}</span> ・ ${esc(t.by)}</small></div>${editBtn('todo',t)}<button class="btn sm" data-act="delTodo" data-id="${t.id}" aria-label="削除">×</button></div>`).join('')||'<div class="empty">タスクはありません</div>'}`;
   }
   case 'report': return `<div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 style="margin:0">報告・日報</h3>${canReport()?`<button class="btn sm primary" data-act="newReport" data-pid="${pid}">＋ 日報を書く</button>`:''}</div>${reportCards(S.reports.filter(r=>r.pid===pid).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at)),false)}`;
@@ -3819,15 +4062,36 @@ async function hydrateImages(){
 }
 
  
-function openDrawer(html){ const d=$('#drawer'); if(!d.classList.contains('open')) pushHist('drawer'); d.innerHTML=html; d.classList.add('open'); d.setAttribute('aria-hidden','false'); $('#overlay').hidden=false; const f=d.querySelector('input,select,textarea'); if(f) setTimeout(()=>f.focus(),50); }
-function closeDrawer(){ const d=$('#drawer'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); d.innerHTML=''; $('#overlay').hidden=true; }
+
+const PhotoView={ list:[],
+  async show(id){ const x=S.photos.find(p=>p.id===id); if(!x) return; if(!this.list.includes(id)) this.list=[id]; const i=this.list.indexOf(id), n=this.list.length; const u=await fileURL(x.fileKey); if(!u) return;
+    $('#modalRoot').innerHTML=`<div class="modal" data-act="closeModal"><div class="box wide photo-view" id="photoView" data-id="${esc(x.id)}">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><small class="muted">${n>1?`${i+1} / ${n}枚`:''}</small><button class="btn sm" data-act="closeModal">× 閉じる</button></div>
+      <div class="pv-img"><img src="${u}" alt="${esc(photoFolder(x))}">${n>1?`<button class="pv-nav prev" data-act="pvMove" data-d="-1" ${i===0?'disabled':''} aria-label="前の写真">‹</button><button class="pv-nav next" data-act="pvMove" data-d="1" ${i===n-1?'disabled':''} aria-label="次の写真">›</button>`:''}</div>
+      <p class="muted">${esc(pname(x.pid))} ・ ${esc(photoFolder(x))} ・ 撮影 ${mdhm(x.shotAt||x.date)} ・ ${esc(x.by)}</p></div></div>`; },
+  move(dd){ const cur=$('#photoView')?.dataset.id, i=this.list.indexOf(cur), j=i+dd; if(i<0||j<0||j>=this.list.length) return; return this.show(this.list[j]); } };
+document.addEventListener('keydown',e=>{ if(!$('#photoView')||e.target.closest('input,textarea,select')) return; if(e.key==='ArrowLeft'){ e.preventDefault(); PhotoView.move(-1); } else if(e.key==='ArrowRight'){ e.preventDefault(); PhotoView.move(1); } });
+{ let sx=null, sy=0; document.addEventListener('touchstart',e=>{ sx=e.target.closest&&e.target.closest('#photoView')&&e.touches.length===1?e.touches[0].clientX:null; sy=e.touches[0]?.clientY||0; },{passive:true});
+  document.addEventListener('touchend',e=>{ if(sx==null) return; const t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy; sx=null; if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5) PhotoView.move(dx<0?1:-1); },{passive:true}); }
+function openDrawer(html){ drawerDirty=false; const d=$('#drawer'); if(!d.classList.contains('open')) pushHist('drawer'); d.innerHTML=html; d.classList.add('open'); d.setAttribute('aria-hidden','false'); $('#overlay').hidden=false; d.querySelectorAll('.field input[type="number"]').forEach(numHint); const f=d.querySelector('input,select,textarea'); if(f) setTimeout(()=>f.focus(),50); }
+function closeDrawer(){ const d=$('#drawer'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); d.innerHTML=''; $('#overlay').hidden=true; drawerDirty=false; }
+
+let drawerDirty=false;
+function askCloseDrawer(after){ const d=$('#drawer'); if(!d.classList.contains('open')||!drawerDirty||!d.querySelector('form')){ closeDrawer(); if(after) after(); return true; }
+  confirmBox('入力した内容は、まだ保存されていません。閉じると消えます。','閉じる（保存しない）',()=>{ closeDrawer(); if(after) after(); }); return false; }
+document.addEventListener('input', e=>{ if(e.target&&e.target.closest&&e.target.closest('#drawer form')) drawerDirty=true; });
+document.addEventListener('change', e=>{ if(e.target&&e.target.closest&&e.target.closest('#drawer form')&&e.target.type!=='file') drawerDirty=true; });
 function closeSidebar(){ $('#sidebar').classList.remove('open'); if(!$('#drawer').classList.contains('open')) $('#overlay').hidden=true; }
-const drawerHead = t => `<div class="row" style="justify-content:space-between;margin-bottom:16px"><h2>${t}</h2><button class="btn" data-act="closeDrawer" aria-label="閉じる">×</button></div>`;
+const drawerHead = t => `<div class="row drawer-head" style="justify-content:space-between;margin-bottom:16px"><h2>${t}</h2><button class="btn" data-act="closeDrawer" aria-label="閉じる">×</button></div>`;   
 function confirmBox(text, okLabel, onOk){
   $('#modalRoot').innerHTML=`<div class="modal"><div class="box"><p style="margin-top:0">${esc(text)}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="closeModal">やめる</button><button class="btn primary" id="modalOk">${esc(okLabel)}</button></div></div></div>`;
   $('#modalOk').onclick=()=>{ $('#modalRoot').innerHTML=''; onOk(); };
 }
-let toastT; function toast(t){ let el=$('#toast'); if(!el){ el=document.createElement('div'); el.id='toast'; el.className='toast'; el.setAttribute('role','status'); document.body.appendChild(el);} el.textContent=t; el.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>el.hidden=true,2600); }
+
+let toastT; function toast(t){ let el=$('#toast'); if(!el){ el=document.createElement('div'); el.id='toast'; el.className='toast'; el.setAttribute('role','status'); document.body.appendChild(el);}
+  const pd=Trash.pending; Trash.pending=null; const e=pd&&Date.now()-pd.t<3000?Trash.list().find(x=>x.id===pd.id):null, undo=!!e&&Trash.canSee(e);
+  el.textContent=t; if(undo){ const b=document.createElement('button'); b.type='button'; b.className='toast-undo'; b.dataset.act='trashUndo'; b.dataset.id=e.id; b.textContent='元に戻す'; el.append(' ',b); }
+  el.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>el.hidden=true,undo?7000:2600); }
 const formData = form => Object.fromEntries(new FormData(form).entries());
 const fld = (label,name,val='',type='text',extra='') => `<div class="field"><label for="fm_${name}">${label}${/\brequired\b/.test(extra)&&!/必須/.test(label)?'<span class="req">必須</span>':''}</label><input id="fm_${name}" name="${name}" type="${type}" value="${esc(val)}" ${extra}></div>`;
 const sel = (label,name,opts,val) => `<div class="field"><label for="fm_${name}">${label}</label><select id="fm_${name}" name="${name}">${opts.map(o=>Array.isArray(o)?`<option value="${esc(o[0])}" ${o[0]===val?'selected':''}>${esc(o[1])}</option>`:`<option ${o===val?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;
@@ -3892,15 +4156,16 @@ document.addEventListener('click', async e=>{
   case 'newProject': projectForm(null); break;
   case 'enterDemo': { if(MODE!=='demo') break; const id=$('#demoUser')?.value; if(!pickUsers().some(u=>u.id===id)) break; S.userId=id; try{ localStorage.setItem(DEMO_USER_KEY,'1'); }catch(e){} save(); render(); toast(`${me().name}の権限で表示しています（お試し版）`); break; }
   case 'editProject': projectForm(proj(d.pid)); break;
-  case 'delProject': confirmBox(`「${pname(d.pid)}」と関連データ（工程・見積・資料・写真・チャット）を削除します。元に戻せません。`,'削除する',()=>{
-      const pid=d.pid; S.photos.filter(x=>x.pid===pid).forEach(x=>FileStore.del(x.fileKey)); S.docs.filter(x=>x.pid===pid&&x.fileKey).forEach(x=>FileStore.del(x.fileKey));
+  case 'delProject': confirmBox(`「${pname(d.pid)}」と関連データ（工程・見積・資料・写真・チャット）を削除します。30日のあいだ「消したもの」から、まとめて戻せます。`,'削除する',()=>{
+      const pid=d.pid, KS=['tasks','estimates','docs','photos','reports','notices','todos','corrections','approvals','messages','activity','changes'];
+      Trash.put(`案件「${pname(pid)}」と関連データ`,[{coll:'projects',items:S.projects.filter(p=>p.id===pid)},...KS.map(k=>({coll:k,items:S[k].filter(x=>x.pid===pid)})),{coll:'surveys',items:S.surveys[pid]?[{pid,value:S.surveys[pid]}]:[]},{coll:'inspections',items:S.inspections[pid]?[{pid,value:S.inspections[pid]}]:[]}],[...S.photos.filter(x=>x.pid===pid).map(x=>x.fileKey),...S.docs.filter(x=>x.pid===pid).map(x=>x.fileKey)]);
       ['tasks','estimates','docs','photos','reports','notices','todos','corrections','approvals','messages','activity','changes'].forEach(k=>S[k]=S[k].filter(x=>x.pid!==pid));
       delete S.surveys[pid]; delete S.inspections[pid]; S.projects=S.projects.filter(p=>p.id!==pid); save(); closeDrawer(); toast('案件を削除しました'); go('projects'); }); break;
   case 'setStatus': { const p=proj(d.pid); if(p.status===d.s) break; if(!String(p.rateruRep||'').trim()){ toast('先に案件のRateru担当を記入してください'); projectForm(p); break; } change(p.id,`ステータス ${STATUS[p.status].label} → ${STATUS[d.s].label}`); log(p.id,`ステータス変更 / ${STATUS[d.s].label}`); p.status=d.s; if(d.s==='done') p.progress=100; save(); render(); toast(`ステータスを「${STATUS[d.s].label}」にしました`); break; }
   case 'svCycle': { const s=S.surveys[d.pid], it=s.items[+d.i]; const order=['todo','wait','ok','ng']; it.state=order[(order.indexOf(it.state)+1)%order.length]; if(s.items.every(i=>i.state==='ok')) log(d.pid,'現調完了 / 全項目チェック済み'); save(); render(); break; }
   case 'newTask': taskForm(null, d.pid); break;
   case 'editTask': taskForm(S.tasks.find(t=>t.id===d.id)); break;
-  case 'delTask': { const t=S.tasks.find(x=>x.id===d.id); confirmBox(`工程「${t.trade}」を削除します。`,'削除する',()=>{ S.tasks=S.tasks.filter(x=>x.id!==d.id); change(t.pid,`工程削除：${t.trade}`); save(); closeDrawer(); render(); toast('工程を削除しました'); }); break; }
+  case 'delTask': { const t=S.tasks.find(x=>x.id===d.id); confirmBox(`工程「${t.trade}」を削除します（30日のあいだ「消したもの」から戻せます）。`,'削除する',()=>{ Trash.put(`工程「${t.trade}」（${pname(t.pid)}）`,[{coll:'tasks',items:[t]}]); S.tasks=S.tasks.filter(x=>x.id!==d.id); change(t.pid,`工程削除：${t.trade}`); save(); closeDrawer(); render(); toast('工程を削除しました'); }); break; }
   case 'startInspection': { S.inspections[d.pid]=S.inspections[d.pid]||{}; S.inspections[d.pid][d.phase]={date:todayISO(),items:INSPECT_TEMPLATE[d.phase].map(n=>({name:n,result:'todo'}))}; log(d.pid,`${d.phase==='mid'?'中間':'完了'}検査 開始`); save(); render(); break; }
   case 'insSet': { const x=S.inspections[d.pid][d.phase], it=x.items[+d.i]; const prev=it.result; it.result = it.result===d.r?'todo':d.r;
       if(it.result==='ng' && prev!=='ng' && !S.corrections.some(c=>c.pid===d.pid&&c.item===it.name&&c.state!=='done')){
@@ -3927,26 +4192,53 @@ document.addEventListener('click', async e=>{
   case 'checkAppUpdate': AppUpdate.check(true); break;
   case 'reloadApp': AppUpdate.reload(); break;
   case 'openInternal': { const x=S.internal.find(v=>v.id===d.id); await openBlob(x.fileKey, x.fileName||x.title); break; }
-  case 'delInternal': confirmBox(`「${S.internal.find(v=>v.id===d.id).title}」を削除します。`,'削除する',()=>{ const x=S.internal.find(v=>v.id===d.id); if(x.fileKey) FileStore.del(x.fileKey); S.internal=S.internal.filter(v=>v.id!==d.id); save(); render(); toast('削除しました'); }); break;
+  case 'delInternal': confirmBox(`「${S.internal.find(v=>v.id===d.id).title}」を削除します。`,'削除する',()=>{ const x=S.internal.find(v=>v.id===d.id); Trash.put(`社内フォルダ「${x.title||''}」`,[{coll:'internal',items:[x]}],[x.fileKey]); S.internal=S.internal.filter(v=>v.id!==d.id); save(); render(); toast('削除しました'); }); break;
   case 'newNote': openDrawer(`${drawerHead('社内メモ')}<form data-form="note">${sel('案件（任意）','pid',[['','（案件なし）'],...S.projects.map(p=>[p.id,p.name])],'')}${fld('件名','title','','text','required placeholder="例：元請と打ち合わせ 9/29"')}${area('内容','text','','決まったこと・次にやること・注意点')}<button class="btn primary" style="width:100%" type="submit">保存</button></form>`); break;
   case 'loadSample': { const sd=seed(); for(const k of Object.keys(sd)) if(!['version','userId'].includes(k)) S[k]=sd[k]; S.internal=S.internal||[]; save(); render(); toast('サンプル案件を入れました'); break; }
   case 'newLogin': if(salesHead()) openDrawer(`${drawerHead('ログインを作成')}<form data-form="newLogin">${fld('名前（画面に表示）','name','','text','required placeholder="例：鈴木"')}${fld('ログインID（半角英数字）','id','','text','required pattern="[A-Za-z0-9._\\-]+" placeholder="例：suzuki"')}${fld('初期パスワード（8文字以上）','pw',Math.random().toString(36).slice(2,6)+Math.random().toString(36).slice(2,8).toUpperCase(),'text','required minlength="8"')}${sel('役割','role',['motouke_admin','motouke_sales','rateru_admin','partner'].map(r=>[r,roleLabel(r)]),'motouke_sales')}<button class="btn primary" style="width:100%" type="submit">作成</button></form>`); break;
   case 'memberProjects': { const u=Members.profs.find(x=>x.id===d.id); const mine=new Set(Members.mem.filter(m=>m.user_id===d.id).map(m=>m.project_id));
       openDrawer(`${drawerHead('担当案件：'+esc(u.display_name))}<form data-form="memberProjects" data-id="${u.id}">${S.projects.map(p=>`<div class="field"><label><input type="checkbox" name="p" value="${p.id}" ${mine.has(p.id)?'checked':''}> ${esc(p.name)}（${p.id}）</label></div>`).join('')}<button class="btn primary" style="width:100%" type="submit">保存</button></form>`); break; }
   case 'copyText': { const t=d.text; try{ await navigator.clipboard.writeText(t); toast('コピーしました'); }catch(err){ toast('選択してコピーしてください'); } break; }
-  case 'delDoc': confirmBox(`資料「${S.docs.find(x=>x.id===d.id).name}」を削除します。`,'削除する',()=>{ const doc=S.docs.find(x=>x.id===d.id); if(doc.fileKey) FileStore.del(doc.fileKey); S.docs=S.docs.filter(x=>x.id!==d.id); change(doc.pid,`資料削除：${doc.name}`); save(); render(); toast('削除しました'); }); break;
-  case 'viewPhoto': { const x=S.photos.find(p=>p.id===d.id); const u=await fileURL(x.fileKey); if(u) $('#modalRoot').innerHTML=`<div class="modal" data-act="closeModal"><div class="box wide"><img src="${u}" alt="${esc(photoFolder(x))}"><p class="muted">${esc(pname(x.pid))} ・ ${esc(photoFolder(x))} ・ 撮影 ${mdhm(x.shotAt||x.date)} ・ ${esc(x.by)}</p></div></div>`; break; }
+  case 'delDoc': confirmBox(`資料「${S.docs.find(x=>x.id===d.id).name}」を削除します。`,'削除する',()=>{ const doc=S.docs.find(x=>x.id===d.id); Trash.put(`資料「${doc.name}」（${pname(doc.pid)}）`,[{coll:'docs',items:[doc]}],[doc.fileKey]); S.docs=S.docs.filter(x=>x.id!==d.id); change(doc.pid,`資料削除：${doc.name}`); save(); render(); toast('削除しました'); }); break;
+  case 'viewPhoto': { const root=el.closest('#drawer')||$('#content'); PhotoView.list=[...root.querySelectorAll('img[data-act="viewPhoto"]')].map(e=>e.dataset.id); await PhotoView.show(d.id); break; }
+  case 'pvMove': PhotoView.move(Number(d.d)); break;
   case 'photoMode': view.photoMode=d.m; render(); break;
   case 'photoSelAll': S.photos.filter(x=>x.pid===d.pid&&photoFolder(x)===d.f).forEach(x=>view.photoSel.add(x.id)); render(); break;
   case 'photoSelNone': S.photos.filter(x=>x.pid===d.pid&&photoFolder(x)===d.f).forEach(x=>view.photoSel.delete(x.id)); render(); break;
   case 'photoSelClear': view.photoSel.clear(); render(); break;
   case 'photoMove': { const to=$('#ph_move').value; const xs=S.photos.filter(x=>x.pid===d.pid&&view.photoSel.has(x.id)); xs.forEach(x=>{ x.folder=to; x.label=to; }); change(d.pid,`写真${xs.length}枚を「${to}」へ移動`); view.photoSel.clear(); save(); render(); toast(`${xs.length}枚を移動しました`); break; }
-  case 'photoDelSel': { const xs=S.photos.filter(x=>x.pid===d.pid&&view.photoSel.has(x.id)); confirmBox(`選択した写真${xs.length}枚を削除します。`,'削除する',()=>{ xs.forEach(x=>FileStore.del(x.fileKey)); const ids=new Set(xs.map(x=>x.id)); S.photos=S.photos.filter(x=>!ids.has(x.id)); change(d.pid,`写真${xs.length}枚を削除`); view.photoSel.clear(); save(); render(); toast('削除しました'); }); break; }
+  case 'photoDelSel': { const xs=S.photos.filter(x=>x.pid===d.pid&&view.photoSel.has(x.id)); confirmBox(`選択した写真${xs.length}枚を削除します（30日のあいだ「消したもの」から戻せます）。`,'削除する',()=>{ Trash.put(`写真 ${xs.length}枚（${pname(d.pid)}）`,[{coll:'photos',items:xs}],xs.map(x=>x.fileKey)); const ids=new Set(xs.map(x=>x.id)); S.photos=S.photos.filter(x=>!ids.has(x.id)); change(d.pid,`写真${xs.length}枚を削除`); view.photoSel.clear(); save(); render(); toast('削除しました'); }); break; }
   case 'docFolder': view.docFolder=d.f||null; render(); break;
   case 'projView': view.projView=d.v; render(); break;
   case 'pipeView': Pipe.view=d.v; Pipe.pref('view',d.v); render(); break;
   case 'pipeAll': Pipe.showAll=true; render(); break;
+  case 'pipeMine': Pipe.f.mine=!Pipe.f.mine; Pipe.saveF(); render(); break;
+  case 'pipeKpi': Pipe.f.kpi=Pipe.f.kpi===d.k?'':d.k; render(); break;
+  case 'pipeKpiGo': Pipe.f.kpi=d.k; Pipe.f.status=''; go('pipeline'); break;
+  case 'chatGo': view.chatPid=d.pid; render(); break;
+  case 'reportsIss': view.reportsIss=!view.reportsIss; view.reportsN=20; render(); break;
+  case 'reportsMore': view.reportsN=(view.reportsN||20)+20; render(); break;
+  case 'ovAttAll': view.ovAttAll=!view.ovAttAll; render(); break;
+  case 'fontSize': FontSize.set(d.v||''); render(); break;
+  case 'copyPipe': { const x=(S.pipeline||[]).find(v=>v.id===d.id); if(!x) break; const pre={}; ['customer','requester','phone','tanto1','tanto2','billing'].forEach(k=>{ if(x[k]) pre[k]=x[k]; }); if(salesOwner(x)) pre.responsible=salesOwner(x); Pipe.form(null,pre); toast('顧客・依頼主・担当を写しました。物件名などを入れて「保存」してください'); break; }
+  case 'copyPlan': { const x=S.plans.find(p=>p.id===d.id); if(!x||!canEditPlan(x)) break; const {who,date,time,title,place,memo,vis,shareWith,busy}=x; Plan.form('', '', '', {who,date,time,title,place,memo,vis,shareWith,busy}); toast('写しました。日付などを直して「保存」してください'); break; }
+  case 'progStamp': { const ta=el.closest('form')?.querySelector('[name="progress"]'); if(!ta) break; const t=new Date(), head=`${t.getMonth()+1}/${t.getDate()} ${d.t}：`;   
+    ta.value=head+(ta.value?'\n'+ta.value:''); ta.dispatchEvent(new Event('input',{bubbles:true})); ta.focus(); try{ ta.setSelectionRange(head.length,head.length); }catch(e){} break; }
+  case 'clearFilters': Object.assign(view.filters,{q:'',status:'',area:'',type:'',rep:''}); render(); break;
+  case 'dueQuick': { const i=el.closest('form')?.querySelector('[name="due"]'); if(i){ i.value=addDays(todayISO(),Number(d.n)||0); i.dispatchEvent(new Event('input',{bubbles:true})); } break; }   
+  case 'trashUndo': { const t=$('#toast'); if(t) t.hidden=true; Trash.restore(d.id); break; }
+  case 'tocGo': { const h=document.getElementById('toc'+d.i); if(h) h.scrollIntoView({behavior:'smooth',block:'start'}); break; }
   case 'saleOwnerPreview': SaleOwnerGuess.preview(); break;
+  case 'trashRestore': Trash.restore(d.id); break;
+  case 'reportCopyPrev': { const f=el.closest('form'); const pid=f?.querySelector('[name="pid"]')?.value; const prev=(S.reports||[]).filter(r=>r.pid===pid).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at))[0];   
+      if(!prev){ toast('この案件の前の日報はありません'); break; } let n=0; const put=(name,v)=>{ const i=f.querySelector(`[name="${name}"]`); if(i&&!i.value.trim()&&v){ i.value=v; n++; } };
+      put('workers',prev.workers); put('work',prev.tomorrow);
+      drawerDirty=true; toast(n?`${md(prev.date)}の日報から写しました（作業人数・前の日の「明日の予定」）`:'写せる内容はありませんでした（もう入っているか、前の日報が空です）'); break; }
+  case 'salesCsv': { if(!salesAll()) break; const m=Office.sMonth||monthKey(), key=d.r==='y'?m.slice(0,4):m; const xs=(S.sales||[]).filter(x=>(x.type==='sale'||x.type==='buy')&&canViewSale(x)&&String(x.month||'').startsWith(key)).sort((a,b)=>String(a.month+a.date).localeCompare(String(b.month+b.date)));
+      saveCsv(`売上と仕入_${key}.csv`,[['種類','計上月','請求日','相手','件名','金額（税込）','状態','入金予定日','支払月','担当','案件進捗の案件'],...xs.map(x=>[x.type==='sale'?'売上':'仕入',x.month,x.date,x.party,x.title,x.amount,x.status,x.due,x.payMonth,saleOwner(x),saleCase(x)?.name||''])]); toast(`${xs.length}件を書き出しました`); break; }   
+  case 'pettyCsv': { if(!Petty.admin()) break; const xs=(S.petty||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+      saveCsv(`小口現金と立替_${todayISO()}.csv`,[['日付','だれ','種類','金額','内容','案件','精算'],...xs.map(x=>[x.date,x.who,PETTY_KIND[x.kind]||x.kind,x.amount,x.desc,x.pid?pname(x.pid):'',x.settled?'精算済み':''])]); toast(`${xs.length}件を書き出しました`); break; }
+  case 'gsOpen': GSearch.go(d.k, d.id); break;
   case 'saleOwnerApply': SaleOwnerGuess.apply(); break;
   case 'saleOwnerUndo': SaleOwnerGuess.undo(); break;
   case 'attAll': view.attAll=true; render(); break;
@@ -4015,14 +4307,14 @@ document.addEventListener('click', async e=>{
   case 'delOffice': Office.del(d.coll, d.id); break;
   case 'shareOfficeFile': await shareOfficeFile(d.coll, d.id); break;
   case 'delPipe': { const x=S.pipeline.find(v=>v.id===d.id); if(!x||!(salesHead()||salesDeputy()||salesOwner(x)===mySalesOwner()&&canSeeSalesPage())) break; const nq=(S.quotes||[]).filter(v=>v.pipeId===x.id).length, ns=(S.sales||[]).filter(v=>v.pipeId===x.id).length, nm=(S.meetings||[]).filter(v=>v.pipeId===x.id).length, link=[nq&&`見積${nq}件`,ns&&`売上・仕入${ns}件`,nm&&`会議資料${nm}件`,x.pid&&'施工管理の案件（図面・写真など）'].filter(Boolean);   
-      confirmBox(`「${x.name}」を案件進捗から削除します。${link.length?`この案件につながっている ${link.join('・')} は消えずに残ります。`:''}`,'削除する',()=>{ S.pipeline=S.pipeline.filter(v=>v.id!==d.id); save(); closeDrawer(); render(); toast('削除しました'); }); break; }
+      confirmBox(`「${x.name}」を案件進捗から削除します。${link.length?`この案件につながっている ${link.join('・')} は消えずに残ります。`:''}30日のあいだ「消したもの」から戻せます。`,'削除する',()=>{ Trash.put(`案件進捗「${x.name}」`,[{coll:'pipeline',items:[x]}]); S.pipeline=S.pipeline.filter(v=>v.id!==d.id); save(); closeDrawer(); render(); toast('削除しました'); }); break; }
   case 'moveStage': { e.stopPropagation(); const p=proj(d.pid), i=STATUS_ORDER.indexOf(p.status)+Number(d.d); if(i<0||i>=STATUS_ORDER.length) break; if(!String(p.rateruRep||'').trim()){ toast('先に案件のRateru担当を記入してください'); projectForm(p); break; } const to=STATUS_ORDER[i];
       change(p.id,`ステータス ${STATUS[p.status].label} → ${STATUS[to].label}`); log(p.id,`ステータス変更 / ${STATUS[to].label}`); p.status=to; if(to==='done') p.progress=100; save(); render(); break; }
   case 'csv': { const head=['案件ID','物件名','住所','エリア','区分','元請','契約番号','案件管理ID','元請担当','Rateru担当','協力業者','ステータス','進捗%','着工日','完工予定','次アクション'];
       const q=csvCell;
       const lines=[head,...filteredProjects().map(p=>[p.id,p.name,p.address,p.area,p.type,p.client,p.contractNo,p.mgmtId,p.motoukeRep,p.rateruRep,(p.partners||[]).join('・'),STATUS[p.status].label,p.progress,p.start,p.due,p.next])].map(r=>r.map(q).join(','));
       const u=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download=`案件一覧-${todayISO()}.csv`; document.body.appendChild(a); a.click(); a.remove(); toast('CSVを書き出しました'); break; }
-  case 'delTodo': { const t=S.todos.find(x=>x.id===d.id); confirmBox(`タスク「${t.title}」を削除します。`,'削除する',()=>{ S.todos=S.todos.filter(x=>x.id!==d.id); change(t.pid,`タスク削除：${t.title}`); save(); render(); toast('タスクを削除しました'); }); break; }
+  case 'delTodo': { const t=S.todos.find(x=>x.id===d.id); confirmBox(`タスク「${t.title}」を削除します（30日のあいだ「消したもの」から戻せます）。`,'削除する',()=>{ Trash.put(`やること「${t.title}」`,[{coll:'todos',items:[t]}]); S.todos=S.todos.filter(x=>x.id!==d.id); change(t.pid,`タスク削除：${t.title}`); save(); render(); toast('タスクを削除しました'); }); break; }
   case 'ledger': { const p=proj(d.pid), xs=S.photos.filter(x=>x.pid===d.pid&&view.photoSel.has(x.id)).sort((a,b)=>(a.shotAt||a.date).localeCompare(b.shotAt||b.date));
       const cells=await Promise.all(xs.map(async x=>`<td><img src="${await fileURL(x.fileKey)||''}" alt="${esc(photoFolder(x))}"><div><b>${esc(photoFolder(x))}</b>　撮影 ${mdhm(x.shotAt||x.date)}</div><textarea aria-label="コメント" placeholder="コメント"></textarea></td>`));
       const rows=[]; for(let i=0;i<cells.length;i+=2) rows.push(`<tr>${cells[i]}${cells[i+1]||'<td></td>'}</tr>`);
@@ -4033,7 +4325,7 @@ document.addEventListener('click', async e=>{
   case 'newReport': reportForm(d.pid||view.pid); break;
   case 'fav': Favs.toggle(d.pid); render(); break;
   case 'calNav': { if(d.d==='0') view.calMonth=todayISO().slice(0,7); else { const [y,m]=view.calMonth.split('-').map(Number); const n=new Date(y,m-1+Number(d.d),1); view.calMonth=`${n.getFullYear()}-${pad(n.getMonth()+1)}`; } render(); break; }
-  case 'delPhoto': confirmBox('この写真を削除します。','削除する',()=>{ const x=S.photos.find(p=>p.id===d.id); FileStore.del(x.fileKey); S.photos=S.photos.filter(p=>p.id!==d.id); save(); render(); }); break;
+  case 'delPhoto': confirmBox('この写真を削除します（30日のあいだ「消したもの」から戻せます）。','削除する',()=>{ const x=S.photos.find(p=>p.id===d.id); Trash.put(`写真（${pname(x.pid)}）`,[{coll:'photos',items:[x]}],[x.fileKey]); S.photos=S.photos.filter(p=>p.id!==d.id); save(); render(); }); break;
   case 'newEstimate': openDrawer(`${drawerHead('見積を追加')}<form data-form="estimate" data-pid="${d.pid}">${fld('版','ver','v'+(S.estimates.filter(x=>x.pid===d.pid).length+1),'text','required')}${fld('金額（税込・円）','amount','','number','required min="0" step="1"')}${canFinance()?fld('原価（円）','cost','','number','min="0" step="1"'):''}<button class="btn primary" style="width:100%" type="submit">追加</button></form>`); break;
   case 'newApproval': { const ps=visibleProjects(); openDrawer(`${drawerHead('申請・依頼を作成')}<form data-form="approval">${sel('案件','pid',ps.map(p=>[p.id,p.name]),view.pid||ps[0]?.id)}${sel('種別','kind',APPROVAL_KIND,'追加工事')}${fld('件名','title','','text','required placeholder="例：壁内部ブロック撤去"')}${fld('金額（円・任意）','amount','','number','min="0" step="1"')}${area('内容','body','','理由・範囲・根拠資料など')}<button class="btn primary" style="width:100%" type="submit">申請する</button></form>`); break; }
   case 'apprFilter': view.apprFilter=d.f; render(); break;
@@ -4055,7 +4347,7 @@ document.addEventListener('click', async e=>{
   case 'exportDataBackup': { if(MODE!=='demo') break; Keep.get().then(raw=>{ if(!raw){ toast('控えが見つかりません'); return; }
       const u=URL.createObjectURL(new Blob([raw],{type:'application/json'})), aEl=document.createElement('a'); aEl.href=u; aEl.download=`rateru-pad-before-update-${todayISO()}.json`; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); toast('更新前の控えを書き出しました'); }); break; }
   case 'reset': confirmBox('この端末に入れたデータをすべて消して、空に戻します。元に戻せません（先に「控え」を書き出しておくと安心です）。','すべて消す',async()=>{ await FileStore.clear(); urlCache.clear(); S={...emptyState(), userId:S.userId||'u_rateru_admin', samplesCleared:true}; save(); toast('すべてのデータを消しました'); go('dashboard'); }); break;
-  case 'closeDrawer': closeDrawer(); break;
+  case 'closeDrawer': askCloseDrawer(); break;
   case 'lineApprove': await LineCfg.update(d.id,{approved:true}); $('#lineBox').innerHTML=LineCfg.html(); toast('LINE通知先を承認しました'); break;
   case 'lineDel': confirmBox('このLINE通知先を解除します。','解除する',()=>LineCfg.remove(d.id)); break;
   case 'lineTest': await LineCfg.test(d.id); break;
@@ -4066,6 +4358,10 @@ document.addEventListener('change', async e=>{
   const el=e.target, d=el.dataset;
   if(d.act==='q_itemsImport'){ const file=el.files[0]; el.value=''; if(!file) return; try{ const j=JSON.parse(await file.text()); if(j.format!=='rateru-qitems'||!Array.isArray(j.items)) throw 0; const r=Q.mergeItems(j.items); save(); render(); toast(`品目を ${r.add}件 足し、単価を ${r.price}件 入れました`); }catch(e){ toast('品目の一覧のファイル（品目の一覧_〇〇.json）を選んでください'); } return; }
   if(d.act==='payMonthPick'){ Office.payMonth=el.value; render(); return; }
+  if(d.act==='pipeQuickStatus'){ Pipe.quickStatus(d.id, el.value); return; }
+  if(d.act==='q_listSt'){ Q.listSt=el.value; render(); return; }
+  if(d.act==='apprPid'){ view.apprPid=el.value; render(); return; }
+  if(d.act==='setStatusSel'){ const b=document.querySelector(`[data-act="setStatus"][data-pid="${d.pid}"][data-s="${el.value}"]`); if(b) b.click(); const p=proj(d.pid); if(p&&p.status!==el.value) el.value=p.status; return; }   
   if(d.act==='q_owner'){ const dr=Q.draft; if(!dr||!el.value) return; Q.readForm(); dr.owner=el.value; const pp=(S.pipeline||[]).find(x=>x.id===dr.pipeId); if(pp&&!salesOwner(pp)){ pp.responsible=el.value; save(); } render(); toast('売上責任者を「'+el.value+'」にしました'); return; }   
   if(d.act==='pettyBulk'){ const fl=[...el.files]; el.value=''; if(fl.length) await Petty.bulk(d.w, fl); return; }
   if(d.custpick){ const box=document.getElementById('fm_'+d.custpick+'NewBox'); if(box){ box.hidden=el.value!=='__new'; if(!box.hidden) box.querySelector('input')?.focus(); } return; }   
@@ -4079,7 +4375,7 @@ document.addEventListener('change', async e=>{
     const existing=S.projects.find(x=>x.client===el.value&&x.clientPhone); if(existing){ form.querySelector('#fm_clientPhone').value=existing.clientPhone; form.querySelector('#fm_clientPhoneType').value=existing.clientPhoneType||'mobile'; } return; }
   if(el.name==='vis'&&el.closest('form[data-form="plan"]')){ const fm=el.closest('form'); fm.querySelector('.plan-share').hidden=el.value!=='limited'; fm.querySelector('.plan-busy').hidden=el.value==='work'; return; }
   if(d.act==='custBilling'){ const nk=v=>String(v||'').replace(/[\s　]/g,''), k=nk(d.k); let n=0; (S.pipeline||[]).forEach(x=>{ if(nk(x.customer||x.requester||'（顧客名なし）')===k){ x.billing=el.value; n++; } }); save(); render(); toast(`${d.k}の請求書の送り方を「${el.value||'未設定'}」にしました（${n}件）`); return; }
-  if(d.act==='pipeFilter'){ Pipe.f[d.key]=el.type==='checkbox'?el.checked:el.value; render(); return; }
+  if(d.act==='pipeFilter'){ Pipe.f[d.key]=el.type==='checkbox'?el.checked:el.value; Pipe.saveF(); render(); return; }
   if(d.sv){ S.surveys[d.pid][d.sv]=el.value; save(); return; }
   if(d.svnote!==undefined){ S.surveys[d.pid].items[+d.svnote].note=el.value; save(); return; }
   if(d.insdate){ S.inspections[d.pid][d.insdate].date=el.value; save(); return; }
@@ -4162,7 +4458,7 @@ document.addEventListener('submit', async e=>{
   try{ await onSubmit(e,f); } finally{ delete f.dataset.busy; }
 });
 async function onSubmit(e,f){
-  if(f.dataset.act==='send'){ const i=f.querySelector('input'); const t=i.value.trim(); if(!t) return; const u=me(); S.messages.push({id:uid('m'),pid:f.dataset.pid,company:u.company,name:u.name,at:nowISO(),text:t}); i.value=''; save(); render(); const n=$('#chatInput'); if(n) n.focus(); return; }
+  if(f.dataset.act==='send'){ const i=f.querySelector('input'); const t=i.value.trim(); if(!t) return; const u=me(); S.messages.push({id:uid('m'),pid:f.dataset.pid,company:u.company,name:u.name,at:nowISO(),text:t}); i.value=''; delete ChatSeen.drafts[f.dataset.pid]; save(); render(); const n=$('#chatInput'); if(n) n.focus(); return; }
   const v=formData(f), k=f.dataset.form;
   if(k&&k.startsWith('q_')){ Q.submit(k,v,f); return; }   
   if(k==='login'){
@@ -4263,22 +4559,45 @@ async function onSubmit(e,f){
     change(ap.pid,`${ap.kind}「${ap.title}」を${L[to]}`); log(ap.pid,`${L[to]} / ${ap.kind}：${ap.title}`); save(); closeDrawer(); render(); toast(`${L[to]}しました`);
   }
 }
-$('#overlay').addEventListener('click',()=>{ closeDrawer(); closeSidebar(); });
+$('#overlay').addEventListener('click',()=>{ closeSidebar(); askCloseDrawer(); });
 $('#menuBtn').addEventListener('click',()=>{ $('#sidebar').classList.add('open'); $('#overlay').hidden=false; });
 $('#newProjectBtn').addEventListener('click',()=>{ if(canSeePage('pipeline')) Pipe.form(null); else projectForm(null); });   
 
+$('#searchBtn').addEventListener('click',()=>GSearch.open());
+
+(()=>{ const b=document.createElement('button'); b.id='toTop'; b.className='to-top'; b.type='button'; b.hidden=true; b.textContent='▲ 上へ'; b.setAttribute('aria-label','一番上へ戻る'); b.onclick=()=>window.scrollTo({top:0,behavior:'smooth'}); document.body.appendChild(b);
+  let t=null; window.addEventListener('scroll',()=>{ if(t) return; t=setTimeout(()=>{ t=null; b.hidden=window.scrollY<innerHeight*2; },120); },{passive:true}); })();
+
+document.addEventListener('keydown',e=>{ if(e.key==='/'&&!e.ctrlKey&&!e.metaKey&&!e.target.closest('input,textarea,select,[contenteditable]')&&!$('#searchBtn').hidden&&!document.querySelector('#modalRoot .modal')&&!$('#viewer')){ e.preventDefault(); GSearch.open(); } });
+document.addEventListener('input', e=>{ if(e.target&&e.target.id==='gs_q'&&!e.isComposing) GSearch.draw(); });
+document.addEventListener('input', e=>{ const id=e.target&&e.target.id; if(e.isComposing) return; if(id==='q_itemQ'){ Q.itemQ=e.target.value; render(); } else if(id==='q_listQ'){ Q.listQ=e.target.value; render(); } else if(id==='rep_q'){ view.reportsQ=e.target.value; view.reportsN=20; render(); } else if(id==='q_custQ'){ Q.custQ=e.target.value; render(); } });   
+document.addEventListener('compositionend', e=>{ const id=e.target&&e.target.id; if(id==='q_itemQ'||id==='q_listQ'||id==='rep_q'||id==='q_custQ') e.target.dispatchEvent(new Event('input',{bubbles:true})); });
+document.addEventListener('input', e=>{ const t=e.target; if(t&&t.id==='chatInput'&&t.dataset.pid) ChatSeen.drafts[t.dataset.pid]=t.value; });
+
+function numHint(t){ if(!t||!t.matches||!t.matches('.field input[type="number"]')) return; let h=t.nextElementSibling; if(!h||!h.classList.contains('num-hint')){ h=document.createElement('small'); h.className='num-hint'; t.after(h); }
+  const n=Number(t.value); h.textContent=t.value!==''&&Math.abs(n)>=10000?n.toLocaleString('ja-JP'):''; }
+document.addEventListener('input', e=>numHint(e.target));
+
+document.addEventListener('keydown', e=>{ if(e.key!=='Enter'||e.isComposing||e.keyCode===229||e.ctrlKey||e.metaKey||e.shiftKey) return; const t=e.target;
+  if(!t||!t.matches||!t.matches('#drawer form input')||/^(checkbox|radio|file|submit|button)$/.test(t.type)) return;
+  const fs=[...t.form.querySelectorAll('input,select,textarea')].filter(x=>!x.disabled&&x.type!=='hidden'&&x.offsetParent!==null&&!/^(file|submit|button)$/.test(x.type)); if(fs.length<5) return;
+  e.preventDefault(); const nx=fs[fs.indexOf(t)+1]; if(nx) nx.focus(); });
+
+document.addEventListener('keydown', e=>{ if(!(e.ctrlKey||e.metaKey)||!(e.key==='s'||e.key==='S'||e.key==='Enter')) return; if(!$('#drawer').classList.contains('open')||document.querySelector('#modalRoot .modal')) return;
+  const fs=[...document.querySelectorAll('#drawer form')].filter(f=>f.querySelector('button[type="submit"],button:not([type])')); const f=fs.find(x=>x.contains(document.activeElement))||(fs.length===1?fs[0]:null); if(!f) return; e.preventDefault(); f.requestSubmit(); });
+document.addEventListener('compositionend', e=>{ if(e.target&&e.target.id==='gs_q') GSearch.draw(); });
 $('#bellBtn').addEventListener('click',()=>{ view.attAll=true; go('dashboard'); const a=$('#attSec'); if(a) a.scrollIntoView({block:'start'}); });
 document.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('rp-card')){ e.preventDefault(); Pipe.form(e.target.dataset.id); } });
 
 document.addEventListener('keydown',e=>{ const t=e.target; if((e.key==='Enter'||e.key===' ')&&t&&t.matches&&t.matches('tr.clickable[data-act]')){ e.preventDefault(); t.click(); } });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDrawer(); closeSidebar(); if(!document.querySelector('[data-form="login"]')) $('#modalRoot').innerHTML=''; } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSidebar(); if(document.querySelector('#modalRoot .modal')){ if(!document.querySelector('[data-form="login"]')) $('#modalRoot').innerHTML=''; return; } askCloseDrawer(); } });
 
 $('#logoutBtn').addEventListener('click',async()=>{ await SB.auth.signOut(); location.reload(); });
 async function boot(){
   if(!CFG().supabaseUrl){ MODE='demo'; S=load();
     if(loadIssue){ $('#app').hidden=true; $('#modalRoot').innerHTML=`<div class="modal"><div class="box"><h2>保存データを保護しました</h2><p>${esc(loadIssue)}</p><p>この画面では新しい内容を保存しません。元のデータを控えてから確認してください。</p><button class="btn primary" id="rawDataExport">元データを書き出す</button></div></div>`;
       $('#rawDataExport').onclick=()=>{ const raw=localStorage.getItem(STORE_KEY); if(raw) saveFile(new Blob([raw],{type:'application/json'}),`rateru-pad-original-${todayISO()}.json`); }; return; }
-    S.internal=S.internal||[]; render(); openFromHash(); Big.init().then(()=>Start.run()); Keep.init().then(()=>{ if(view.page==='settings') render(); }); AppUpdate.start();
+    S.internal=S.internal||[]; Trash.purge(); render(); openFromHash(); Big.init().then(()=>Start.run()); Keep.init().then(()=>{ if(view.page==='settings') render(); }); AppUpdate.start();
     try{ const prior=localStorage.getItem(RELEASE_KEY);
       if(prior!==APP_RELEASE){ const raw=localStorage.getItem(STORE_KEY); if(raw) Keep.init().then(()=>Keep.put(raw)).then(ok=>{ if(!ok) toast('更新前の控えを保存できませんでした。設定から引っ越しデータを書き出してください'); }); }
       localStorage.setItem(RELEASE_KEY,APP_RELEASE); if(prior&&prior!==APP_RELEASE&&NoticePrefs.get().app) NoticePrefs.show('RateruPADを更新しました','入力済みデータはこの端末に残ります'); }catch(e){}
