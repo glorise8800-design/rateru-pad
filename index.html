@@ -647,7 +647,7 @@ const USERS = [
   {id:'u_kodama',      name:'児玉', company:'Rateru',   role:'rateru_admin',    pos:'staff',   roleLabel:'Rateru 実務'},
   {id:'u_funada',      name:'舟田', company:'Rateru',   role:'rateru_admin',    pos:'finance', roleLabel:'財務支援'},
   {id:'u_mukai',       name:'向',   company:'Rateru',   role:'rateru_admin',    pos:'system',  roleLabel:'システム支援'},
-  {id:'u_partner',     name:'協力監督A', company:'協力', role:'partner', roleLabel:'協力会社'},
+  {id:'u_partner',     name:'協力監督A', company:'協力', role:'partner', roleLabel:'協力業者'},
   {id:'u_naito',       name:'内藤', company:'Rateru', role:'office', pos:'office', roleLabel:'事務'},
   {id:'u_guest',       name:'ゲスト（家族・試作）', company:'ゲスト', role:'guest', pos:'guest', roleLabel:'限定予定の閲覧者'}
 ];
@@ -766,7 +766,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-15-7', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-16-1', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1054,7 +1054,7 @@ const SERVER={user:null};
 const CFG = () => window.HUB_CONFIG || {};
 const COMPANY_LABEL={motouke:'元請',rateru:'Rateru',partner:'協力'};
 const ROLE_COMPANY={motouke_admin:'motouke',motouke_sales:'motouke',rateru_admin:'rateru',partner:'partner'};
-const ROLE_NAME = {rateru_admin:'Rateru 管理者', motouke_admin:'元請 管理者', motouke_sales:'元請 営業', partner:'協力会社', office:'事務', guest:'限定予定の閲覧者'};
+const ROLE_NAME = {rateru_admin:'Rateru 管理者', motouke_admin:'元請 管理者', motouke_sales:'元請 営業', partner:'協力業者', office:'事務', guest:'限定予定の閲覧者'};
 const roleLabel = r => ROLE_NAME[r] || r;
 const loginEmail = id => id.includes('@') ? id.trim() : `${id.trim()}@${CFG().loginDomain||'hub.local'}`;
 const emptyState = () => ({version:2,userId:null,projects:[],surveys:{},tasks:[],estimates:[],docs:[],photos:[],reports:[],notices:[],todos:[],inspections:{},corrections:[],approvals:[],messages:[],activity:[],changes:[],internal:[],pipeline:[],meetings:[],templates:[],sales:[],plans:[],dbxCases:[],dbxFiles:[],dezura:[],bank:[],petty:[],settings:[],customers:[],quotes:[],qitems:[],orders:[]});
@@ -1088,6 +1088,8 @@ const Sync = {
       const data = kind==='estimate' ? {...x, cost:undefined} : x;   
       out.records.push({id:x.id,project_id:x.pid,kind,data});
     }
+    
+    if(me().role==='office') for(const [kind,key] of [['dezura','dezura'],['petty','petty'],['setting','settings']]) for(const x of (S[key]||[])) out.internal_records.push({id:x.id,project_id:null,kind,data:x});
     if(me().role==='rateru_admin'){
       if(canFinance()) for(const e of S.estimates) if(ids.has(e.pid)) out.internal_records.push({id:'cost:'+e.id,project_id:e.pid,kind:'estimate_cost',data:{estimateId:e.id,cost:e.cost||0}});
       for(const x of S.internal) out.internal_records.push({id:x.id,project_id:ids.has(x.pid)?x.pid:null,kind:x.kind,data:x});
@@ -1108,7 +1110,7 @@ const Sync = {
         for(let i=0;i<up.length;i+=200){ const chunk=up.slice(i,i+200); const {error}=await SB.from(t).upsert(chunk.map(x=>x[0])); if(error){ if(this.isNet(error)) net=true; else failed=error; } else chunk.forEach(([r,j])=>m.set(r.id,j)); }
       }
       for(const t of [...order].reverse()){
-        if(t==='internal_records' && me().role!=='rateru_admin') continue;
+        if(t==='internal_records' && !['rateru_admin','office'].includes(me().role)) continue;
         const m=this.synced[t], gone=[...m.keys()].filter(id=>!seen[t].has(id));
         if(gone.length){ const {error}=await SB.from(t).delete().in('id',gone); if(error){ if(this.isNet(error)) net=true; else failed=error; } else gone.forEach(id=>m.delete(id)); }
       }
@@ -1126,7 +1128,7 @@ const Sync = {
   
   async pull(){
     try{
-      const [P,R,I]=await Promise.all([this.fetchAll('projects'), this.fetchAll('records'), me().role==='rateru_admin'?this.fetchAll('internal_records'):Promise.resolve([])]);
+      const [P,R,I]=await Promise.all([this.fetchAll('projects'), this.fetchAll('records'), ['rateru_admin','office'].includes(me().role)?this.fetchAll('internal_records'):Promise.resolve([])]);
       const st=emptyState(), cost={};
       st.projects=P.map(r=>r.data).sort((a,b)=>b.id.localeCompare(a.id));
       for(const r of R){
@@ -1167,7 +1169,8 @@ function showLogin(msg){
 async function afterLogin(user){
   const {data:prof,error}=await SB.from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(error||!prof){ await SB.auth.signOut(); return showLogin('利用者情報が見つかりません。Rateruの管理者に連絡してください。'); }
-  SERVER.user={id:prof.id,name:prof.display_name,company:COMPANY_LABEL[prof.company]||prof.company,role:prof.role,pos:prof.pos||'',salesIdentity:prof.sales_owner||'',roleLabel:roleLabel(prof.role)};
+  const office=prof.role==='rateru_admin'&&prof.pos==='office';   
+  SERVER.user={id:prof.id,name:prof.display_name,company:COMPANY_LABEL[prof.company]||prof.company,role:office?'office':prof.role,pos:prof.pos||'',salesIdentity:prof.sales_owner||'',roleLabel:office?'事務':roleLabel(prof.role)};
   $('#modalRoot').innerHTML=''; $('#app').hidden=false;
   await Sync.pull(); openFromHash(); Start.server().catch(()=>{});
   const ch=SB.channel('hub-changes');
@@ -1218,7 +1221,7 @@ function pInternal(){
   const totalMiss=rows.reduce((s,r)=>s+r.miss.length,0);
   const items=S.internal;
   const officeCard=`<button class="card tpl" data-act="nav" data-page="office" style="margin-bottom:16px;width:100%"><b>🔒 事務・財務</b><small>出面・小口現金・立替${canFinance()?'・財務（粗利・月末の支払・入金の突き合わせ）':''}。暗証番号で開きます</small></button>`;
-  return `<div class="hero"><div><h2>Rateru社内フォルダ</h2><p>Rateruだけが見られる場所です。元請・協力会社の画面には出ず、サーバー側でも読めないように制限しています。</p></div>
+  return `<div class="hero"><div><h2>Rateru社内フォルダ</h2><p>Rateruだけが見られる場所です。元請・協力業者の画面には出ず、サーバー側でも読めないように制限しています。</p></div>
     <div class="acts"><button class="btn" data-act="newNote">＋ 社内メモ</button><label class="btn primary">＋ ファイルを入れる<input type="file" multiple hidden data-act="internalFile"></label></div></div>
   ${officeCard}
   <div class="card section"><h3>こちらが出すべきもの（未提出 ${totalMiss}件）</h3>
@@ -1694,7 +1697,7 @@ function trialNotice(){
   const over = todayISO() > TRIAL_DATA_UNTIL, d=TRIAL_DATA_UNTIL.split('-');
   if(!over&&noticeFolded()) return `<div class="row" style="justify-content:space-between;gap:8px;margin:0 0 12px;padding:8px 12px;border:1px solid var(--warn,#d9a400);border-radius:10px;background:var(--panel)"><small>⚠ お試し版で本物のデータを使えるのは <b>${+d[1]}月${+d[2]}日まで</b>。入れた内容はこの端末に保存されます</small><button class="btn sm" data-act="noticeOpen">くわしく</button></div>`;
   return `<div class="card section" style="border-color:${over?'var(--danger,#c0392b)':'var(--warn,#d9a400)'};margin-bottom:14px"><b>${over?'お試し版で本物のデータを使う期限を過ぎています':'お試し版で本物のデータを使うときの注意'}</b>
-    <p style="margin:6px 0 0">入れた内容は、この端末のブラウザの中に保存されます。ほかの人がこの端末を使ったり、端末をなくしたりすると、<b>お客さんの名前・電話番号・金額などが漏れるおそれ</b>があります。共有の端末では、自分の画面に暗証番号をつけてください。</p>
+    <p style="margin:6px 0 0">入れた内容は、この端末のブラウザの中に保存されます。ほかの人がこの端末を使ったり、端末をなくしたりすると、<b>顧客の名前・電話番号・金額などが漏れるおそれ</b>があります。共有の端末では、自分の画面に暗証番号をつけてください。</p>
     <p class="muted" style="margin:6px 0 0">${over?`お試し版で本物のデータを使う期限は <b>${+d[0]}年${+d[1]}月${+d[2]}日</b>でした。本番に移すまでのあいだも、入れた内容は消えずに残っています。`:`お試し版で本物のデータを使えるのは <b>${+d[0]}年${+d[1]}月${+d[2]}日まで</b>です。それまでに本番に移します。`}</p>${over?'':'<div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn sm" data-act="noticeFold">わかりました（小さくする）</button></div>'}</div>`;
 }
 function demoEntryCard(){
@@ -1899,7 +1902,23 @@ const PLAN_COLOR = {'川端':'#0f766e','井上':'#c2410c','作本':'#7c3aed','�
 const staffShort = n => String(n||'').split(/[ 　]/)[0];
 const salesOwner = x => { const n=staffShort(x?.responsible||x?.tanto1); return SALES_STAFF.includes(n)?n:''; };
 const saleCase = x => (S.pipeline||[]).find(p=>p.id===x?.pipeId);
-const saleOwner = x => salesOwner(saleCase(x));
+
+const saleOwner = x => salesOwner(saleCase(x)) || (!x?.pipeId&&SALES_STAFF.includes(x?.owner)?x.owner:'');
+
+const SaleOwnerGuess = {
+  fileOf: x => String((x.dbx&&(x.dbx.path||x.dbx.path_display))||x.fileName||'').split('/').pop(),
+  guess(x){ const f=this.fileOf(x); const hit=SALES_STAFF.filter(n=>f.includes(n)); return hit.length===1?hit[0]:''; },
+  targets(){ return (S.sales||[]).filter(x=>!x.pipeId&&!x.owner).map(x=>({x, o:this.guess(x)})).filter(t=>t.o); },
+  can: () => salesHead()||myPos()==='finance',   
+  preview(){ if(!this.can()) return; const ts=this.targets(), done=(S.sales||[]).filter(x=>x.ownerFrom==='ファイル名');
+    const by=SALES_STAFF.map(n=>[n,ts.filter(t=>t.o===n)]).filter(([,a])=>a.length);
+    openDrawer(`${drawerHead('過去の売上に担当者を入れる')}<p class="muted" style="margin-top:0">案件につながっていない売上・仕入のうち、ファイルの名前に担当者の名前が1人だけ入っているものに、その人を担当者として入れます（例：「井上【請求書】大阪駅マルシェ.pdf」→ 井上）。入れたあとも「外す」で元に戻せます。</p>
+      ${ts.length?`<div class="tablewrap"><table><thead><tr><th>担当者</th><th style="text-align:right">件数</th><th>ファイルの名前（はじめの3件）</th></tr></thead><tbody>${by.map(([n,a])=>`<tr><td>${esc(n)}</td><td class="money">${a.length}件</td><td><small>${a.slice(0,3).map(t=>esc(this.fileOf(t.x))).join('<br>')}</small></td></tr>`).join('')}</tbody></table></div>
+      <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn primary" data-act="saleOwnerApply">${ts.length}件に担当者を入れる</button></div>`:'<p>ファイルの名前から担当者が分かる売上は、ありません。</p>'}
+      ${done.length?`<div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-act="saleOwnerUndo">ファイルの名前から入れた ${done.length}件の担当者を外す</button></div>`:''}`); },
+  apply(){ if(!this.can()) return; const ts=this.targets(); ts.forEach(t=>{ t.x.owner=t.o; t.x.ownerFrom='ファイル名'; t.x.hist=[...(t.x.hist||[]),{at:nowISO(),by:myLabel(),what:`担当者 ${t.o}（ファイルの名前から）`}]; }); save(); closeDrawer(); render(); toast(`${ts.length}件に担当者を入れました`); },
+  undo(){ if(!this.can()) return; const xs=(S.sales||[]).filter(x=>x.ownerFrom==='ファイル名'); confirmBox(`ファイルの名前から入れた ${xs.length}件の担当者を外します。`,'外す',()=>{ xs.forEach(x=>{ delete x.owner; delete x.ownerFrom; x.hist=[...(x.hist||[]),{at:nowISO(),by:myLabel(),what:'担当者を外した（ファイルの名前から入れた分）'}]; }); save(); closeDrawer(); render(); toast(`${xs.length}件の担当者を外しました`); }); }
+};
 const mySalesOwner = () => MODE==='server' ? (me().salesIdentity||'') : staffShort(me().name);
 const salesHead = () => me().role==='rateru_admin' && myPos()==='head' && mySalesOwner()==='川端';
 const salesAll = () => salesHead() || (me().role==='rateru_admin' && ['finance','system'].includes(myPos()));   
@@ -2000,7 +2019,7 @@ const Pipe = {
       ${sel('請求書の送り方（取引先ごと）','billing',BILLING,g('billing')||(x.customer?((S.pipeline||[]).find(p=>p.customer===x.customer&&p.billing)||{}).billing:'')||'')}</details>
       <h3 style="margin:18px 0 8px;font-size:14px">各種手配</h3>
       ${PIPE_ARRANGE.map(([k,l])=>fld(l,k,g(k))).join('')}
-      <p class="perm-note">この内容はRateruだけが見られます。元請・協力会社には表示されません。</p>
+      <p class="perm-note">この内容はRateruだけが見られます。元請・協力業者には表示されません。</p>
       <div class="row" style="justify-content:space-between;margin-top:12px">${isNew?'<span></span>':`<button class="btn danger" type="button" data-act="delPipe" data-id="${x.id}">削除</button>`}<button class="btn primary" type="submit">保存</button></div>
       </form>`);
   },
@@ -2098,7 +2117,7 @@ function pPipeline(){
       <select data-act="pipeFilter" data-key="kakudo" aria-label="案件確度">${opt(PIPE_KAKUDO,f.kakudo,'確度：すべて')}</select>
       <label class="row" style="gap:6px;font-size:12px;white-space:nowrap"><input type="checkbox" data-act="pipeFilter" data-key="closed" ${f.closed?'checked':''}> 完了・キャンセルも表示</label></div>`;
   const body = Pipe.view==='board' ? pipeBoard() : Pipe.view==='cust' ? pipeCustomers() : pipeSheet();
-  return `${caseTabs()}<div class="hero"><div><h2>案件進捗</h2><p>Rateruの案件進捗シートをそのまま移したものです。元請・協力会社には表示されません。</p></div>
+  return `${caseTabs()}<div class="hero"><div><h2>案件進捗</h2><p>Rateruの案件進捗シートをそのまま移したものです。元請・協力業者には表示されません。</p></div>
     <div class="acts"><button class="btn ${!['board','cust'].includes(Pipe.view)?'primary':''}" data-act="pipeView" data-v="sheet">シート</button><button class="btn ${Pipe.view==='board'?'primary':''}" data-act="pipeView" data-v="board">状態ボード</button><button class="btn ${Pipe.view==='cust'?'primary':''}" data-act="pipeView" data-v="cust">顧客別</button><button class="btn" data-act="pipeCsv">CSV出力</button><label class="btn">CSV読み込み<input type="file" accept=".csv,text/csv" hidden data-act="pipeImport"></label><button class="btn primary" data-act="newPipe">＋ 追加</button></div></div>
   <div class="kpis">${kpi('進行中',open.length,`全${all.length}件`)}${kpi('お客様判断待ち',open.filter(x=>x.status==='お客様見積判断待ち').length,'見積の返事待ち')}${kpi('見積書 未作成',open.filter(x=>x.estimate!=='完'&&['見積作成中','社内見積判断待ち'].includes(x.status)).length,'見積作成中・社内判断待ち')}${kpi('2週間以内の工事',in14,'工程表に載っている工事')}${kpi('工事日 未入力',noDate,'調整済・着工中なのに日付なし')}</div>
   <div class="card section">${tools}${body}</div>`;
@@ -2136,8 +2155,8 @@ function pipeCustomers(){
       done:g.items.filter(x=>x.status==='完了').length, sale:sales.filter(v=>v.type==='sale').reduce((a,v)=>a+(Number(v.amount)||0),0),
       people:uniq(g.items.map(x=>x.requester)), phones:uniq(g.items.map(x=>x.phone)), staff:uniq(g.items.flatMap(x=>[x.tanto1,x.tanto2]).map(staffShort))}; })
     .sort((a,b)=>(b.live>0)-(a.live>0)||b.last.localeCompare(a.last));
-  if(!groups.length) return '<div class="empty">条件に合うお客さんはいません</div>';
-  return `<p class="rp-flow">お客さん ${groups.length}件。進行中の案件があるお客さんを先に、最近の依頼が新しい順に並べています。完工・失注も履歴として出します。</p>
+  if(!groups.length) return '<div class="empty">条件に合う顧客はいません</div>';
+  return `<p class="rp-flow">顧客 ${groups.length}件。進行中の案件がある顧客を先に、最近の依頼が新しい順に並べています。完工・失注も履歴として出します。</p>
   <div class="pgrid">${groups.map(g=>`<div class="card pcard cust"><div class="row" style="justify-content:space-between;align-items:flex-start"><b>${esc(g.name)}</b><span class="pill ${g.live?'info':'todo'}">${g.live?`進行中 ${g.live}件`:'進行中なし'}</span></div>
     <dl><dt>案件</dt><dd>全${g.items.length}件（完了 ${g.done}件）・最近の依頼 ${g.last?md(g.last):'—'}</dd>
       ${g.people.length?`<dt>依頼主</dt><dd>${g.people.map(esc).join('・')}</dd>`:''}
@@ -2161,7 +2180,7 @@ function pipelineScheduleCard(){
   const today=todayISO(), xs=pipeWorks().filter(x=>x.end>=addDays(today,-14));
   const tasks=xs.map(x=>({id:x.id,start:x.start,end:x.end,done:x.status==='完了',name:x.name,status:x.status}));
   return `<div class="card section" style="margin-top:16px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">案件進捗の工事日（Rateruのみ）</h3><button class="btn sm" data-act="nav" data-page="pipeline">案件進捗を開く</button></div>
-    <p class="perm-note">案件進捗で工事開始日・終了日を入れた案件です。元請・協力会社には表示されません。</p>
+    <p class="perm-note">案件進捗で工事開始日・終了日を入れた案件です。元請・協力業者には表示されません。</p>
     <div class="gantt-wrap">${xs.length?gantt(tasks,false,{act:'editPipe',head:'案件',label:t=>`${t.name}（${t.status}）`}):'<div class="empty">工事日が入った案件はまだありません。案件進捗で工事開始日を入れると、ここに並びます。</div>'}</div></div>`;
 }
 
@@ -2700,7 +2719,7 @@ function pDezura(){
 const PETTY_FLOAT = {'作本 直樹':50000, '児玉 雄大':50000};   
 const PETTY_KIND = {use:'使った（小口現金）', adv:'立替えた', refill:'補充（精算）', refund:'返金', give:'現金を渡した'};
 const Petty = {
-  admin: () => me().role==='office' || canFinance(),   
+  admin: () => me().role==='office' || ['head','finance'].includes(myPos()),   
   meName: () => PIPE_STAFF.find(n=>staffShort(n)===me().name) || me().name,
   people(){ const all=[...new Set([...Object.keys(PETTY_FLOAT), ...(S.petty||[]).map(x=>x.who)])]; return this.admin()?all.concat(PIPE_STAFF.filter(n=>!all.includes(n))):[this.meName()]; },
   live: () => (S.petty||[]).filter(x=>!x.void),
@@ -2868,7 +2887,7 @@ function pSales(){
   const table=(title,type,arr)=>`<div class="card section mt"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${title}（${arr.length}件 ・ ${yen(sum(arr))}）</h3><button class="btn sm primary" data-act="newSale" data-t="${type}">＋ 追加</button></div><div class="tablewrap"><table><thead><tr><th>請求日</th><th>${type==='sale'?'請求先':'業者名'}</th><th>件名</th><th style="text-align:right">金額（税込）</th><th>状態</th><th>${type==='sale'?'入金予定':'支払予定'}</th><th>書類</th></tr></thead><tbody>${arr.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(row).join('')||`<tr><td colspan="7" class="empty">${monthLabel(m)}の${type==='sale'?'売上':'仕入'}はまだありません</td></tr>`}</tbody></table></div></div>`;
   const year=[...Array(12)].map((_,i)=>`${y}-${pad(i+1)}`).map(k=>{ const a=all.filter(x=>x.month===k); return {k,s:sum(a.filter(x=>x.type==='sale')),b:headAll?sum(a.filter(x=>x.type==='buy')):0}; });
   const max=Math.max(1,...year.map(r=>Math.max(r.s,r.b)));
-  return header+`${unassigned.length?`<div class="alert ng">案件・売上責任者が未設定の売上が ${unassigned.length}件あります。結び付けるまで全体合計と個人別集計には入れません。${unassigned.slice(0,30).map(x=>`<button class="btn sm" data-act="editSale" data-id="${x.id}">${esc(x.party||x.title||'売上を開く')}</button>`).join('')}</div>`:''}<div class="kpis money">${kpi(`${monthLabel(m)} 売上`,yen(sum(sales)),`${sales.length}件`)}${headAll?kpi(`${monthLabel(m)} 仕入`,yen(sum(buys)),`${buys.length}件`):''}${headAll&&canFinance()?kpi('粗利',yen(sum(sales)-sum(buys)),sum(sales)?`粗利率 ${Math.round((sum(sales)-sum(buys))/sum(sales)*100)}%`:'—'):''}${kpi('入金待ち（請求済み）',yen(sum(unpaid)),`${unpaid.length}件${draft.length?` ・ 作成中 ${draft.length}件 ${yen(sum(draft))}`:''}`)}${kpi('入金予定を過ぎた',late.length,late.length?yen(sum(late)):'なし')}</div>
+  return header+`${unassigned.length?`<div class="alert ng">案件・売上責任者が未設定の売上が ${unassigned.length}件あります。結び付けるまで全体合計と個人別集計には入れません。${SaleOwnerGuess.can()?'<button class="btn sm primary" data-act="saleOwnerPreview">ファイルの名前から担当者を入れる</button>':''}${unassigned.slice(0,30).map(x=>`<button class="btn sm" data-act="editSale" data-id="${x.id}">${esc(x.party||x.title||'売上を開く')}</button>`).join('')}</div>`:''}<div class="kpis money">${kpi(`${monthLabel(m)} 売上`,yen(sum(sales)),`${sales.length}件`)}${headAll?kpi(`${monthLabel(m)} 仕入`,yen(sum(buys)),`${buys.length}件`):''}${headAll&&canFinance()?kpi('粗利',yen(sum(sales)-sum(buys)),sum(sales)?`粗利率 ${Math.round((sum(sales)-sum(buys))/sum(sales)*100)}%`:'—'):''}${kpi('入金待ち（請求済み）',yen(sum(unpaid)),`${unpaid.length}件${draft.length?` ・ 作成中 ${draft.length}件 ${yen(sum(draft))}`:''}`)}${kpi('入金予定を過ぎた',late.length,late.length?yen(sum(late)):'なし')}</div>
   ${table('売上（請求書 売上）','sale',sales)}${headAll?table('仕入（請求書 業者さんから）','buy',buys):''}
   <div class="card section mt"><h3>${y}年の月別</h3><div class="tablewrap"><table class="year-table"><thead><tr><th>月</th><th style="text-align:right">売上</th>${headAll?'<th style="text-align:right">仕入</th><th style="text-align:right">粗利</th>':''}<th style="min-width:180px">売上の比較</th></tr></thead><tbody>${year.map(r=>`<tr class="clickable ${r.k===m?'on':''}" data-act="saleMonthSet" data-m="${r.k}"><td>${Number(r.k.slice(5))}月</td><td class="num" style="text-align:right">${r.s?yen(r.s):'—'}</td>${headAll?`<td class="num" style="text-align:right">${r.b?yen(r.b):'—'}</td><td class="num" style="text-align:right">${r.s||r.b?yen(r.s-r.b):'—'}</td>`:''}<td><div class="ybar"><span class="s" style="width:${r.s/max*100}%"></span></div>${headAll?`<div class="ybar"><span class="b" style="width:${r.b/max*100}%"></span></div>`:''}</td></tr>`).join('')}</tbody></table></div><div class="row perm-note"><span class="pill" style="background:var(--band);color:var(--band-text)">売上</span>${headAll?'<span class="pill todo">仕入</span>':''}<span>行を押すとその月を表示します。</span></div></div>`;
 }
@@ -3012,7 +3031,7 @@ function docsBlock(pid){
       <td>${isRateru?`<select data-act="docVis" data-id="${d.id}" aria-label="公開範囲"><option value="all" ${d.visibility!=='rateru'?'selected':''}>全員</option><option value="rateru" ${d.visibility==='rateru'?'selected':''}>Rateru社内のみ</option></select>`:'<span class="pill ok">公開</span>'}</td>
       <td>${mdhm(d.updated)}</td>
       <td><div class="row">${d.fileKey?`<button class="btn sm ${isViewable(d)?'primary':''}" data-act="openFile" data-id="${d.id}">${isViewable(d)?'開く・書き込み':'開く'}</button>${isViewable(d)?`<button class="btn sm" data-act="printDoc" data-id="${d.id}">印刷・PDF保存</button>`:''}`:''}
-        ${can?`${editBtn('doc',d,'名前を直す')}<label class="btn sm">新しい版<input type="file" hidden data-act="docVersion" data-id="${d.id}"></label><button class="btn sm danger" data-act="delDoc" data-id="${d.id}">削除</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="5" class="empty">このフォルダには資料がありません</td></tr>'}
+        ${can?`${editBtn('doc',d,'名前を直す')}<label class="btn sm">新しい版<input type="file" hidden data-act="docVersion" data-id="${d.id}"></label>${me().role==='rateru_admin'?`<button class="btn sm danger" data-act="delDoc" data-id="${d.id}">削除</button>`:''}`:''}</div></td></tr>`).join('')||'<tr><td colspan="5" class="empty">このフォルダには資料がありません</td></tr>'}
   </tbody></table></div>`;
 }
 async function printDoc(doc){
@@ -3043,11 +3062,11 @@ const pipeDocsPicker = (tab='draw') => { if(me().role!=='rateru_admin') return '
   return `<div class="card section"><h3 style="margin-top:0">${title}</h3>
   <div class="row" style="flex-wrap:wrap;gap:8px;align-items:flex-end"><div class="field" style="flex:1;min-width:min(220px,100%);margin:0"><label for="${id}">案件進捗の案件</label><select id="${id}">${(S.pipeline||[]).filter(x=>!PIPE_CLOSED.has(x.status)).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja')).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}${x.customer?'（'+esc(x.customer)+'）':''}${x.pid?' ・ 始めている':''}</option>`).join('')}</select></div>
   <button class="btn primary" data-act="docsForPipe" data-tab="${tab}" data-sel="${id}">${btn}</button></div>
-  <p class="perm-note">まだ始めていない案件は、押したときに自動で用意します（案件名・住所・お客さんを案件進捗から写します）。</p></div>`; };
+  <p class="perm-note">まだ始めていない案件は、押したときに自動で用意します（案件名・住所・顧客を案件進捗から写します）。</p></div>`; };
 function pDocs(){
   const ps=visibleProjects(); if(!ps.length) return me().role==='rateru_admin' ? `<div class="hero"><div><h2>図面・資料</h2><p>案件ごとに図面・資料をまとめます。</p></div></div>${pipeDocsPicker()}` : emptyScope();
   if(!view.docsPid || !ps.some(p=>p.id===view.docsPid)) view.docsPid=ps[0].id;
-  return `<div class="hero"><div><h2>図面・資料</h2><p>最新版を一か所に集約し、古い図面の使用を防止。新しい版を登録すると旧版は自動で使用停止になります。${me().role==='rateru_admin'?'Rateru社内のみの資料は元請・協力会社には表示されません。':''}</p></div></div>
+  return `<div class="hero"><div><h2>図面・資料</h2><p>最新版を一か所に集約し、古い図面の使用を防止。新しい版を登録すると旧版は自動で使用停止になります。${me().role==='rateru_admin'?'Rateru社内のみの資料は元請・協力業者には表示されません。':''}</p></div></div>
   ${pipeDocsPicker()}
   <div class="card section"><div class="field" style="max-width:360px"><label for="dc_pid">案件</label><select id="dc_pid" data-act="pick" data-key="docsPid">${projectOptions(view.docsPid)}</select></div>${docsBlock(view.docsPid)}</div>`;
 }
@@ -3056,9 +3075,11 @@ function pDocs(){
 const canPhoto = () => ['edit','photo'].includes(perm().inspection) || perm().survey==='edit';   
 
 const ACT_GUARD = {
-  delProject:()=>perm().createProject, setStatus:()=>perm().createProject, moveStage:()=>perm().createProject,
+  
+  delProject:()=>perm().createProject&&me().role==='rateru_admin', setStatus:()=>perm().createProject, moveStage:()=>perm().createProject,
   delTask:()=>perm().schedule==='edit', svCycle:()=>perm().survey==='edit', insSet:()=>perm().inspection==='edit', startInspection:()=>perm().inspection==='edit',
-  delDoc:()=>perm().docs==='edit', photoMove:()=>canPhoto(), photoDelSel:()=>canPhoto(), delPhoto:()=>canPhoto(),
+  delDoc:()=>perm().docs==='edit'&&me().role==='rateru_admin', photoMove:()=>canPhoto(), photoDelSel:()=>canPhoto()&&me().role==='rateru_admin', delPhoto:()=>canPhoto()&&me().role==='rateru_admin',
+  pettyReceipt:d=>{ const x=(S.petty||[]).find(v=>v.id===d.id); return !!x&&(Petty.admin()||x.who===Petty.meName()); },
   delTodo:d=>{ const t=(S.todos||[]).find(x=>x.id===d.id); return !!t&&visibleIds().has(t.pid); },
   delInternal:()=>me().role==='rateru_admin', loadSample:()=>MODE==='demo', reset:()=>MODE==='demo', clearSamples:()=>MODE==='demo',
 };
@@ -3088,7 +3109,7 @@ function photoBlock(pid){
     ${can?`<div class="row board-opt"><label class="row" style="font-size:13px"><input type="checkbox" data-act="boardOn" ${view.board?'checked':''}> 📋 電子小黒板を入れる</label>${view.board?`<input id="ph_note" class="input-sm" placeholder="備考（任意）例：2F 洗面所" value="${esc(view.boardNote)}" aria-label="小黒板の備考"><small class="muted">工事名・案件番号・工種・撮影日・施工者が写真の左下に入ります</small>`:''}</div>`:''}
     <div class="toolbar"><span class="muted" style="font-size:12px;align-self:center">表示方法</span>${[['folder','フォルダ'],['list','追加日'],['date','撮影日']].map(([k,l])=>`<button class="btn sm ${mode===k?'primary':''}" data-act="photoMode" data-m="${k}">${l}</button>`).join('')}
       ${mode==='folder'?`<label class="row" style="font-size:12px"><input type="checkbox" data-act="hideEmpty" ${view.hideEmpty?'checked':''}> 空のフォルダを隠す</label>`:''}</div>
-    ${sel.length?`<div class="alert row" style="cursor:default"><b>${sel.length}枚を選択中</b><select id="ph_move" aria-label="移動先">${fOpts('')}</select><button class="btn sm" data-act="photoMove" data-pid="${pid}">このフォルダへ移動</button><button class="btn sm danger" data-act="photoDelSel" data-pid="${pid}">削除</button><button class="btn sm primary" data-act="ledger" data-pid="${pid}">写真で報告書を作る</button><button class="btn sm" data-act="photoSelClear">選択を解除</button></div>`:''}
+    ${sel.length?`<div class="alert row" style="cursor:default"><b>${sel.length}枚を選択中</b><select id="ph_move" aria-label="移動先">${fOpts('')}</select><button class="btn sm" data-act="photoMove" data-pid="${pid}">このフォルダへ移動</button>${me().role==='rateru_admin'?`<button class="btn sm danger" data-act="photoDelSel" data-pid="${pid}">削除</button>`:''}<button class="btn sm primary" data-act="ledger" data-pid="${pid}">写真で報告書を作る</button><button class="btn sm" data-act="photoSelClear">選択を解除</button></div>`:''}
     ${body}`;
 }
 
@@ -3168,7 +3189,7 @@ function reportForm(pid){
 function pReports(){
   const ids=visibleIds(), pid=view.reportsPid;
   const rs=S.reports.filter(r=>pid?r.pid===pid:ids.has(r.pid)).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at));
-  return `<div class="hero"><div><h2>報告・日報</h2><p>現場の一日を記録して、元請・Rateru・協力会社で同じ情報を見る。</p></div>
+  return `<div class="hero"><div><h2>報告・日報</h2><p>現場の一日を記録して、元請・Rateru・協力業者で同じ情報を見る。</p></div>
     ${canReport()&&visibleProjects().length?`<div class="acts"><button class="btn primary" data-act="newReport" data-pid="${pid}">＋ 日報を書く</button></div>`:''}</div>${pipeDocsPicker('report')}
   <div class="card section"><div class="field" style="max-width:360px"><label for="rp_pid">案件</label><select id="rp_pid" data-act="pick" data-key="reportsPid">${projectOptions(pid,true)}</select></div>${reportCards(rs,!pid)}</div>`;
 }
@@ -3755,7 +3776,7 @@ function projectTab(p){
   }
   case 'report': return `<div class="row" style="justify-content:space-between;margin-bottom:12px"><h3 style="margin:0">報告・日報</h3>${canReport()?`<button class="btn sm primary" data-act="newReport" data-pid="${pid}">＋ 日報を書く</button>`:''}</div>${reportCards(S.reports.filter(r=>r.pid===pid).sort((a,b)=>(b.date+b.at).localeCompare(a.date+a.at)),false)}`;
   case 'member': {
-    const rows=[['元請',p.motoukeRep,'担当'], ...p.rateruRep.split('/').map(n=>n.trim()).filter(Boolean).map(n=>['Rateru',n,'施工管理']), ...(p.partners||[]).map(n=>['協力会社',n,'現場'])];
+    const rows=[['元請',p.motoukeRep,'担当'], ...p.rateruRep.split('/').map(n=>n.trim()).filter(Boolean).map(n=>['Rateru',n,'施工管理']), ...(p.partners||[]).map(n=>['協力業者',n,'現場'])];
     return `<h3>案件メンバー（${rows.length}名）</h3><div class="tablewrap"><table><thead><tr><th>会社</th><th>名前</th><th>役割</th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td>${esc(r[0])}</td><td><b>${esc(r[1]||'—')}</b></td><td>${esc(r[2])}</td></tr>`).join('')}</tbody></table></div>
       <div class="perm-note">${perm().createProject?'メンバーは「編集」から変更できます。':''}${MODE==='server'?' ログインの発行と、担当案件の割り当ては「設定・権限 → メンバー管理」で行います。':''}</div>`;
@@ -3830,7 +3851,7 @@ function projectForm(p){
     <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${sel('エリア','area',['関東','関西','中部','その他'],p.area)}${sel('区分','type',['戸建','マンション','ビル'],p.type)}</div>
     ${fld('元請担当','motoukeRep',p.motoukeRep,'text','placeholder="担当者名"')}
     ${fld('Rateru担当（必須）','rateruRep',p.rateruRep,'text','required placeholder="担当者を記入"')}
-    ${fld('協力会社（カンマ区切り）','partners',(p.partners||[]).join(', '),'text','placeholder="例：協力監督A"')}
+    ${fld('協力業者（カンマ区切り）','partners',(p.partners||[]).join(', '),'text','placeholder="例：協力監督A"')}
     ${fld('完工予定','due',p.due,'date')}
     ${fld('次アクション','next',p.next,'text','placeholder="例：現調日程の確定"')}
     ${area('備考','note',p.note,'購入時点の条件・希望・注意事項')}
@@ -3925,6 +3946,9 @@ document.addEventListener('click', async e=>{
   case 'projView': view.projView=d.v; render(); break;
   case 'pipeView': Pipe.view=d.v; Pipe.pref('view',d.v); render(); break;
   case 'pipeAll': Pipe.showAll=true; render(); break;
+  case 'saleOwnerPreview': SaleOwnerGuess.preview(); break;
+  case 'saleOwnerApply': SaleOwnerGuess.apply(); break;
+  case 'saleOwnerUndo': SaleOwnerGuess.undo(); break;
   case 'attAll': view.attAll=true; render(); break;
   case 'newPipe': Pipe.form(null); break;
   case 'editPipe': Pipe.form(d.id); break;
@@ -3994,7 +4018,7 @@ document.addEventListener('click', async e=>{
       confirmBox(`「${x.name}」を案件進捗から削除します。${link.length?`この案件につながっている ${link.join('・')} は消えずに残ります。`:''}`,'削除する',()=>{ S.pipeline=S.pipeline.filter(v=>v.id!==d.id); save(); closeDrawer(); render(); toast('削除しました'); }); break; }
   case 'moveStage': { e.stopPropagation(); const p=proj(d.pid), i=STATUS_ORDER.indexOf(p.status)+Number(d.d); if(i<0||i>=STATUS_ORDER.length) break; if(!String(p.rateruRep||'').trim()){ toast('先に案件のRateru担当を記入してください'); projectForm(p); break; } const to=STATUS_ORDER[i];
       change(p.id,`ステータス ${STATUS[p.status].label} → ${STATUS[to].label}`); log(p.id,`ステータス変更 / ${STATUS[to].label}`); p.status=to; if(to==='done') p.progress=100; save(); render(); break; }
-  case 'csv': { const head=['案件ID','物件名','住所','エリア','区分','元請','契約番号','案件管理ID','元請担当','Rateru担当','協力会社','ステータス','進捗%','着工日','完工予定','次アクション'];
+  case 'csv': { const head=['案件ID','物件名','住所','エリア','区分','元請','契約番号','案件管理ID','元請担当','Rateru担当','協力業者','ステータス','進捗%','着工日','完工予定','次アクション'];
       const q=csvCell;
       const lines=[head,...filteredProjects().map(p=>[p.id,p.name,p.address,p.area,p.type,p.client,p.contractNo,p.mgmtId,p.motoukeRep,p.rateruRep,(p.partners||[]).join('・'),STATUS[p.status].label,p.progress,p.start,p.due,p.next])].map(r=>r.map(q).join(','));
       const u=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv'})); const a=document.createElement('a'); a.href=u; a.download=`案件一覧-${todayISO()}.csv`; document.body.appendChild(a); a.click(); a.remove(); toast('CSVを書き出しました'); break; }
