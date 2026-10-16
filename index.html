@@ -296,6 +296,8 @@ td.money,th.money{text-align:right}
 .req{display:inline-block;margin-left:6px;padding:0 6px;border-radius:6px;background:var(--ng-bg,#fde8e8);color:var(--ng,#b91c1c);font-size:11px;font-weight:700;vertical-align:1px}
 @media (max-width:640px){
    
+  .viewer .vbar .dot{width:38px;height:38px} .viewer button[data-v="prev"],.viewer button[data-v="next"]{min-width:42px}
+   
   #content .btn{max-width:100%;white-space:normal} #content input.search,#dbx_q{max-width:100%;min-width:0} #content pre.line-preview{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
    
   .btn.sm{min-height:38px;padding:8px 12px;font-size:13px}
@@ -764,7 +766,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-15-6', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-15-7', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1265,7 +1267,7 @@ const V={id:null};
 const vDoc = () => S.docs.find(x=>x.id===V.id);
 const vMine = m => m.by===myLabel() || me().role==='rateru_admin';
 const isViewable = d => /\.(pdf|png|jpe?g|gif|webp|bmp)$/i.test(d.fileName||'');
-async function openViewer(doc){
+async function openViewer(doc){ if(!$('#viewer')) pushHist('viewer');
   const b=await FileStore.get(doc.fileKey); if(!b){ toast('ファイルが見つかりません'); return; }
   const isPdf = b.type==='application/pdf' || /\.pdf$/i.test(doc.fileName||'');
   if(!isPdf && !b.type.startsWith('image/') && !isViewable(doc)) return openBlob(doc.fileKey, doc.fileName||doc.name);
@@ -1604,7 +1606,8 @@ function go(page, pid, tab, remember=true){
 }
 
 function pushHist(kind){ try{ history.pushState({rp:kind},''); }catch(e){} }
-window.addEventListener('popstate',()=>{ const m=$('#modalRoot'); if(m&&m.querySelector('.modal')&&!m.querySelector('[data-form="login"]')&&!m.querySelector('#ul_pin')){ m.innerHTML=''; return; } if($('#drawer').classList.contains('open')){ closeDrawer(); return; } if(navTrail.length) goBack(); });
+window.addEventListener('popstate',()=>{ if($('#viewer')){ closeViewer(); return; }   
+  const m=$('#modalRoot'); if(m&&m.querySelector('.modal')&&!m.querySelector('[data-form="login"]')&&!m.querySelector('#ul_pin')){ m.innerHTML=''; return; } if($('#drawer').classList.contains('open')){ closeDrawer(); return; } if(navTrail.length) goBack(); });
 function goBack(){
   closeDrawer();
   while(navTrail.length){ const prev=navTrail.pop(); if(canSeePage(prev.page) && (prev.page!=='project'||visibleIds().has(prev.pid))) return go(prev.page,prev.pid,prev.tab,false); }
@@ -2246,7 +2249,7 @@ const Office = {
       ${fld(t==='sale'?'請求先':'業者名','party',x?.party||'','text','required')}
       ${fld('件名・工事名','title',x?.title||'')}
       <div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${fld('金額（税込・円）','amount',x?.amount??'','number','required min="0" step="1" inputmode="numeric"')}${sel('状態','status',canFinance()?SALE_STATE[t]:SALE_STATE[t].filter(v=>!SALE_DONE.has(v)||v===x?.status),x?.status||SALE_STATE[t][0])}</div>
-      ${canFinance()?'':'<p class="perm-note">「入金済み」「支払済み」にできるのは川端さん・舟田さんだけです（権限一覧 P14）。</p>'}
+      ${canFinance()?'':'<p class="perm-note">「入金済み」「支払済み」にできるのは川端さん・舟田さん・向さんだけです（権限一覧 P14）。</p>'}
       ${t==='sale'?`<div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${sel('入金方法','method',PAY_METHOD,x?.method||'振込')}${fld('入金予定日（送付したら必須）','due',x?.due||'','date')}</div>`:`<div class="formgrid" style="grid-template-columns:1fr 1fr;gap:10px">${sel('支払月（必須）','payMonth',monthOpts(x?.payMonth),x?.payMonth||'')}${fld('支払予定日（決まっていれば）','due',x?.due||'','date')}</div>`}
       ${(x?.hist||[]).length?`<details class="perm-note"><summary>変更の履歴（${x.hist.length}件）</summary>${x.hist.slice().reverse().map(h=>`${mdhm(h.at)}　${esc(h.by)}　${esc(h.what)}`).join('<br>')}</details>`:''}
       ${sel('案件進捗の案件（責任者必須）','pipeId',pipeOpts,x?.pipeId||'')}
@@ -2259,15 +2262,17 @@ const Office = {
     const pick=(keys)=>Object.fromEntries(keys.map(k=>[k,String(v[k]??'').trim()]));
     if(coll==='meetings'){ const d=pick(['month','title','text','link','pipeId']); if(!d.title&&!file&&!id){ toast('件名かファイルを入れてください'); return; } await this.save(coll,id,d,file); this.mMonth=d.month; }
     else if(coll==='templates'){ const d=pick(['cat','title','text','link']); if(!d.title&&!file&&!id){ toast('名前かファイルを入れてください'); return; } await this.save(coll,id,d,file); }
-    else { const d=pick(['type','month','date','party','title','status','method','due','payMonth','pipeId','text','link']); d.amount=Math.round(Number(v.amount)||0);
+    else { const d=pick(['type','month','date','party','title','status','method','due','payMonth','pipeId','text','link']); d.amount=Math.round(toNum(v.amount));
       if(d.type==='buy'&&!d.payMonth){ toast('支払月を決めてください（いつ払うか）'); return; }   
       if(d.type==='sale'&&d.status!=='作成中'&&(!d.date||!d.due)){ toast('送付・入金済みにするときは、請求日と入金予定日を入れてください'); return; }
       const prev=id?S.sales.find(y=>y.id===id):null;
+      
+      if(!d.amount&&!(prev&&prev.dbx)){ toast('金額を入れてください（空や0円では登録しません）'); return; }
       if(!canSeeSalesPage()||(prev&&!canEditSale(prev))){ toast('この売上を変更する権限がありません'); return; }
       if(!d.pipeId||!salesOwner(saleCase(d))){ toast('案件を選び、その案件の売上責任者を先に設定してください'); return; }
       if(!canEditSale(d)){ toast('自分が責任者の案件の売上だけ登録できます'); return; }
-      if(SALE_DONE.has(d.status)&&prev?.status!==d.status&&!canFinance()){ toast('入金済み・支払済みにできるのは川端さん・舟田さんだけです'); return; }
-      if(prev&&SALE_DONE.has(prev.status)&&!canFinance()&&(d.amount!==prev.amount||d.status!==prev.status)){ toast('確定した金額・状態は変えられません（訂正は川端さん・舟田さんへ）'); return; }
+      if(SALE_DONE.has(d.status)&&prev?.status!==d.status&&!canFinance()){ toast('入金済み・支払済みにできるのは川端さん・舟田さん・向さんだけです'); return; }
+      if(prev&&SALE_DONE.has(prev.status)&&!canFinance()&&(d.amount!==prev.amount||d.status!==prev.status)){ toast('確定した金額・状態は変えられません（訂正は川端さん・舟田さん・向さんへ）'); return; }
       if(!d.party){ toast(d.type==='sale'?'請求先を入れてください':'業者名を入れてください'); return; }
       { const ch=[]; if(!prev) ch.push('登録'); else { if(prev.status!==d.status) ch.push(`状態 ${prev.status}→${d.status}`); if((prev.payMonth||'')!==(d.payMonth||'')) ch.push(`支払月 ${prev.payMonth?monthLabel(prev.payMonth):'未設定'}→${d.payMonth?monthLabel(d.payMonth):'未設定'}`); if(Number(prev.amount)!==d.amount) ch.push(`金額 ${yen(prev.amount)}→${yen(d.amount)}`); if((prev.due||'')!==(d.due||'')) ch.push(`予定日 ${prev.due||'未設定'}→${d.due||'未設定'}`); }
         d.hist=[...(prev?.hist||[]), ...(ch.length?[{at:nowISO(), by:myLabel(), what:ch.join('・')}]:[])]; }   
@@ -3048,7 +3053,15 @@ function pDocs(){
 }
 
  
-const canPhoto = () => perm().inspection!=='view' || perm().survey==='edit';
+const canPhoto = () => ['edit','photo'].includes(perm().inspection) || perm().survey==='edit';   
+
+const ACT_GUARD = {
+  delProject:()=>perm().createProject, setStatus:()=>perm().createProject, moveStage:()=>perm().createProject,
+  delTask:()=>perm().schedule==='edit', svCycle:()=>perm().survey==='edit', insSet:()=>perm().inspection==='edit', startInspection:()=>perm().inspection==='edit',
+  delDoc:()=>perm().docs==='edit', photoMove:()=>canPhoto(), photoDelSel:()=>canPhoto(), delPhoto:()=>canPhoto(),
+  delTodo:d=>{ const t=(S.todos||[]).find(x=>x.id===d.id); return !!t&&visibleIds().has(t.pid); },
+  delInternal:()=>me().role==='rateru_admin', loadSample:()=>MODE==='demo', reset:()=>MODE==='demo', clearSamples:()=>MODE==='demo',
+};
 function photoTile(x, can){
   const on=view.photoSel.has(x.id);
   return `<div class="photo ${on?'sel':''}"><img data-key="${x.fileKey}" alt="${esc(photoFolder(x))}" data-act="viewPhoto" data-id="${x.id}">${can?`<input type="checkbox" class="ck" data-act="photoSel" data-id="${x.id}" ${on?'checked':''} aria-label="選択">`:''}<span>${x.board?'📋 ':''}${md(x.shotAt||x.date)}</span></div>`;
@@ -3224,7 +3237,9 @@ const Plan = {
     if(d.end===d.date) d.end='';
     if(id) Object.assign(S.plans.find(p=>p.id===id), d, {at:nowISO(),by:myLabel()});
     else S.plans.push({id:uid('pn'),...d,ext:'',at:nowISO(),by:myLabel()});
-    view.calMonth=d.date.slice(0,7); save(); closeDrawer(); render(); toast('予定を保存しました');
+    
+    const dup=d.time?(S.plans||[]).find(p=>p.id!==id&&p.who===d.who&&d.who!==PLAN_ALL&&p.date===d.date&&p.time===d.time&&p.title!==d.title):null;
+    view.calMonth=d.date.slice(0,7); save(); closeDrawer(); render(); toast(dup?`予定を保存しました（同じ時間に「${dup.title}」の予定もあります）`:'予定を保存しました');
   },
   del(id){ const x=S.plans.find(p=>p.id===id); if(!canEditPlan(x)){ toast('この予定は本人だけが消せます'); return; } confirmBox(`「${x.title}」を削除します。`,'削除する',()=>{ S.plans=S.plans.filter(p=>p.id!==id); save(); closeDrawer(); render(); toast('削除しました'); }); }
 };
@@ -3410,7 +3425,8 @@ const Q = {
   cat:Q_CATS[0], tab:'list', draft:null,
   items(){ if(!Array.isArray(S.qitems)) S.qitems=[]; S.qitems.forEach(x=>{ if(Q_CAT_OLD[x.cat]) x.cat=Q_CAT_OLD[x.cat]; else if(!Q_CATS.includes(x.cat)) x.cat='雑工事・その他'; }); if(!S.qitems.length&&!S.qitemsInit){ S.qitems=Q_DEFAULT_ITEMS.map(([cat,name,spec,unit])=>({id:uid('qi'),cat,name,spec,unit,price:''})); S.qitemsInit=true; } return S.qitems; },
   mergeItems(list){ const its=this.items(); let add=0, price=0;
-    for(const x of list||[]){ const name=String(x.name||'').trim(); if(!name) continue; const cat=Q_CATS.includes(x.cat)?x.cat:(Q_CAT_OLD[x.cat]||'雑工事・その他'); const old=its.find(v=>v.name===name&&(v.spec||'')===(x.spec||''));
+    for(const x of list||[]){ const name=String(x.name||'').trim(); if(!name) continue; const cat=Q_CATS.includes(x.cat)?x.cat:(Q_CAT_OLD[x.cat]||'雑工事・その他'); const old=its.find(v=>normQ(v.name)===normQ(name)&&normQ(v.spec)===normQ(x.spec));   
+      
       if(old){ if((old.price===''||old.price==null)&&Number(x.price)>0){ old.price=Math.round(+x.price); price++; } continue; }
       its.push({id:uid('qi'),cat,name,spec:x.spec||'',unit:x.unit||'式',price:Number(x.price)>0?Math.round(+x.price):''}); add++; }
     S.qitemsInit=true; return {add, price}; },
@@ -3423,7 +3439,8 @@ const Q = {
     return `<div class="field"><label for="fm_${name}Pick">${label}</label><select id="fm_${name}Pick" name="${name}Pick" data-custpick="${name}"><option value="">（一覧から選ぶ）</option>${names.map(n=>`<option value="${esc(n)}" ${n===val?'selected':''}>${esc(n)}</option>`).join('')}<option value="__new" ${known?'':'selected'}>＋ 新しい顧客を入力する</option></select></div>
       <div class="field" id="fm_${name}NewBox" ${known?'hidden':''}><label for="fm_${name}New">新しい顧客名</label><input id="fm_${name}New" name="${name}New" value="${known?'':esc(val)}" placeholder="例：〇〇管理株式会社"></div>`; },
   custValue(v, name){ const p=v[name+'Pick'], t=String((p==='__new'?v[name+'New']:p)||'').trim();
-    if(t&&p==='__new'&&!this.cust(t)) (S.customers=S.customers||[]).push({id:uid('cu'),name:t,at:nowISO(),by:myLabel()});
+    if(t&&p==='__new'&&!this.cust(t)){ const ex=(S.customers||[]).find(x=>normQ(x.name)===normQ(t)); if(ex) return ex.name;   
+      (S.customers=S.customers||[]).push({id:uid('cu'),name:t,at:nowISO(),by:myLabel()}); }
     return t; },
   
   canView(q){ return !!q && me().role==='rateru_admin' && (salesAll() || (q.owner&&q.owner===mySalesOwner())); },
@@ -3485,7 +3502,7 @@ const Q = {
         <button class="btn" data-act="q_invoice">🧾 請求書を作る</button>${canFinance()?'<button class="btn" data-act="q_order">📦 発注書を作る（業者へ）</button>':''}
         ${d.id?'<button class="btn danger" data-act="q_del">この見積を消す</button>':''}</div>
         ${(d.invoices||[]).length?`<h4 class="perm-cat">作った請求書</h4>${d.invoices.map(v=>`<div class="rel"><button class="linkbtn" data-act="q_printInv" data-id="${esc(v.id)}">🧾 ${esc(v.no)}　${yen(v.amount)}</button><button class="btn sm" data-act="q_invEdit" data-id="${esc(v.id)}">直す</button><small>${md(v.date)} 発行・支払期限 ${md(v.due)}${v.saleId?' ・ 売上管理に登録済み':''}</small></div>`).join('')}`:''}
-        ${canFinance()&&d.id?(()=>{ const os=(S.orders||[]).filter(o=>o.quoteId===d.id); return os.length?`<h4 class="perm-cat">作った発注書（川端・舟田だけに見えます）</h4>${os.map(o=>`<div class="rel"><button class="linkbtn" data-act="q_printOrder" data-id="${esc(o.id)}">📦 ${esc(o.no)}　${esc(o.vendor)}　${yen(this.calc(o).total)}</button><button class="btn sm" data-act="q_orderEdit" data-id="${esc(o.id)}">直す</button><small>${md(o.date)}</small></div>`).join('')}`:''; })():''}
+        ${canFinance()&&d.id?(()=>{ const os=(S.orders||[]).filter(o=>o.quoteId===d.id); return os.length?`<h4 class="perm-cat">作った発注書（川端・舟田・向だけに見えます）</h4>${os.map(o=>`<div class="rel"><button class="linkbtn" data-act="q_printOrder" data-id="${esc(o.id)}">📦 ${esc(o.no)}　${esc(o.vendor)}　${yen(this.calc(o).total)}</button><button class="btn sm" data-act="q_orderEdit" data-id="${esc(o.id)}">直す</button><small>${md(o.date)}</small></div>`).join('')}`:''; })():''}
         <p class="perm-note">契約書の文面は、使う前に会社で内容を確かめてください。会社名・住所・振込先は「会社の情報」タブで入れます。</p></div>`; },
   page(){
     const tabs=`<div class="tabs-bar" role="tablist">${[['list','見積の一覧'],['cust','顧客の一覧'],['items','品目の一覧'],['company','会社の情報']].map(([k,l])=>`<button class="tb ${this.tab===k||(k==='list'&&this.tab==='edit')?'on':''}" data-act="q_tab" data-t="${k}">${l}</button>`).join('')}</div>`;
@@ -3538,7 +3555,7 @@ const Q = {
   orderForm(editId){ if(!canFinance()) return; if(!this.save()) return; const d=this.draft, old=editId?(S.orders||[]).find(x=>x.id===editId):null;
     this.orderDraft=old?JSON.parse(JSON.stringify(old)):{id:'', quoteId:d.id, no:this.nextNo('PO',S.orders||[]), date:todayISO(), vendor:'', title:d.title, site:d.site, term:d.term, pay:'月末締め翌月末払い', lines:d.lines.map(l=>({name:l.name,spec:l.spec,qty:l.qty,unit:l.unit,price:''})), discount:0, tax:Q_TAX, note:''};
     const o=this.orderDraft;
-    openDrawer(`${drawerHead(old?'発注書を直す':'発注書を作る（業者へ）')}<form data-form="q_order"><p class="perm-note" style="margin-top:0">発注の金額（原価）は川端さん・舟田さんだけに見えます。見積の行を写しているので、頼む行の単価を入れてください（単価が空の行は発注書に出ません）。</p>
+    openDrawer(`${drawerHead(old?'発注書を直す':'発注書を作る（業者へ）')}<form data-form="q_order"><p class="perm-note" style="margin-top:0">発注の金額（原価）は川端さん・舟田さん・向さんだけに見えます。見積の行を写しているので、頼む行の単価を入れてください（単価が空の行は発注書に出ません）。</p>
       ${fld('発注番号','no',o.no)}${fld('発注日','date',o.date,'date')}${this.custPick('発注先（業者）','vendor',o.vendor||'')}${fld('支払条件','pay',o.pay)}
       <div class="tablewrap"><table class="q-lines"><thead><tr><th>品名</th><th>数量</th><th>単位</th><th>発注単価</th></tr></thead><tbody>${this.orderDraft.lines.map((l,i)=>`<tr><td>${esc(l.name)}${l.spec?`<br><small>${esc(l.spec)}</small>`:''}</td><td><input name="qty_${i}" type="number" step="any" min="0" value="${esc(l.qty)}" style="width:80px"></td><td>${esc(l.unit)}</td><td><input name="price_${i}" type="number" step="1" min="0" value="${esc(l.price??'')}" style="width:110px"></td></tr>`).join('')}</tbody></table></div>
       ${area('備考','note',o.note||'')}<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn primary" type="submit">${old?'直して印刷する':'作って印刷する'}</button></div></form>`); },
@@ -3631,8 +3648,10 @@ const Q = {
       const d=this.draft; if(d){ d.pipeId=p.id; d.customer=customer||d.customer; d.title=name; d.site=p.address; d.owner=resp; }
       save(); closeDrawer(); render(); toast('案件を作って、見積につなげました'); return; }
     if(k==='q_cust'){ const old=f.dataset.old, name=String(v.name||'').trim(); if(!name){ toast('顧客名を入れてください'); return; }
-      S.customers=S.customers||[]; let c=old?this.cust(old):null; if(!c){ c={id:uid('cu'),at:nowISO()}; S.customers.push(c); }
-      if(!old&&S.customers.some(x=>x!==c&&x.name===name)){ toast('同じ名前の顧客がもうあります'); S.customers=S.customers.filter(x=>x!==c); return; }
+      S.customers=S.customers||[]; const cur=old?this.cust(old):null;
+      
+      const same=S.customers.find(x=>x!==cur&&normQ(x.name)===normQ(name)); if(same){ toast(`同じ顧客「${same.name}」がもうあります`); return; }
+      let c=cur; if(!c){ c={id:uid('cu'),at:nowISO()}; S.customers.push(c); }
       Object.assign(c,{name,address:v.address||'',phone:v.phone||'',contact:v.contact||'',email:v.email||'',billing:v.billing||'',note:v.note||'',by:myLabel()});
       if(old&&old!==name&&v.rename){ (S.pipeline||[]).forEach(p=>{ if(p.customer===old) p.customer=name; }); (S.quotes||[]).forEach(q=>{ if(q.customer===old) q.customer=name; }); }
       save(); closeDrawer(); render(); toast('顧客を保存しました'); return; }
@@ -3840,6 +3859,8 @@ document.addEventListener('click', async e=>{
   if(a==='userLockOther'){ const u=USERS.find(x=>x.role==='rateru_admin'&&!UserLock.pins()[x.id]&&!UserLock.must(x.id)&&x.id!==S.userId)||USERS.find(x=>!UserLock.pins()[x.id]&&!UserLock.must(x.id)); if(u){ S.userId=u.id; try{ localStorage.removeItem(DEMO_USER_KEY); }catch(e){} save(); go('dashboard'); } return; }
   if(a==='userPinOff'){ if(UserLock.must()) return; confirmBox('自分の画面の暗証番号をやめます。','やめる',async()=>{ await UserLock.setPin(S.userId,null); render(); toast('暗証番号をやめました'); }); return; }   
   if(el.tagName==='A') e.preventDefault();
+  
+  if(ACT_GUARD[a]&&!ACT_GUARD[a](d)){ toast('この操作はできません（権限がありません）'); return; }
   switch(a){
   case 'back': goBack(); break;
   case 'nav': if(d.page==='docs') view.docsPid=''; go(d.menu&&d.page==='projects'&&canSeePage('pipeline') ? 'pipeline' : d.page); closeSidebar&&closeSidebar(); break;   
@@ -3942,7 +3963,7 @@ document.addEventListener('click', async e=>{
   case 'payMonth': Office.payMonth=d.d==='0'?todayISO().slice(0,7):monthAdd(payMonth(),Number(d.d)); render(); break;
   case 'payApprove': { if(myPos()!=='head'){ toast('支払の確認は川端さんだけです'); break; } const m=payMonth(), open=payTargets(m).filter(x=>x.status!=='支払済み'), total=open.reduce((n,x)=>n+(Number(x.amount)||0),0);
     confirmBox(`${monthLabel(m)}分の支払 ${open.length}件・${yen(total)} をこの内容で確認します。`,'確認しました',()=>{ S.sales.push({id:uid('po'),type:'payok',month:m,sig:paySig(open),total,count:open.length,at:nowISO(),by:myLabel()}); save(); render(); toast('支払の内容を確認しました'); }); break; }
-  case 'payDone': { if(!canFinance()){ toast('支払済みの記録は川端さん・舟田さんだけです'); break; } const m=payMonth(), open=payTargets(m).filter(x=>x.status!=='支払済み'), ok=payOk(m);
+  case 'payDone': { if(!canFinance()){ toast('支払済みの記録は川端さん・舟田さん・向さんだけです'); break; } const m=payMonth(), open=payTargets(m).filter(x=>x.status!=='支払済み'), ok=payOk(m);
     if(!ok||ok.sig!==paySig(open)){ toast('川端さんの確認がまだか、確認のあとに変わっています'); break; }
     confirmBox(`${open.length}件を「支払済み」として記録します（振込は銀行で済ませてから押してください）。`,'記録する',()=>{ open.forEach(x=>{ x.status='支払済み'; x.paidAt=nowISO(); x.paidBy=myLabel(); }); save(); render(); toast(`${open.length}件を支払済みにしました`); }); break; }
   case 'pickCase': { const el2=$('#fm_pipeId'); if(el2){ el2.value=d.pipe; toast('案件を選びました。「保存」で決まります'); } break; }
@@ -4117,7 +4138,7 @@ document.addEventListener('submit', async e=>{
   try{ await onSubmit(e,f); } finally{ delete f.dataset.busy; }
 });
 async function onSubmit(e,f){
-  if(f.dataset.act==='send'){ const i=f.querySelector('input'); const t=i.value.trim(); if(!t) return; const u=me(); S.messages.push({id:uid('m'),pid:f.dataset.pid,company:u.company,name:u.name,at:nowISO(),text:t}); save(); render(); const n=$('#chatInput'); if(n) n.focus(); return; }
+  if(f.dataset.act==='send'){ const i=f.querySelector('input'); const t=i.value.trim(); if(!t) return; const u=me(); S.messages.push({id:uid('m'),pid:f.dataset.pid,company:u.company,name:u.name,at:nowISO(),text:t}); i.value=''; save(); render(); const n=$('#chatInput'); if(n) n.focus(); return; }
   const v=formData(f), k=f.dataset.form;
   if(k&&k.startsWith('q_')){ Q.submit(k,v,f); return; }   
   if(k==='login'){
@@ -4178,6 +4199,8 @@ async function onSubmit(e,f){
       customerName:(v.customerName||'').trim(),customerContact:(v.customerContact||'').trim(),customerPhone:(v.customerPhone||'').trim(),clientPhoneType:v.clientPhoneType==='office'?'office':'mobile',clientPhone:(v.clientPhone||'').trim(),
       start:v.start||'',area:v.area,type:v.type,motoukeRep:v.motoukeRep.trim(),rateruRep:v.rateruRep.trim(),partners:v.partners.split(/[,、，]/).map(s=>s.trim()).filter(Boolean),due:v.due,next:v.next.trim(),note:v.note};
     if(!data.rateruRep){ toast('Rateru担当を記入してください'); return; }
+    if(!perm().createProject){ toast('案件を登録・変更する権限がありません'); return; }
+    if(data.start&&data.due&&data.due<data.start){ toast('完工予定が着工日より前になっています'); return; }   
     if(f.dataset.pid){ const p=proj(f.dataset.pid); Object.assign(p,data); change(p.id,'案件情報を更新'); save(); closeDrawer(); render(); toast('保存しました'); }
     else { S.projects.unshift({id,...data,status:'survey',progress:0,created:nowISO()}); log(id,'物件登録 / '+(me().company)+'より案件登録'); change(id,'案件登録'); save(); closeDrawer(); toast(`${data.name} を登録しました`); go('project',id); }
   }
