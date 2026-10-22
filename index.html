@@ -791,12 +791,12 @@ const NAV_GROUPS = [
   ['現場', ['survey','calendar','inspection','docs','reports']],
   ['元請・協力業者', ['approvals','client','partners']],
   ['社内（Rateru）', ['quotes','internal','office','meetings','templates','sales','dropbox']],
-  ['設定', ['perms','settings']],
+  ['設定', ['perms','settings','owner']],
   ['', ['guest']]
 ];
 const NAV_ALIAS = {customers:'quotes', pipeline:'projects', chat:'projects', project:'projects', schedule:'calendar', dezura:'office', petty:'office', finance:'office'};
 const PAGES = [
-  ['dashboard','▦','ダッシュボード'],['quotes','✍','見積・契約・請求'],['customers','☰','顧客の一覧'],['projects','▤','案件・進捗'],['pipeline','▥','案件進捗'],['survey','⌖','現調・採寸'],['schedule','◷','工程・スケジュール'],
+  ['dashboard','▦','ダッシュボード'],['owner','🔑','管理'],['quotes','✍','見積・契約・請求'],['customers','☰','顧客の一覧'],['projects','▤','案件・進捗'],['pipeline','▥','案件進捗'],['survey','⌖','現調・採寸'],['schedule','◷','工程・スケジュール'],
   ['inspection','✓','品質・検査'],['docs','▣','図面・資料'],['approvals','◎','承認・変更管理'],['chat','◌','案件チャット'],['reports','✎','報告・日報'],['calendar','▦','スケジュール'],['office','🔒','事務・財務'],['client','◇','元請専用'],['partners','△','協力業者向け'],['internal','◆','Rateru社内フォルダ'],['dezura','☷','出面'],['petty','¤','小口現金・立替'],['finance','¥','財務'],['dropbox','☁','Dropbox 資料'],['perms','⚿','権限'],['guest','◇','共有された予定'],['meetings','▤','会議資料'],['templates','▧','書類ひな形'],['sales','¥','売上管理'],['settings','⚙','設定・権限']
 ];
 
@@ -818,7 +818,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-21-2', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-22-2', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1256,8 +1256,9 @@ async function afterLogin(user){
   if(error||!prof){ await SB.auth.signOut(); return showLogin('利用者情報が見つかりません。Rateruの管理者に連絡してください。'); }
   const office=prof.role==='rateru_admin'&&prof.pos==='office';   
   SERVER.user={id:prof.id,name:prof.display_name,company:COMPANY_LABEL[prof.company]||prof.company,role:office?'office':prof.role,pos:prof.pos||'',salesIdentity:prof.sales_owner||'',roleLabel:office?'事務':roleLabel(prof.role)};
+  try{ const {data:o}=await SB.owner.me(); SERVER.user.owner=!!(o&&o.owner); }catch(e){ SERVER.user.owner=false; }
   $('#modalRoot').innerHTML=''; $('#app').hidden=false;
-  await Sync.pull(); openFromHash(); Start.server().catch(()=>{}); Approvals.load().then(()=>{ if(Approvals.list&&Approvals.list.length) render(); }).catch(()=>{});
+  await Sync.pull(); ProdSwitch.listen(); openFromHash(); Start.server().catch(()=>{}); Approvals.load().then(()=>{ if(Approvals.list&&Approvals.list.length) render(); }).catch(()=>{});
   const ch=SB.channel('hub-changes');
   ['projects','records','internal_records'].forEach(t=>ch.on('postgres_changes',{event:'*',schema:'public',table:t},onRemoteChange));
   ch.subscribe();
@@ -1266,11 +1267,11 @@ async function afterLogin(user){
  
 const Approvals = {
   list:null, err:'',
-  can: () => MODE==='server' && me().role==='rateru_admin' && ['head','system'].includes(myPos()) && !!(SB&&SB.approvals),
+  can: () => isOwner() && !!(SB&&SB.approvals),
   async load(){ if(!this.can()) return; try{ const {data,error}=await SB.approvals.list(); this.list=error?[]:(data||[]); this.err=error?error.message:''; }catch(e){ this.list=[]; this.err='読み込めませんでした'; } },
-  PRE:[['staff','Rateru の社員（売上の担当なし）'],['head','川端（統括・全部見られる）'],['deputy','井上（副社長）'],['sakumoto','作本（工事・売上の担当）'],['kodama','児玉（工事・売上の担当）'],['finance','舟田（財務）'],['office','内藤（事務：出面・小口現金）'],['system','向（システム）']],
-  alert(){ return this.can()&&this.list&&this.list.length?`<div class="alert" data-act="nav" data-page="settings" style="cursor:pointer">利用の申し込みが <b>${this.list.length}件</b> あります。「設定」で立場を選んで承認してください。</div>`:''; },
-  card(){ if(!this.can()) return ''; if(this.list===null){ this.load().then(()=>{ if(view.page==='settings') render(); }); return '<div class="card section"><h3>利用の申し込み</h3><p class="muted">読み込んでいます…</p></div>'; }
+  PRE:[['staff','Rateru の社員（売上の担当なし）'],['head','川端（統括・全部見られる）'],['deputy','井上（副社長）'],['sakumoto','作本（工事・売上の担当）'],['kodama','児玉（工事・売上の担当）'],['finance','舟田（財務）'],['office','内藤（事務：出面・小口現金）'],['system','システム（全部見られる：向さん・ryo さん）']],
+  alert(){ return this.can()&&this.list&&this.list.length?`<div class="alert" data-act="nav" data-page="owner" style="cursor:pointer">利用の申し込みが <b>${this.list.length}件</b> あります。「管理」で立場を選んで承認してください。</div>`:''; },
+  card(){ if(!this.can()) return ''; if(this.list===null){ this.load().then(()=>{ if(view.page==='owner') render(); }); return '<div class="card section"><h3>利用の申し込み</h3><p class="muted">読み込んでいます…</p></div>'; }
     return `<div class="card section" id="apprCard"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">利用の申し込み（${this.list.length}件）</h3><button class="btn sm" data-act="apprReload">読み直す</button></div>
       ${this.err?`<div class="alert ng" style="cursor:default">${esc(this.err)}</div>`:''}
       <p class="perm-note">本人が rateru-pad.com を開いて、自分の Gmail で申し込んだものです。立場を選んで「承認する」を押すと、その人は画面を開き直すだけで使えます。知らない人なら「断る」。</p>
@@ -1278,8 +1279,66 @@ const Approvals = {
         <div class="formgrid" style="grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:8px;margin-top:6px"><div class="field"><label>画面に出す名前</label><input name="display_name" value="${esc(q.name)}" maxlength="40"></div><div class="field"><label>立場</label><select name="preset"><option value="">（選んでください）</option>${this.PRE.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('')}</select></div></div>
         <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn" type="button" data-act="apprReject" data-email="${esc(q.email)}">断る</button><button class="btn primary" type="submit">承認する</button></div></form>`).join('')||'<p class="muted">いまはありません</p>'}</div>`; },
   async approve(email, v){ if(!v.preset){ toast('立場を選んでください'); return; } const {error}=await SB.approvals.approve({email, preset:v.preset, display_name:String(v.display_name||'').trim()}); if(error){ toast(error.message); return; }
-    toast(`${email} を承認しました。本人に「画面を開き直してください」と伝えてください`); await this.load(); render(); },
-  reject(email){ confirmBox(`${email} の申し込みを断ります（本人は入れません）。`,'断る',async()=>{ const {error}=await SB.approvals.reject({email}); if(error){ toast(error.message); return; } await this.load(); render(); toast('断りました'); }); }
+    toast(`${email} を承認しました。本人に「画面を開き直してください」と伝えてください`); await this.load(); if(isOwner()) await Owner.load(); render(); },
+  reject(email){ confirmBox(`${email} の申し込みを断ります（本人は入れません）。`,'断る',async()=>{ const {error}=await SB.approvals.reject({email}); if(error){ toast(error.message); return; } await this.load(); if(isOwner()) await Owner.load(); render(); toast('断りました'); }); }
+};
+ 
+const isOwner = () => MODE==='server' && !!(SERVER.user&&SERVER.user.owner);
+const Owner = {
+  users:null, trials:null, err:'',
+  async load(){ if(!isOwner()) return; try{ const [u,t]=await Promise.all([SB.owner.users(), SB.owner.trials()]); this.users=u.error?[]:(u.data||[]); this.trials=t.error?[]:(t.data||[]); this.err=u.error?u.error.message:t.error?t.error.message:''; }catch(e){ this.users=[]; this.trials=[]; this.err='読み込めませんでした'; } },
+  preLabel(u){ if(u.role!=='rateru_admin') return u.role==='partner'?'協力業者':'元請'; const k={head:'head',deputy:'deputy',finance:'finance',office:'office',system:'system'}[u.pos]||(u.pos==='staff'?(u.sales_owner==='作本'?'sakumoto':u.sales_owner==='児玉'?'kodama':'staff'):'staff'); return k; },
+  page(){ if(!isOwner()) return '<div class="empty">この画面は、管理の人だけが使えます</div>';
+    if(this.users===null||Approvals.list===null){ Promise.all([this.load(), Approvals.load()]).then(()=>{ if(view.page==='owner') render(); }); return '<div class="hero"><div><h2>管理</h2><p>読み込んでいます…</p></div></div>'; }
+    const P=Approvals.PRE, U=this.users, T=this.trials||[], waitT=T.filter(t=>t.status==='waiting');
+    return `<div class="hero"><div><h2>管理</h2><p>利用の申し込みの承認・利用者の立場・利用の停止・お試し版から届いたデータを、ここでまとめて行います。この画面は管理の人にしか見えません。</p></div><div class="acts"><button class="btn" data-act="ownerReload">読み直す</button></div></div>
+      ${this.err?`<div class="alert ng" style="cursor:default">${esc(this.err)}</div>`:''}
+      ${Approvals.card()}
+      <div class="card section mt" id="ownUsers"><h3 style="margin-top:0">利用者（${U.length}人）</h3>
+        <div class="tablewrap"><table class="mcards"><thead><tr><th>名前</th><th>入るアドレス</th><th>立場</th><th>最後に入った</th><th></th></tr></thead><tbody>
+        ${U.map(u=>`<tr class="${u.disabled?'ng-row':''}"><td data-l="名前"><b>${esc(u.display_name||'')}</b>${u.owner?' <span class="pill info">管理</span>':''}${u.disabled?' <span class="pill ng">止めている</span>':''}</td><td data-l="入るアドレス"><small>${esc(u.google||u.email||'')}</small></td>
+          <td data-l="立場"><form class="row own-pre" data-form="ownPreset" data-id="${esc(u.id)}" style="gap:6px;flex-wrap:wrap;min-width:0"><select name="preset" aria-label="立場" style="flex:1 1 150px;min-width:0;max-width:100%">${P.map(([k,l])=>`<option value="${k}" ${this.preLabel(u)===k?'selected':''}>${esc(l)}</option>`).join('')}</select><button class="btn sm" type="submit">変える</button></form></td>
+          <td data-l="最後に入った"><small>${u.last_login?mdhm(u.last_login):'—'}</small></td>
+          <td>${u.id===SERVER.user.id?'<small class="muted">自分</small>':`<button class="btn sm ${u.disabled?'':'danger'}" data-act="ownDisable" data-id="${esc(u.id)}" data-off="${u.disabled?'':'1'}">${u.disabled?'利用を戻す':'利用を止める'}</button>`}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">まだいません</td></tr>'}</tbody></table></div>
+        <p class="perm-note">立場を変えると、その人は次に開いたときから新しい立場になります。辞めた人などは「利用を止める」で、すぐ入れなくなります（データは残ります）。</p></div>
+      <div class="card section mt" id="ownTrials"><h3 style="margin-top:0">お試し版から届いたデータ（まだ ${waitT.length}件）</h3>
+        <p class="perm-note" style="margin-top:0">社員さんがお試し版の「データを持って本番へ」で送ったものです。中身を見て「本番に入れる」を押すと入ります。本番にもうあるものは、お試し版のほうが新しいときだけ入れます。見本のデータと試験のデータ（検証専用20261019）は入れません。</p>
+        ${T.map(t=>`<div class="prow" style="cursor:default;flex-wrap:wrap"><span class="pm"><b>${esc(t.name||t.email)}</b>　<small>${esc(t.email)}　${t.at?mdhm(t.at):''}　${t.size?(t.size/1048576).toFixed(1)+'MB':''}</small><br><small>${Object.entries(t.counts||{}).map(([k,n])=>`${esc(TRIAL_KIND[k]||k)} ${n}`).join('・')}</small>${t.result?`<br><small>結果：${Object.entries(t.result).map(([k,v])=>`${esc(k)} ${typeof v==='object'?Object.values(v).reduce((a,b)=>a+b,0):v}`).join('・')}</small>`:''}</span>
+          ${t.status==='waiting'?`<span class="row" style="gap:6px"><button class="btn sm" data-act="ownTrialDrop" data-id="${esc(t.id)}">入れない</button><button class="btn sm primary" data-act="ownTrialMerge" data-id="${esc(t.id)}">本番に入れる</button></span>`:`<span class="pill ${t.status==='merged'?'ok':'todo'}">${t.status==='merged'?'入れました':'入れない'}</span>`}</div>`).join('')||'<p class="muted">まだ届いていません</p>'}</div>`; },
+  async setPreset(id, v){ const {error}=await SB.owner.setPreset({user_id:id, preset:v.preset}); if(error){ toast(error.message); return; } toast('立場を変えました（次に開いたときから）'); await this.load(); render(); },
+  disable(id, off){ const u=(this.users||[]).find(x=>x.id===id); confirmBox(off?`${u?u.display_name:''} さんの利用を止めます。すぐ入れなくなります（データは残ります）。`:`${u?u.display_name:''} さんの利用を戻します。`, off?'止める':'戻す', async()=>{ const {error}=await SB.owner.disable({user_id:id, off:!!off}); if(error){ toast(error.message); return; } await this.load(); render(); toast(off?'利用を止めました':'利用を戻しました'); }); },
+  merge(id){ const t=(this.trials||[]).find(x=>x.id===id); confirmBox(`${t?t.name||t.email:''} さんのお試し版のデータを、本番に入れます。本番にもうあるものは、お試し版のほうが新しいときだけ入ります。`,'本番に入れる', async()=>{ toast('入れています…'); const {data,error}=await SB.owner.merge({id}); if(error){ toast(error.message); return; } toast(`入れました：${Object.entries(data||{}).filter(([,v])=>typeof v==='number').map(([k,v])=>k+' '+v).join('・')}`); await Sync.pull(); await this.load(); render(); }); },
+  drop(id){ confirmBox('このデータは本番に入れないことにします（ファイルは残ります）。','入れない', async()=>{ const {error}=await SB.owner.drop({id}); if(error){ toast(error.message); return; } await this.load(); render(); }); }
+};
+const TRIAL_KIND = {pipeline:'案件進捗', sales:'売上・仕入', quotes:'見積', customers:'顧客', projects:'施工管理の案件', photos:'写真', docs:'資料', reports:'報告', meetings:'会議資料', templates:'ひな形', plans:'予定', dezura:'出面', petty:'小口', bank:'銀行の明細', files:'ファイル', dbxFiles:'Dropbox の一覧', dbxCases:'Dropbox の案件', qitems:'品目', internal:'社内フォルダ', todos:'タスク', tasks:'工程'};
+function pOwner(){ return Owner.page(); }
+
+ 
+const PROD_URL = window.RATERU_PROD_URL || 'https://rateru-pad.com';   
+const ProdSwitch = {
+  on: () => MODE==='demo' && !TRIAL && (window.RATERU_FORCE_SWITCH || /\.github\.io$/.test(location.hostname)),
+  banner(){ return this.on()?`<div class="card section prod-switch" style="border:2px solid var(--accent,#c00);margin-bottom:14px"><h3 style="margin-top:0">ラーテルパッドは本番（${esc(PROD_URL.replace('https://',''))}）に切り替わりました</h3>
+      <p style="margin:4px 0 8px">これからは本番を使ってください。お試し版に入れたデータは、下のボタンで本番に持っていけます（見本のデータは持っていきません）。</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" data-act="toProd">データを持って本番へ</button><a class="btn" href="${PROD_URL}" target="_blank" rel="noopener">本番を開くだけ</a><button class="btn sm" data-act="toProdFile">データをファイルで書き出す</button></div>
+      <p class="perm-note">はじめて本番を開くときは、自分の Gmail で入って「利用の申し込み」をしてください。承認されてから、もう一度このボタンを押すとデータを送れます。</p></div>`:''; },
+  async pack(){ const {pack}=await Move.pack(); const d=JSON.parse(JSON.stringify(pack.data)); Samples.clear(d);
+    for(const [k,v] of Object.entries(d)) if(Array.isArray(v)) d[k]=v.filter(x=>!JSON.stringify(x).includes('検証専用20261019'));
+    delete d.samplesCleared; const keys=new Set(Move.keys(d)); const files=Object.fromEntries(Object.entries(pack.files||{}).filter(([k])=>keys.has(k)));
+    return {...pack, from:'trial', data:d, files}; },
+  async go(){ const w=window.open(PROD_URL+'/?from=trial','rateru_prod'); if(!w){ toast('本番の画面を開けませんでした（ポップアップを許可してください）'); return; }
+    toast('本番を開きました。本番で入ると、データを送るか聞かれます'); const pack=await this.pack(); let sent=false;
+    const onMsg=e=>{ if(e.origin!==PROD_URL||!e.data||e.data.type!=='rateru-prod-ready'||sent) return; sent=true; w.postMessage({type:'rateru-trial-pack', pack}, PROD_URL); window.removeEventListener('message', onMsg); toast('お試し版のデータを本番に渡しました。本番の画面で「送る」を押してください'); };
+    window.addEventListener('message', onMsg); setTimeout(()=>window.removeEventListener('message', onMsg), 30*60e3); },
+  async file(){ const pack=await this.pack(); const u=URL.createObjectURL(new Blob([JSON.stringify(pack)],{type:'application/json'})); const a=document.createElement('a'); a.href=u; a.download=`お試し版のデータ_${todayISO()}.json`; document.body.appendChild(a); a.click(); a.remove(); toast('書き出しました。本番の「設定」→「お試し版のデータを送る」で、このファイルを選んでください'); },
+  
+  listen(){ if(MODE!=='server'||!/[?&]from=trial/.test(location.search)||!window.opener) return;
+    const onMsg=e=>{ if(!(/^https:\/\/[a-z0-9-]+\.github\.io$/.test(e.origin)||(window.RATERU_TRIAL_ORIGIN&&e.origin===window.RATERU_TRIAL_ORIGIN))||!e.data||e.data.type!=='rateru-trial-pack') return; window.removeEventListener('message', onMsg); this.confirm(e.data.pack); };
+    window.addEventListener('message', onMsg); try{ window.opener.postMessage({type:'rateru-prod-ready'}, '*'); }catch(e){} },
+  count(pack){ const d=(pack&&pack.data)||{}; return Object.entries(d).filter(([,v])=>Array.isArray(v)&&v.length).map(([k,v])=>`${TRIAL_KIND[k]||k} ${v.length}件`).join('・'); },
+  confirm(pack){ if(!pack||!pack.data){ toast('お試し版のデータを受け取れませんでした'); return; }
+    confirmBox(`お試し版のデータ（${this.count(pack)||'なし'}）を本番に送ります。管理の人が確かめてから本番に入ります。`,'送る', ()=>this.upload(pack)); },
+  async upload(pack){ toast('送っています…'); const {data,error}=await SB.trial.upload(pack); if(error){ toast('送れませんでした：'+error.message); return; } toast('送りました。管理の人が確かめてから本番に入ります'); },
+  async fromFile(file){ try{ const pack=JSON.parse(await file.text()); if(!pack||!pack.data) throw 0; this.confirm(pack); }catch(e){ toast('お試し版のデータのファイルではありません'); } }
 };
  
 const Members = {
@@ -1736,7 +1795,7 @@ function render(){
   const c=$('#content');
   if(!canSeePage(view.page)) view.page = me().role==='guest' ? 'guest' : me().role==='office' ? 'dezura' : 'dashboard';
   $('#backBtn').hidden=view.page==='dashboard';
-  const fn={quotes:pQuotes,customers:pCustomers,dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,perms:pPerms,office:pOfficeHome,petty:pPetty,dezura:pDezura,finance:pFinance,dropbox:pDropbox,guest:pGuest,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
+  const fn={owner:pOwner,quotes:pQuotes,customers:pCustomers,dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,perms:pPerms,office:pOfficeHome,petty:pPetty,dezura:pDezura,finance:pFinance,dropbox:pDropbox,guest:pGuest,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
   const ae=document.activeElement, keep=(ae&&ae.id&&c.contains(ae))?{id:ae.id,v:ae.value,s:ae.selectionStart,pid:ae.dataset&&ae.dataset.pid}:null;
   if(UserLock.needs()){ c.innerHTML=UserLock.gate(); const ul=$('#ul_pin'); if(ul) setTimeout(()=>ul.focus(),30); return; }   
   if(LOCKED_PAGES.has(view.page)&&!view.lockOpen){ c.innerHTML=lockGate(); const pin=$('#lk_pin'); if(pin) setTimeout(()=>pin.focus(),30); return; }
@@ -1884,7 +1943,7 @@ function pDashboard(){
   const acts=S.activity.filter(a=>!a.pid||ids.has(a.pid)).slice(0,8);
   const kpi=(label,num,sub,act)=>`<button class="card kpi" data-act="kpi" data-status="${act}"><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`;
   const rows=filteredProjects().filter(p=>p.status!=='done');
-  return `${Approvals.alert()}${demoEntryCard()}${trialNotice()}${todayCard()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
+  return `${ProdSwitch.banner()}${Approvals.alert()}${demoEntryCard()}${trialNotice()}${todayCard()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
     <div class="acts"><button class="btn primary" data-act="nav" data-page="projects">案件を見る</button></div></div>
   ${noProj?`<div class="card section"><p style="margin:0">施工管理の案件（元請・協力業者と一緒に使う案件）は、まだありません。<br>図面・資料、現調・採寸、工程、チャット、日報は、それぞれの画面で<b>案件進捗の案件を選んで</b>始められます。</p></div>`:`<div class="kpis">
     ${kpi('進行中案件',ps.filter(p=>p.status!=='done').length,`全${ps.length}件`,'')}
@@ -1959,7 +2018,7 @@ const OFFICE_PAGES = new Set(['dezura','petty','office']);
 const LOCKED_PAGES = new Set(['office','dezura','petty','finance']);   
 
 const PAGE_ROLES = {client:['rateru_admin','motouke_admin','motouke_sales'], partners:['rateru_admin','partner']};
-const canSeePage = id => me().role==='office' ? OFFICE_PAGES.has(id) : me().role==='guest' ? id==='guest' : id==='guest' ? false : id==='finance' ? (me().role==='rateru_admin'&&canFinance()) : id==='sales' ? canSeeSalesPage() : RATERU_ONLY_PAGES.has(id) ? me().role==='rateru_admin' : (!PAGE_ROLES[id] || PAGE_ROLES[id].includes(me().role));
+const canSeePage = id => id==='owner' ? isOwner() : me().role==='office' ? OFFICE_PAGES.has(id) : me().role==='guest' ? id==='guest' : id==='guest' ? false : id==='finance' ? (me().role==='rateru_admin'&&canFinance()) : id==='sales' ? canSeeSalesPage() : RATERU_ONLY_PAGES.has(id) ? me().role==='rateru_admin' : (!PAGE_ROLES[id] || PAGE_ROLES[id].includes(me().role));
 
 const portalNote = who => me().role==='rateru_admin' ? `<div class="perm-note">${who}に見える画面です。Rateru管理者は確認のため見られます（Rateru管理者には全案件が出ます）。</div>` : '';
 const nextTask = pid => S.tasks.filter(t=>t.pid===pid&&!t.done&&t.end>=todayISO()).sort((a,b)=>a.start.localeCompare(b.start))[0];
@@ -4209,7 +4268,9 @@ const Q = {
       (S.customers=S.customers||[]).push({id:uid('cu'),name:t,at:nowISO(),by:myLabel()}); }
     return t; },
   
-  canView(q){ return !!q && me().role==='rateru_admin' && (salesAll() || (q.owner&&q.owner===mySalesOwner())); },
+  canView(q){ return !!q && me().role==='rateru_admin'; },
+  
+  canEditQ(q){ return !!q && me().role==='rateru_admin' && (!q.id || salesAll() || (q.owner&&q.owner===mySalesOwner())); },
   waitDays(q){ return q&&q.status==='提出済'&&q.date?Math.max(0,daysBetween(q.date,todayISO())):0; },   
   list(){ return (S.quotes||[]).filter(q=>this.canView(q)).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.no).localeCompare(String(a.no))); },
   nextNo(prefix, arr){ const d=todayISO().replace(/-/g,'').slice(2), base=`${prefix}-${d}-`; let n=1; while(arr.some(x=>x.no===base+pad(n))) n++; return base+pad(n); },
@@ -4285,8 +4346,9 @@ const Q = {
   totalsHtml(q){ const c=this.calc(q); return `<table class="q-tot"><tr><th>小計</th><td>${yen(c.sub)}</td></tr><tr><th>値引き</th><td>${c.disc?'−'+yen(c.disc):'—'}</td></tr><tr><th>消費税（${q.tax??Q_TAX}%）</th><td>${yen(c.tax)}</td></tr><tr class="q-sum"><th>合計（税込）</th><td>${yen(c.total)}</td></tr></table>`; },
   editor(){ const d=this.draft, items=normQ(this.itemQ)?this.items().filter(x=>hasQ([x.name,x.spec,x.cat].join(' '),this.itemQ)):this.items().filter(x=>x.cat===this.cat), pipes=(S.pipeline||[]).filter(p=>salesAll()||salesOwner(p)===mySalesOwner());
     const f=(l,k,t='text',x='')=>`<div class="field"><label for="qf_${k}">${l}</label><input id="qf_${k}" data-qf="${k}" type="${t}" value="${esc(d[k]??'')}" ${x}></div>`;
-    return `<div class="hero"><div><h2>${d.id?'見積書を直す':'見積書を作る'}</h2><p>品目は下の種類のタブから押して足します。数量と単価を入れると金額と合計が自動で出ます。</p></div>
-      <div class="acts"><button class="btn" data-act="q_back">一覧へ戻る</button><button class="btn primary" data-act="q_save">保存</button></div></div>
+    return `<div class="hero"><div><h2>${!this.canEditQ(d)?'見積書を見る':d.id?'見積書を直す':'見積書を作る'}</h2><p>品目は下の種類のタブから押して足します。数量と単価を入れると金額と合計が自動で出ます。</p></div>
+      <div class="acts"><button class="btn" data-act="q_back">一覧へ戻る</button>${this.canEditQ(d)?'<button class="btn primary" data-act="q_save">保存</button>':''}</div></div>
+      ${this.canEditQ(d)?'':`<div class="alert" style="cursor:default">${esc(d.owner||'ほかの人')}さんの見積です。見るだけです（直せるのは作った人と、川端さん・舟田さん・向さん）。同じ形で自分の見積を作るときは、一覧の「写す」を使ってください。</div>`}
       <div class="card section"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">1. 案件を選ぶ（選ぶと顧客・工事名・工事場所・責任者が自動で入ります）</h3><button class="btn primary" data-act="q_newCase">＋ 新しい案件を作る</button></div>
         <div class="formgrid q-grid1" style="grid-template-columns:minmax(min(200px,100%),1fr) minmax(240px,2fr);gap:10px">
         <div class="field"><label for="q_pipeSearch">案件をさがす（物件名・顧客名の一部）</label><input id="q_pipeSearch" placeholder="例：ブルーシャトー" autocomplete="off"></div>
@@ -4556,7 +4618,7 @@ function pSettings(){
   ${me().role!=='rateru_admin'?'':`<div class="card section"><div class="tablewrap"><table><thead><tr><th>役割</th>${PERM_ROWS.map(r=>`<th>${r[0]}</th>`).join('')}</tr></thead><tbody>
   ${roles.map(r=>`<tr ${me().role===r?'style="background:var(--accent-soft)"':''}><td><b>${roleLabel(r)}</b></td>${PERM_ROWS.map(x=>`<td>${x[1][r]}</td>`).join('')}</tr>`).join('')}
   </tbody></table></div></div>`}
-  ${Approvals.card()}
+  ${MODE==='server'&&me().role==='rateru_admin'?`<div class="card section"><h3 style="margin-top:0">お試し版のデータを送る</h3><p class="muted" style="margin-top:0">お試し版で「データをファイルで書き出す」を押して作ったファイルを選ぶと、本番に送ります（管理の人が確かめてから入ります）。お試し版の「データを持って本番へ」を押した人は、ここは要りません。</p><label class="btn">ファイルを選ぶ<input type="file" accept=".json,application/json" hidden data-act="trialFile"></label></div>`:''}
   ${UserLock.card()}
   ${FontSize.card()}
   ${me().role==='rateru_admin'?Trash.page():''}
@@ -4917,6 +4979,12 @@ document.addEventListener('click', async e=>{
   case 'ocrUse': DocRead.use(d.id, d.k); break;
   case 'finJump': { const c=$('#'+d.t); if(c) c.scrollIntoView({behavior:'smooth'}); break; }
   case 'reloadPage': location.reload(); break;
+  case 'ownerReload': Owner.users=null; Approvals.list=null; render(); break;
+  case 'ownDisable': Owner.disable(d.id, d.off); break;
+  case 'ownTrialMerge': Owner.merge(d.id); break;
+  case 'ownTrialDrop': Owner.drop(d.id); break;
+  case 'toProd': ProdSwitch.go(); break;
+  case 'toProdFile': ProdSwitch.file(); break;
   case 'apprReload': Approvals.list=null; render(); break;
   case 'apprReject': Approvals.reject(d.email); break;
   case 'allocOpen': if(salesAll()){ const c=d.c!=null&&d.c!==''?(Bank.lastC[d.b]||[])[+d.c]:null; Bank.allocForm(d.b, c?c.items:null); } break;
@@ -5059,6 +5127,7 @@ document.addEventListener('change', async e=>{
     const key=doc.visibility==='rateru'?'gi:'+uid('f'):`${doc.pid}/${uid('f')}`; await FileStore.put(key,f); doc.fileKey=key; doc.fileName=f.name; doc.ver++; doc.updated=nowISO(); doc.type=(f.name.split('.').pop()||doc.type).toUpperCase();
     change(doc.pid,`${doc.name} v${doc.ver-1} → v${doc.ver}（旧版は使用停止）`); log(doc.pid,`図面更新 / ${doc.name} v${doc.ver}`); save(); render(); toast(`${doc.name} を v${doc.ver} に更新しました`); return;
   }
+  if(d.act==='trialFile'){ const f2=el.files[0]; el.value=''; if(f2) await ProdSwitch.fromFile(f2); return; }
   if(d.act==='bankImport'){ const f2=el.files[0]; el.value=''; if(f2&&salesAll()) await Bank.importFile(f2); return; }
   if(d.act==='q_bankXlsx'){ const fs=[...el.files]; el.value=''; if(fs.length){ const f=document.querySelector('form[data-form="q_company"]'); if(f) Q.saveCompany(f); await BankXlsx.importFiles(fs); } return; }
   if(d.act==='dbxIndex'){ const f2=el.files[0]; el.value=''; if(f2) await Dbx.previewIndex(f2); return; }
@@ -5138,6 +5207,7 @@ async function onSubmit(e,f){
   if(k==='rate'){ Cost.saveRate(f.dataset.id, v); return; }
   if(k==='bill'){ Bill.make(f, v); return; }
   if(k==='cashItem'){ Cash.saveItem(f.dataset.id, v); return; }
+  if(k==='ownPreset'){ await Owner.setPreset(f.dataset.id, v); return; }
   if(k==='appr'){ const btn=f.querySelector('button[type=submit]'); btn.disabled=true; await Approvals.approve(f.dataset.email, v); btn.disabled=false; return; }
   if(k==='alloc'){ Bank.saveAlloc(f.dataset.id, v); return; }
   if(k==='banknote'){ const b=S.bank.find(x=>x.id===f.dataset.id); b.note=String(v.note||'').trim(); save(); closeDrawer(); render(); toast('メモを保存しました'); return; }
