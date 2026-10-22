@@ -818,7 +818,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-22-2', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-22-3', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1797,9 +1797,11 @@ function render(){
   $('#backBtn').hidden=view.page==='dashboard';
   const fn={owner:pOwner,quotes:pQuotes,customers:pCustomers,dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,perms:pPerms,office:pOfficeHome,petty:pPetty,dezura:pDezura,finance:pFinance,dropbox:pDropbox,guest:pGuest,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
   const ae=document.activeElement, keep=(ae&&ae.id&&c.contains(ae))?{id:ae.id,v:ae.value,s:ae.selectionStart,pid:ae.dataset&&ae.dataset.pid}:null;
-  if(UserLock.needs()){ c.innerHTML=UserLock.gate(); const ul=$('#ul_pin'); if(ul) setTimeout(()=>ul.focus(),30); return; }   
-  if(LOCKED_PAGES.has(view.page)&&!view.lockOpen){ c.innerHTML=lockGate(); const pin=$('#lk_pin'); if(pin) setTimeout(()=>pin.focus(),30); return; }
-  c.innerHTML=fn();
+  
+  const sw=ProdSwitch.banner();
+  if(UserLock.needs()){ c.innerHTML=sw+UserLock.gate(); const ul=$('#ul_pin'); if(ul) setTimeout(()=>ul.focus(),30); return; }   
+  if(LOCKED_PAGES.has(view.page)&&!view.lockOpen){ c.innerHTML=sw+lockGate(); const pin=$('#lk_pin'); if(pin) setTimeout(()=>pin.focus(),30); return; }
+  c.innerHTML=sw+fn();
   if(keep){ const n=document.getElementById(keep.id); if(n&&!(keep.id==='chatInput'&&n.dataset.pid!==keep.pid)){ if(keep.id==='chatInput') n.value=keep.v; n.focus(); try{ n.setSelectionRange(keep.s,keep.s); }catch(e){} } }
   if(view.page==='settings' && MODE==='server' && me().role==='rateru_admin'){ Members.load(); LineCfg.load(); }
   hydrateImages();
@@ -1943,7 +1945,7 @@ function pDashboard(){
   const acts=S.activity.filter(a=>!a.pid||ids.has(a.pid)).slice(0,8);
   const kpi=(label,num,sub,act)=>`<button class="card kpi" data-act="kpi" data-status="${act}"><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`;
   const rows=filteredProjects().filter(p=>p.status!=='done');
-  return `${ProdSwitch.banner()}${Approvals.alert()}${demoEntryCard()}${trialNotice()}${todayCard()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
+  return `${Approvals.alert()}${demoEntryCard()}${trialNotice()}${todayCard()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
     <div class="acts"><button class="btn primary" data-act="nav" data-page="projects">案件を見る</button></div></div>
   ${noProj?`<div class="card section"><p style="margin:0">施工管理の案件（元請・協力業者と一緒に使う案件）は、まだありません。<br>図面・資料、現調・採寸、工程、チャット、日報は、それぞれの画面で<b>案件進捗の案件を選んで</b>始められます。</p></div>`:`<div class="kpis">
     ${kpi('進行中案件',ps.filter(p=>p.status!=='done').length,`全${ps.length}件`,'')}
