@@ -818,7 +818,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-22-3', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-23-1', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1251,7 +1251,34 @@ function showLogin(msg, reg){
     ${need||pend?`<details class="mt"><summary>ID とパスワードで入る</summary>${login}</details>`:login}</div></div>`;
   setTimeout(()=>{ const i=$(need?'#rg_name':'#lg_id'); if(i) i.focus(); },50);
 }
+ 
+const PinGate = {
+  async need(){ if(!SB.pin) return false; try{ const {data}=await SB.pin.status(); return data&&data.on&&!data.ok?data:false; }catch(e){ return false; } },
+  
+  ask(st){ return new Promise(done=>{ const first=!st.has;
+    const draw=(msg,ng)=>{ $('#app').hidden=true; $('#modalRoot').innerHTML=`<div class="modal" style="background:var(--bg)"><form class="box card pin-box" data-pin="1" novalidate style="max-width:360px;text-align:center">
+      <h2 style="margin:0 0 4px;font-family:var(--disp);font-weight:900;font-size:28px">RateruPAD</h2><p class="muted" style="margin:0 0 14px">${first?'はじめに、暗証番号（数字4けた）を決めてください':'暗証番号（数字4けた）を入れてください'}</p>
+      ${msg?`<div class="alert ${ng?'ng':''}" style="cursor:default">${esc(msg)}</div>`:''}
+      <div class="field"><label for="pin1">${first?'決める暗証番号':'暗証番号'}</label><input id="pin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="${first?'new-password':'current-password'}" style="font-size:28px;letter-spacing:.5em;text-align:center"></div>
+      ${first?'<div class="field"><label for="pin2">もう一度</label><input id="pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" style="font-size:28px;letter-spacing:.5em;text-align:center"></div>':''}
+      <button class="btn primary" style="width:100%" type="submit">${first?'決める':'入る'}</button>
+      <p class="perm-note">${first?'開くたびにこの番号を聞きます。ほかの人に教えないでください。忘れたときは管理者に言うと、決め直せます。':'忘れたときは管理者に言うと、決め直せます。'}</p>
+      <button class="linkbtn" type="button" id="pinOut">ログアウト</button></form></div>`;
+      const f=$('#modalRoot form[data-pin]'), p1=$('#pin1'), p2=$('#pin2'); setTimeout(()=>p1&&p1.focus(),50);
+      $('#pinOut').onclick=async()=>{ await SB.auth.signOut(); location.reload(); };
+      f.onsubmit=async e=>{ e.preventDefault(); const a=String(p1.value||'').normalize('NFKC');
+        if(!/^\d{4}$/.test(a)){ draw('数字4けたで入れてください',true); return; }
+        if(first&&String(p2.value||'').normalize('NFKC')!==a){ draw('2つの番号がちがいます。もう一度入れてください',true); return; }
+        const btn=f.querySelector('button[type=submit]'); btn.disabled=true;
+        const {error}=first?await SB.pin.set(a):await SB.pin.check(a);
+        if(error){ if(error.code==='nopin'){ st.has=false; draw('暗証番号が消されています。新しく決めてください',true); return; } draw(error.message,true); return; }
+        $('#modalRoot').innerHTML=''; done(true); }; };
+    draw(''); }); }
+};
+
+window.addEventListener('rateru-pin-needed', async()=>{ if(PinGate.busy) return; PinGate.busy=true; const st=await PinGate.need(); if(st){ await PinGate.ask(st); location.reload(); } PinGate.busy=false; });
 async function afterLogin(user){
+  { const st=await PinGate.need(); if(st){ PinGate.busy=true; await PinGate.ask(st); PinGate.busy=false; } }
   const {data:prof,error}=await SB.from('profiles').select('*').eq('id',user.id).maybeSingle();
   if(error||!prof){ await SB.auth.signOut(); return showLogin('利用者情報が見つかりません。Rateruの管理者に連絡してください。'); }
   const office=prof.role==='rateru_admin'&&prof.pos==='office';   
@@ -1298,7 +1325,7 @@ const Owner = {
         <div class="tablewrap"><table class="mcards"><thead><tr><th>名前</th><th>入るアドレス</th><th>立場</th><th>最後に入った</th><th></th></tr></thead><tbody>
         ${U.map(u=>`<tr class="${u.disabled?'ng-row':''}"><td data-l="名前"><b>${esc(u.display_name||'')}</b>${u.owner?' <span class="pill info">管理</span>':''}${u.disabled?' <span class="pill ng">止めている</span>':''}</td><td data-l="入るアドレス"><small>${esc(u.google||u.email||'')}</small></td>
           <td data-l="立場"><form class="row own-pre" data-form="ownPreset" data-id="${esc(u.id)}" style="gap:6px;flex-wrap:wrap;min-width:0"><select name="preset" aria-label="立場" style="flex:1 1 150px;min-width:0;max-width:100%">${P.map(([k,l])=>`<option value="${k}" ${this.preLabel(u)===k?'selected':''}>${esc(l)}</option>`).join('')}</select><button class="btn sm" type="submit">変える</button></form></td>
-          <td data-l="最後に入った"><small>${u.last_login?mdhm(u.last_login):'—'}</small></td>
+          <td data-l="最後に入った"><small>${u.last_login?mdhm(u.last_login):'—'}</small><br><small>暗証番号：${u.has_pin?'あり':'まだ'}</small>${u.has_pin&&u.id!==SERVER.user.id?` <button class="btn sm" data-act="ownResetPin" data-id="${esc(u.id)}">暗証番号を消す（決め直し）</button>`:''}</td>
           <td>${u.id===SERVER.user.id?'<small class="muted">自分</small>':`<button class="btn sm ${u.disabled?'':'danger'}" data-act="ownDisable" data-id="${esc(u.id)}" data-off="${u.disabled?'':'1'}">${u.disabled?'利用を戻す':'利用を止める'}</button>`}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">まだいません</td></tr>'}</tbody></table></div>
         <p class="perm-note">立場を変えると、その人は次に開いたときから新しい立場になります。辞めた人などは「利用を止める」で、すぐ入れなくなります（データは残ります）。</p></div>
       <div class="card section mt" id="ownTrials"><h3 style="margin-top:0">お試し版から届いたデータ（まだ ${waitT.length}件）</h3>
@@ -4983,6 +5010,7 @@ document.addEventListener('click', async e=>{
   case 'reloadPage': location.reload(); break;
   case 'ownerReload': Owner.users=null; Approvals.list=null; render(); break;
   case 'ownDisable': Owner.disable(d.id, d.off); break;
+  case 'ownResetPin': { const u=(Owner.users||[]).find(x=>x.id===d.id); confirmBox(`${u?u.display_name:''} さんの暗証番号を消します。次に開いたときに、本人が新しい番号を決めます（中身はだれにも見えません）。`,'消す',async()=>{ const {error}=await SB.owner.resetPin({user_id:d.id}); if(error){ toast(error.message); return; } await Owner.load(); render(); toast('暗証番号を消しました。本人に「開き直して、新しい番号を決めてください」と伝えてください'); }); break; }
   case 'ownTrialMerge': Owner.merge(d.id); break;
   case 'ownTrialDrop': Owner.drop(d.id); break;
   case 'toProd': ProdSwitch.go(); break;
