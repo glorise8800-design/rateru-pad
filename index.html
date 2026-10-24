@@ -363,6 +363,19 @@ td.money,th.money{text-align:right}
   table.mcards td input,table.mcards td select{flex:1;min-width:0;width:auto} table.mcards td:empty{display:none}
   .q-grid1{grid-template-columns:1fr!important} .kpis.money{grid-template-columns:1fr 1fr!important} .kpis.money .num{font-size:20px} .kpis.money .card{padding:10px}
 }    
+ 
+.q-savebar{position:sticky;bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:6;display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;background:var(--panel);border:2px solid var(--line);border-radius:12px;box-shadow:0 -4px 16px rgba(0,0,0,.10)}
+.q-savebar b{font-size:18px} .q-savebar .row{gap:8px;flex-wrap:nowrap}
+body:has(.q-savebar) .to-top{display:none} body:has(.q-savebar) .toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+@media(max-width:640px){
+  .q-cats{flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px} .q-cats .tb{flex:0 0 auto}    
+  table.q-lines.mcards tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:8px}    
+  table.q-lines.mcards td{grid-column:span 3}
+  table.q-lines.mcards td[data-l="数量"],table.q-lines.mcards td[data-l="単位"],table.q-lines.mcards td[data-l="単価"],table.q-lines.mcards td[data-l="原価単価"],table.q-lines.mcards td[data-l="原価"],table.q-lines.mcards td[data-l="利益"]{grid-column:span 1;flex-direction:column;align-items:stretch;gap:2px}
+  table.q-lines.mcards td[data-l="数量"]::before,table.q-lines.mcards td[data-l="単位"]::before,table.q-lines.mcards td[data-l="単価"]::before,table.q-lines.mcards td[data-l="原価単価"]::before,table.q-lines.mcards td[data-l="原価"]::before,table.q-lines.mcards td[data-l="利益"]::before{flex:none}
+  table.q-lines.mcards td input,table.q-lines.mcards td select{width:100%!important;min-width:0!important}
+  table.q-lines.mcards td[data-l="金額"]{font-weight:700}
+}
 .q-items{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px} .q-cats{flex-wrap:wrap} .q-lines input,.q-lines select{width:100%;min-width:70px} .q-lines td{vertical-align:middle}
 .q-tot{min-width:280px} .q-tot th{text-align:left;font-weight:600;padding:4px 10px} .q-tot td{text-align:right;padding:4px 10px} .q-tot .q-sum{font-size:17px;font-weight:800;border-top:2px solid var(--line)}
 .folder{border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
@@ -818,7 +831,7 @@ function renameLegacy(text){
   for(const [from,to] of [[LEGACY+'-v2',STORE_KEY],[LEGACY+'-v2-backup',STORE_KEY+'-backup'],[LEGACY+'-v2-before-sample-cleanup-v1',STORE_KEY+'-before-sample-cleanup-v1']]){
     const v=localStorage.getItem(from); if(v!=null&&localStorage.getItem(to)==null) localStorage.setItem(to, renameLegacy(v));
   } }catch(e){} })();
-const APP_RELEASE='2026-10-23-1', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
+const APP_RELEASE='2026-10-24-1', NOTICE_PREF_KEY='rateru-pad-notice-prefs', RELEASE_KEY='rateru-pad-last-release', DEMO_USER_KEY='rateru-pad-demo-user-selected-v1';
 const NoticePrefs={
   get(){ try{ return JSON.parse(localStorage.getItem(NOTICE_PREF_KEY)||'{}'); }catch(e){ return {}; } },
   set(k,v){ const p=this.get(); p[k]=v; try{ localStorage.setItem(NOTICE_PREF_KEY,JSON.stringify(p)); }catch(e){ toast('通知設定を保存できませんでした'); } },
@@ -1228,7 +1241,7 @@ const Sync = {
 };
 let remoteT;
 window.addEventListener('online', ()=>{ if(MODE==='server'&&Sync.pending) Sync.flush(); });   
-window.addEventListener('beforeunload', e=>{ if(MODE==='server'&&(Sync.pending||Sync.timer||Sync.busy)){ e.preventDefault(); e.returnValue=''; } });   
+window.addEventListener('beforeunload', e=>{ if((MODE==='server'&&(Sync.pending||Sync.timer||Sync.busy))||(typeof Q!=='undefined'&&Q.draft&&Q.dirty)){ e.preventDefault(); e.returnValue=''; } });   
 
 function onRemoteChange(){ clearTimeout(remoteT); remoteT=setTimeout(()=>{ if(Sync.timer||Sync.busy) return onRemoteChange(); if(Sync.pending){ Sync.flush(); return; } if(salesDeputy()) SalesTotals.rows=null; Sync.pull(); }, 700); }
 
@@ -1342,6 +1355,43 @@ function pOwner(){ return Owner.page(); }
 
  
 const PROD_URL = window.RATERU_PROD_URL || 'https://rateru-pad.com';   
+
+const Install = {
+  ev:null,
+  standalone: () => { try{ return matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }catch(e){ return false; } },
+  ios: () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),
+  phone: () => /iPhone|iPad|iPod|Android/.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),
+  inApp: () => /\bLine\/|FBAN|FBAV|Instagram/i.test(navigator.userAgent),   
+  how(){ if(this.standalone()) return '<b>入れてあります</b>。これからはホーム画面の「ラーテルパッド」から開けます。';
+    if(this.inApp()) return 'いまは <b>LINE の中の画面</b>です。右上（または右下）の「︙」→「<b>ブラウザで開く</b>」を押して、Safari か Chrome で開き直してください。そこからホーム画面に入れられます。';
+    if(this.ev) return '<button class="btn primary" data-act="installApp">📱 ホーム画面に入れる</button>';
+    if(this.ios()) return 'Safari の下の <b>［共有］</b>（□から↑が出ているマーク）→ <b>［ホーム画面に追加］</b> → <b>［追加］</b>。';
+    if(/Android/.test(navigator.userAgent)) return 'Chrome の右上の <b>「︙」</b> → <b>［ホーム画面に追加］</b>（または［アプリをインストール］）。';
+    return 'パソコンでは、アドレスバーの右の <b>［インストール］</b>のマークを押すか、ブックマークに入れておくと早く開けます。'; },
+  help(){ openDrawer(`${drawerHead('ホーム画面に入れる')}<p style="margin-top:0">ホーム画面に入れると、アプリのように1回押すだけで開けます（入れなくても、いつものようにブラウザで使えます）。</p>
+    <div class="card" style="padding:12px">${this.how()}</div>
+    <h3>iPhone</h3><p>Safari で開く → 下の［共有］（□から↑）→［ホーム画面に追加］→［追加］</p>
+    <h3>Android</h3><p>Chrome で開く → 右上の「︙」→［ホーム画面に追加］または［アプリをインストール］</p>
+    <h3>LINE から開いたとき</h3><p>LINE の中の画面ではホーム画面に入れられません。右上（または右下）の「︙」→「ブラウザで開く」を押してから入れてください。</p>
+    <p class="perm-note">ホーム画面から開いたときに、もう一度メールの確認コードを聞かれることがあります（最初の1回と、1か月に1回）。そのあとは4桁の暗証番号で開けます。</p>`); },
+  async prompt(){ const e=this.ev; if(!e){ this.help(); return; } this.ev=null; try{ e.prompt(); const r=await e.userChoice; toast(r&&r.outcome==='accepted'?'ホーム画面に入れました':'あとで入れるときは、左のメニューの「ホーム画面に入れる」から'); }catch(err){ this.help(); } render(); }
+};
+if(typeof window!=='undefined') window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); Install.ev=e; try{ if(view.page==='dashboard') render(); }catch(err){} });
+
+const Welcome = {
+  KEY:'rateru-welcome-done',
+  done(){ try{ return localStorage.getItem(this.KEY)==='1'; }catch(e){ return false; } },
+  close(){ try{ localStorage.setItem(this.KEY,'1'); }catch(e){} render(); },
+  card(){ if(MODE!=='server'||this.done()) return ''; const staff=me().role==='rateru_admin';
+    return `<div class="card section welcome" style="border:2px solid var(--accent,#c00);margin-bottom:14px"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px"><h3 style="margin:0">ようこそ。はじめに、これだけしておくと便利です</h3><button class="btn sm" data-act="welcomeClose">閉じる</button></div>
+      <ol class="welcome-steps" style="margin:8px 0 0;padding-left:1.4em;display:grid;gap:10px">
+        <li><b>スマホのホーム画面に入れる</b><br><small>${Install.how()}</small></li>
+        ${staff?`<li><b>お試し版で入れたデータを持ってくる</b>（使っていた人だけ）<br><small>前に使っていたお試し版のページを開くと、一番上に「<b>データを持って本番へ</b>」が出ます。押すと、ここに送られます（管理の人が確かめてから入ります）。</small></li>`:''}
+        <li><b>使い方を見る</b><br><small>左のメニュー（スマホは ☰）の下の「📖 使い方」に、画像つきの説明があります。${staff?'見積は「見積・契約・請求」から作ります。':''}</small></li>
+      </ol><p class="perm-note" style="margin-bottom:0">この案内は「閉じる」を押すと、この端末ではもう出ません。ホーム画面への入れ方は、左のメニューの「📱 ホーム画面に入れる」からいつでも見られます。</p></div>`; },
+  
+  inAppNote(){ return MODE==='server'&&Install.inApp()?`<div class="alert" style="cursor:default;margin-bottom:10px">LINE の中の画面で開いています。右上（または右下）の「︙」→「<b>ブラウザで開く</b>」で開き直すと、ログインが続き、ホーム画面にも入れられます。</div>`:''; }
+};
 const ProdSwitch = {
   on: () => MODE==='demo' && !TRIAL && (window.RATERU_FORCE_SWITCH || /\.github\.io$/.test(location.hostname)),
   banner(){ return this.on()?`<div class="card section prod-switch" style="border:2px solid var(--accent,#c00);margin-bottom:14px"><h3 style="margin-top:0">ラーテルパッドは本番（${esc(PROD_URL.replace('https://',''))}）に切り替わりました</h3>
@@ -1825,7 +1875,7 @@ function render(){
   const fn={owner:pOwner,quotes:pQuotes,customers:pCustomers,dashboard:pDashboard,projects:pProjects,survey:pSurvey,schedule:pSchedule,inspection:pInspection,pipeline:pPipeline,meetings:pMeetings,templates:pTemplates,sales:pSales,docs:pDocs,approvals:pApprovals,chat:pChat,reports:pReports,calendar:pCalendar,client:pClient,partners:pPartners,perms:pPerms,office:pOfficeHome,petty:pPetty,dezura:pDezura,finance:pFinance,dropbox:pDropbox,guest:pGuest,internal:pInternal,settings:pSettings,project:pProject}[view.page]||pDashboard;
   const ae=document.activeElement, keep=(ae&&ae.id&&c.contains(ae))?{id:ae.id,v:ae.value,s:ae.selectionStart,pid:ae.dataset&&ae.dataset.pid}:null;
   
-  const sw=ProdSwitch.banner();
+  const sw=ProdSwitch.banner()+Welcome.inAppNote();
   if(UserLock.needs()){ c.innerHTML=sw+UserLock.gate(); const ul=$('#ul_pin'); if(ul) setTimeout(()=>ul.focus(),30); return; }   
   if(LOCKED_PAGES.has(view.page)&&!view.lockOpen){ c.innerHTML=sw+lockGate(); const pin=$('#lk_pin'); if(pin) setTimeout(()=>pin.focus(),30); return; }
   c.innerHTML=sw+fn();
@@ -1853,7 +1903,7 @@ function renderNav(){
     return (h?`<div class="nav-h">${h}</div>`:'')+vis.map(id=>{ const [,ic,l]=P[id];
     const cu = id==='projects' ? ChatSeen.total() : 0;   
     const b = id==='dashboard'&&active ? `<span class="badge">${active}</span>` : id==='approvals'&&pend ? `<span class="badge">${pend}</span>` : cu ? `<span class="badge" title="未読のメッセージ">${cu}</span>` : '';
-    return `<button data-act="nav" data-page="${id}" data-menu="1" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('') + ((TRIAL||me().role!=='rateru_admin')?'':`<div class="nav-h">ヘルプ</div><a class="nav-help" href="manual.html" target="_blank" rel="noopener"><span>📖　使い方</span></a>`);   
+    return `<button data-act="nav" data-page="${id}" data-menu="1" class="${cur===id?'active':''}"><span>${ic}　${label(id,l)}</span>${b}</button>`; }).join(''); }).join('') + ((TRIAL||me().role!=='rateru_admin')?'':`<div class="nav-h">ヘルプ</div><a class="nav-help" href="manual.html" target="_blank" rel="noopener"><span>📖　使い方</span></a>${MODE==='server'?'<a class="nav-help" role="button" tabindex="0" data-act="installHelp" style="cursor:pointer"><span>📱　ホーム画面に入れる</span></a>':''}`);   
   const favs=Favs.get(), act=visibleProjects().filter(p=>p.status!=='done').sort((a,b)=>(favs.has(b.id)-favs.has(a.id)));
   $('#sideProjects').innerHTML=`<h4>進行中案件</h4>${act.slice(0,12).map(p=>`<button data-act="open" data-pid="${p.id}" title="${esc(p.name)}">${favs.has(p.id)?'★ ':''}${esc(p.name)}</button>`).join('')||'<small style="padding:0 12px">ありません</small>'}`;
   $('#sideFoot').textContent = MODE==='server' ? (CFG().localServer?`社内サーバー版 ${APP_RELEASE}`:'v0.3 サーバー版') : (TRIAL?'v0.3 試運転版（この端末に保存）':`お試し版 ${APP_RELEASE}（この端末に保存）`);
@@ -1972,7 +2022,7 @@ function pDashboard(){
   const acts=S.activity.filter(a=>!a.pid||ids.has(a.pid)).slice(0,8);
   const kpi=(label,num,sub,act)=>`<button class="card kpi" data-act="kpi" data-status="${act}"><div class="label">${label}</div><div class="num">${num}</div><div class="sub">${sub}</div></button>`;
   const rows=filteredProjects().filter(p=>p.status!=='done');
-  return `${Approvals.alert()}${demoEntryCard()}${trialNotice()}${todayCard()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
+  return `${Approvals.alert()}${Welcome.card()}${demoEntryCard()}${trialNotice()}${todayCard()}${pipeSummary()}${MODE==='demo'&&!TRIAL&&!S.sampleKeep&&Samples.has(S)?`<div class="card section" style="border-color:var(--warn,#d9a400);margin-bottom:14px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:10px"><div><b>見本（世田谷 戸建A・横浜 マンションB など）が残っています</b><br><small class="muted">本番に引き継ぐのは、あなたが入れた内容だけです。見本は消してから使ってください。</small></div><button class="btn primary" data-act="clearSamples">見本を消す</button></div></div>`:''}<div class="hero"><div><h2>施工ダッシュボード</h2><p>元請側は「今どうなっているか」を確認。Rateru側は「次に何が必要か」を管理。</p></div>
     <div class="acts"><button class="btn primary" data-act="nav" data-page="projects">案件を見る</button></div></div>
   ${noProj?`<div class="card section"><p style="margin:0">施工管理の案件（元請・協力業者と一緒に使う案件）は、まだありません。<br>図面・資料、現調・採寸、工程、チャット、日報は、それぞれの画面で<b>案件進捗の案件を選んで</b>始められます。</p></div>`:`<div class="kpis">
     ${kpi('進行中案件',ps.filter(p=>p.status!=='done').length,`全${ps.length}件`,'')}
@@ -4349,10 +4399,10 @@ const Q = {
     ['name','rep','zip','address','tel','fax','regNo','bank'].forEach(n=>c[n]=String(v[n]||'').trim());
     const old=c.banks||[]; c.banks=old.map((b,i)=>v['ba_bank_'+i]==null?b:{...b, label:String(v['ba_label_'+i]||'').trim(), bank:String(v['ba_bank_'+i]||'').trim(), branch:String(v['ba_branch_'+i]||'').trim(), type:v['ba_type_'+i]||'普通', number:String(v['ba_number_'+i]||'').normalize('NFKC').replace(/[^\d]/g,''), holder:String(v['ba_holder_'+i]||'').trim(), def:String(v.ba_def)===String(i)});
     if(c.banks.length&&!c.banks.some(b=>b.def)) c.banks[0].def=true; return c; },
-  newQuote(pipeId){ const p=(S.pipeline||[]).find(x=>x.id===pipeId); this.draftCost={};
+  newQuote(pipeId){ const p=(S.pipeline||[]).find(x=>x.id===pipeId); this.draftCost={}; this.dirty=false;
     this.draft={id:'', no:this.nextNo('Q',S.quotes||[]), date:todayISO(), status:'作成中', customer:p?.customer||'', pipeId:p?.id||'', title:p?.name||'', site:p?.address||'', valid:'作成日から30日間', term:'お打ち合わせにて', pay:'お打ち合わせにて', note:'電気・水道の手配はお客様の方で、手配をお願い致します。\n見積項目以外は含まれておりません。', layout:'detail', lines:[], discount:0, tax:Q_TAX, owner:(p&&salesOwner(p))||(SALES_STAFF.includes(mySalesOwner())?mySalesOwner():''), invoices:[]};
     this.tab='edit'; go('quotes'); },
-  open(id){ const q=(S.quotes||[]).find(x=>x.id===id); if(!this.canView(q)){ toast('この見積を開く権限がありません'); return; } this.draft=JSON.parse(JSON.stringify(q)); this.draftCost=this.savedCosts(q.id); this.tab='edit'; go('quotes'); },
+  open(id){ const q=(S.quotes||[]).find(x=>x.id===id); if(!this.canView(q)){ toast('この見積を開く権限がありません'); return; } this.dirty=false; this.draft=JSON.parse(JSON.stringify(q)); this.draftCost=this.savedCosts(q.id); this.tab='edit'; go('quotes'); },
   
   readForm(){ const d=this.draft; if(!d) return; document.querySelectorAll('[data-qf]').forEach(el=>{ d[el.dataset.qf]=el.value; });
     const pick=$('#fm_qcustPick'); if(pick) d.customer=pick.value==='__new'?($('#fm_qcustNew')?.value||'').trim():pick.value;
@@ -4370,8 +4420,12 @@ const Q = {
       S.qcosts=S.qcosts||[]; const e=S.qcosts.find(x=>x.quoteId===d.id);
       if(e){ e.costs=keep; e.at=nowISO(); e.by=myLabel(); } else if(Object.keys(keep).length) S.qcosts.push({id:'qc_'+d.id, quoteId:d.id, costs:keep, at:nowISO(), by:myLabel()}); }
     let learned=0; d.lines.forEach(l=>{ const it=this.items().find(x=>x.name===l.name&&(x.spec||'')===(l.spec||'')); if(it&&(it.price===''||it.price==null)&&Number(l.price)>0){ it.price=Math.round(+l.price); learned++; } });   
-    save(); toast(learned?`見積を保存しました（品目の単価を ${learned}件 覚えました）`:'見積を保存しました'); return true; },
-  addLine(it){ this.readForm(); this.draft.lines.push({lid:uid('ql'), cat:it?.cat||this.cat||'雑工事・その他', name:it?.name||'', spec:it?.spec||'', qty:1, unit:it?.unit||'式', price:it?.price??''}); render(); },
+    this.dirty=false; save(); toast(learned?`見積を保存しました（品目の単価を ${learned}件 覚えました）`:'見積を保存しました'); return true; },
+  addLine(it){ this.readForm(); this.dirty=true; this.draft.lines.push({lid:uid('ql'), cat:it?.cat||this.cat||'雑工事・その他', name:it?.name||'', spec:it?.spec||'', qty:1, unit:it?.unit||'式', price:it?.price??''}); render();
+    toast(`${it?.name?`「${it.name}」を`:'1行を'}明細に足しました（${this.draft.lines.length}行目）`); },   
+  
+  leave(fn){ if(this.draft&&this.dirty&&this.canEditQ(this.draft)) confirmBox('保存していない変更があります。保存せずに一覧へ戻りますか？（残すときは「やめる」を押して、下の「保存」を押してください）','保存せずに戻る',()=>{ this.dirty=false; fn(); }); else fn(); },
+  saveBar(d){ const c=this.calc(d); return `<div class="q-savebar" id="qSaveBar"><div><small class="muted">合計（税込）</small> <b id="qSaveTot">${yen(c.total)}</b> <small class="muted" id="qSaveRows">明細 ${d.lines.length}行</small></div><div class="row"><button class="btn" data-act="q_back">一覧へ戻る</button><button class="btn primary" data-act="q_save">保存</button></div></div>`; },
   totalsHtml(q){ const c=this.calc(q); return `<table class="q-tot"><tr><th>小計</th><td>${yen(c.sub)}</td></tr><tr><th>値引き</th><td>${c.disc?'−'+yen(c.disc):'—'}</td></tr><tr><th>消費税（${q.tax??Q_TAX}%）</th><td>${yen(c.tax)}</td></tr><tr class="q-sum"><th>合計（税込）</th><td>${yen(c.total)}</td></tr></table>`; },
   editor(){ const d=this.draft, items=normQ(this.itemQ)?this.items().filter(x=>hasQ([x.name,x.spec,x.cat].join(' '),this.itemQ)):this.items().filter(x=>x.cat===this.cat), pipes=(S.pipeline||[]).filter(p=>salesAll()||salesOwner(p)===mySalesOwner());
     const f=(l,k,t='text',x='')=>`<div class="field"><label for="qf_${k}">${l}</label><input id="qf_${k}" data-qf="${k}" type="${t}" value="${esc(d[k]??'')}" ${x}></div>`;
@@ -4410,7 +4464,7 @@ const Q = {
         ${d.id?'<button class="btn danger" data-act="q_del">この見積を消す</button>':''}</div>
         ${(d.invoices||[]).length?`<h4 class="perm-cat">作った請求書</h4>${d.invoices.map(v=>`<div class="rel"><button class="linkbtn" data-act="q_printInv" data-id="${esc(v.id)}">🧾 ${esc(v.no)}　${yen(v.amount)}</button><button class="btn sm" data-act="q_invEdit" data-id="${esc(v.id)}">直す</button><small>${md(v.date)} 発行・支払期限 ${md(v.due)}${v.saleId?' ・ 売上管理に登録済み':''}</small></div>`).join('')}`:''}
         ${canFinance()&&d.id?(()=>{ const os=(S.orders||[]).filter(o=>o.quoteId===d.id); return os.length?`<h4 class="perm-cat">作った発注書（川端・舟田・向だけに見えます）</h4>${os.map(o=>`<div class="rel"><button class="linkbtn" data-act="q_printOrder" data-id="${esc(o.id)}">📦 ${esc(o.no)}　${esc(o.vendor)}　${yen(this.calc(o).total)}</button><button class="btn sm" data-act="q_orderEdit" data-id="${esc(o.id)}">直す</button><small>${md(o.date)}</small></div>`).join('')}`:''; })():''}
-        <p class="perm-note">契約書の文面は、使う前に会社で内容を確かめてください。会社名・住所・振込先は「会社の情報」タブで入れます。</p></div>`; },
+        <p class="perm-note">契約書の文面は、使う前に会社で内容を確かめてください。会社名・住所・振込先は「会社の情報」タブで入れます。</p></div>${this.canEditQ(d)?this.saveBar(d):''}`; },
   page(){
     const tabs=`<div class="tabs-bar" role="tablist">${[['list','見積の一覧'],['cust','顧客の一覧'],['items','品目の一覧'],['company','会社の情報']].map(([k,l])=>`<button class="tb ${this.tab===k||(k==='list'&&this.tab==='edit')?'on':''}" data-act="q_tab" data-t="${k}">${l}</button>`).join('')}</div>`;
     if(this.tab==='edit'&&this.draft) return tabs+this.editor();
@@ -4418,7 +4472,7 @@ const Q = {
     if(this.tab==='items') return tabs+this.itemsPage();
     if(this.tab==='company') return tabs+this.companyPage();
     const L0=this.list(), L=L0.filter(q=>hasQ([q.no,q.title,q.customer,q.site,q.owner].join(' '),this.listQ)&&(!this.listSt||q.status===this.listSt));   
-    return tabs+`<div class="hero"><div><h2>見積・契約・請求</h2><p>見積書を作って、同じ内容から契約書・請求書${canFinance()?'・発注書':''}を作ります。見られるのは自分が売上責任者の見積だけです（川端さん・舟田さん・向さんは全部）。</p></div><div class="acts"><button class="btn primary" data-act="q_new">＋ 見積書を作る</button></div></div>
+    return tabs+`<div class="hero"><div><h2>見積・契約・請求</h2><p>見積書を作って、同じ内容から契約書・請求書${canFinance()?'・発注書':''}を作ります。見積は社内の全員が見られます。直せるのは売上責任者と、川端さん・舟田さん・向さんです。前の見積と似ているときは「写して作る」が早いです。</p></div><div class="acts"><button class="btn primary" data-act="q_new">＋ 見積書を作る</button></div></div>
       <div class="card section">${L0.length>3?`<div class="toolbar" style="margin-bottom:8px"><input class="search" id="q_listQ" autocomplete="off" placeholder="見積番号・工事名・顧客で探す" aria-label="見積を探す" value="${esc(this.listQ||'')}"><select data-act="q_listSt" aria-label="状態で絞る"><option value="">状態：すべて</option>${Q_STATUS.map(s=>`<option ${s===this.listSt?'selected':''}>${esc(s)}</option>`).join('')}</select>${L.length!==L0.length?`<small class="muted">${L0.length}件のうち ${L.length}件</small>`:''}</div>`:''}${L.length?`<div class="tablewrap"><table><thead><tr><th>見積番号</th><th>日付</th><th>顧客</th><th>工事名</th><th>責任者</th><th>状態</th><th style="text-align:right">合計（税込）</th><th></th></tr></thead><tbody>${L.map(q=>`<tr class="clickable" data-act="q_open" data-id="${esc(q.id)}"><td>${esc(q.no)}</td><td>${md(q.date)}</td><td>${esc(q.customer)}</td><td>${esc(q.title)}</td><td>${esc(q.owner||'')}</td><td>${esc(q.status)}${this.waitDays(q)>=14?` <span class="pill wait">${this.waitDays(q)}日 返事なし</span>`:''}</td><td class="money">${yen(this.calc(q).total)}</td><td><button class="btn sm" data-act="q_copy" data-id="${esc(q.id)}">写して作る</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">まだ見積書はありません。「＋ 見積書を作る」から始めます。</div>'}</div>`; },
   custPage(){ const names0=this.custNames(), P=S.pipeline||[], QL=this.list(), cq=this.custQ||'';
     const names=names0.filter(n=>{ const c=this.cust(n)||{}; return !normQ(cq)||hasQ([n,c.address,c.phone,c.contact,c.email].join(' '),cq); });   
@@ -4548,11 +4602,12 @@ const Q = {
     const lb=document.querySelector('label[for="qf_pipeId"]'); if(lb) lb.textContent=`案件（${t?'見つかった '+n+'件':n+'件'}）`; },
   input(el){ const d=this.draft; if(!d) return;
     if(el.id==='q_pipeSearch'){ this.filterCases(el.value); return; }
+    this.dirty=true;
     if(el.dataset.qc!=null){ (this.draftCost=this.draftCost||{})[el.dataset.qc]=el.value; this.costRefresh(+el.dataset.i); return; }
     if(el.dataset.ql!=null){ const l=d.lines[+el.dataset.ql]; if(!l) return; l[el.dataset.f]=el.value; const a=$('#ql_amt_'+el.dataset.ql); if(a) a.textContent=yen(Math.round(toNum(l.qty)*toNum(l.price))); this.costRefresh(+el.dataset.ql); }
     else if(el.dataset.qf==='pipeId'){ if(d.pipeId!==el.value) this.pickCase(el.value); return; }
     else if(el.dataset.qf){ d[el.dataset.qf]=el.value; }
-    const t=$('#qTotals'); if(t) t.innerHTML=this.totalsHtml(d); this.costRefresh(-1); },
+    const t=$('#qTotals'); if(t) t.innerHTML=this.totalsHtml(d); const st=$('#qSaveTot'); if(st) st.textContent=yen(this.calc(d).total); this.costRefresh(-1); },
   costCell(l){ const uc=(this.draftCost||{})[this.lidOf(l)], amt=Math.round(toNum(l.qty)*toNum(l.price)); if(uc===''||uc==null||!isFinite(+uc)) return {cost:'—',profit:'—'};
     const cost=Math.round(toNum(l.qty)*toNum(uc)), pr=amt-cost; return {cost:yen(cost), profit:`<span class="${pr<0?'ng':''}">${yen(pr)}</span><small>（${this.pct(pr,amt)}）</small>`}; },
   costRefresh(i){ if(!this.draft||!this.canCost(this.draft)) return; const l=this.draft.lines[i];   
@@ -4562,21 +4617,21 @@ const Q = {
     if(a==='q_custPipe'){ Pipe.f.q=d.name||''; go('pipeline'); return; }
     if(a==='q_custNewPipe'){ const c=this.cust(d.name)||{}; go('pipeline'); Pipe.form(null,{customer:d.name||'', phone:c.phone||'', billing:c.billing||''}); return; }
     if(a==='q_custQuotes'){ this.listQ=d.name||''; this.listSt=''; this.draft=null; this.tab='list'; go('quotes'); return; }
-    if(a==='q_tab'){ if(this.tab==='edit'&&d.t==='list'){ this.draft=null; } this.tab=d.t; render(); return; }
+    if(a==='q_tab'){ if(this.tab==='edit'&&this.draft) this.readForm(); if(this.tab==='edit'&&d.t==='list'&&this.draft) return this.leave(()=>{ this.draft=null; this.tab='list'; render(); }); this.tab=d.t; render(); return; }
     if(a==='q_new'){ this.newQuote(''); return; }
     if(a==='q_newFor'){ closeDrawer(); this.newQuote(d.pipe); return; }
     if(a==='q_open'){ closeDrawer(); this.open(d.id); return; }
     if(a==='q_newCase'){ this.caseForm(); return; }
-    if(a==='q_copy'){ const q=(S.quotes||[]).find(x=>x.id===d.id); if(!this.canView(q)) return; this.draft={...JSON.parse(JSON.stringify(q)), id:'', no:this.nextNo('Q',S.quotes||[]), date:todayISO(), status:'作成中', invoices:[]}; this.draftCost=this.savedCosts(q.id); this.tab='edit'; go('quotes'); toast('前の見積を写しました。案件や数量を直して保存してください'); return; }
-    if(a==='q_back'){ this.draft=null; this.tab='list'; render(); return; }
+    if(a==='q_copy'){ const q=(S.quotes||[]).find(x=>x.id===d.id); if(!this.canView(q)) return; this.dirty=true; this.draft={...JSON.parse(JSON.stringify(q)), id:'', no:this.nextNo('Q',S.quotes||[]), date:todayISO(), status:'作成中', invoices:[]}; this.draftCost=this.savedCosts(q.id); this.tab='edit'; go('quotes'); toast('前の見積を写しました。案件や数量を直して保存してください'); return; }
+    if(a==='q_back'){ this.readForm(); return this.leave(()=>{ this.draft=null; this.tab='list'; render(); }); }
     if(a==='q_save'){ if(this.save()) render(); return; }
     if(a==='q_cat'){ if(this.tab==='edit') this.readForm(); this.cat=d.c; render(); return; }
     if(a==='q_addItem'){ this.addLine(this.items().find(x=>x.id===d.id)); return; }
     if(a==='q_addLine'){ this.addLine(null); return; }
-    if(a==='q_delLine'){ this.readForm(); this.draft.lines.splice(+d.i,1); render(); return; }
+    if(a==='q_delLine'){ this.readForm(); this.dirty=true; this.draft.lines.splice(+d.i,1); render(); return; }
     
-    if(a==='q_lineMove'){ this.readForm(); const L=this.draft.lines, i=+d.i, j=i+Number(d.d); if(j<0||j>=L.length) return; [L[i],L[j]]=[L[j],L[i]]; render(); return; }
-    if(a==='q_lineCopy'){ this.readForm(); const L=this.draft.lines, i=+d.i, o=L[i], n=JSON.parse(JSON.stringify(o)); n.lid=uid('ql'); const dc=this.draftCost=this.draftCost||{}; if(dc[this.lidOf(o)]!=null) dc[n.lid]=dc[o.lid]; L.splice(i+1,0,n); render(); toast('行を写しました（すぐ下に入りました）'); return; }
+    if(a==='q_lineMove'){ this.readForm(); this.dirty=true; const L=this.draft.lines, i=+d.i, j=i+Number(d.d); if(j<0||j>=L.length) return; [L[i],L[j]]=[L[j],L[i]]; render(); return; }
+    if(a==='q_lineCopy'){ this.readForm(); this.dirty=true; const L=this.draft.lines, i=+d.i, o=L[i], n=JSON.parse(JSON.stringify(o)); n.lid=uid('ql'); const dc=this.draftCost=this.draftCost||{}; if(dc[this.lidOf(o)]!=null) dc[n.lid]=dc[o.lid]; L.splice(i+1,0,n); render(); toast('行を写しました（すぐ下に入りました）'); return; }
     
     if(a==='q_costOk'){ if(!this.draft||!this.canCost(this.draft)) return; this.readForm(); if(!this.save()) return; const q=this.draft, k=this.costCalc(q); if(!k.fixed){ toast('原価が入っていない行があります'); return; }
       S.qcosts=S.qcosts||[]; let e=S.qcosts.find(x=>x.quoteId===q.id); if(!e){ e={id:'qc_'+q.id, quoteId:q.id, costs:{...(this.draftCost||{})}}; S.qcosts.push(e); }
@@ -5014,6 +5069,9 @@ document.addEventListener('click', async e=>{
   case 'ownTrialMerge': Owner.merge(d.id); break;
   case 'ownTrialDrop': Owner.drop(d.id); break;
   case 'toProd': ProdSwitch.go(); break;
+  case 'installHelp': closeSidebar(); Install.help(); break;
+  case 'installApp': Install.prompt(); break;
+  case 'welcomeClose': Welcome.close(); break;
   case 'toProdFile': ProdSwitch.file(); break;
   case 'apprReload': Approvals.list=null; render(); break;
   case 'apprReject': Approvals.reject(d.email); break;
